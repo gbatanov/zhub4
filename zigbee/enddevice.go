@@ -1,3 +1,5 @@
+// GSB, 2023
+// gbatanov@yandex.ru
 package zigbee
 
 import (
@@ -124,6 +126,7 @@ type EndDevice struct {
 	humidity        int8
 	luminocity      int8 // high/low 1/0
 	pressure        float32
+	motionState     int8
 }
 
 func EndDeviceCreate(macAddress uint64, shortAddress uint16) *EndDevice {
@@ -142,6 +145,7 @@ func EndDeviceCreate(macAddress uint64, shortAddress uint16) *EndDevice {
 	ed.humidity = -100
 	ed.luminocity = -100
 	ed.pressure = -100
+	ed.motionState = -1
 
 	return &ed
 }
@@ -192,6 +196,9 @@ func (ed *EndDevice) set_temperature(value int8) {
 func (ed *EndDevice) set_luminocity(value int8) {
 	ed.luminocity = value
 }
+func (ed *EndDevice) get_luminocity() int8 {
+	return ed.luminocity
+}
 func (ed *EndDevice) set_humidity(value int8) {
 	ed.humidity = value
 }
@@ -221,4 +228,12 @@ func (ed EndDevice) get_current_state(channel uint8) string {
 		return ed.state2
 	}
 	return "Unknown"
+}
+func (ed EndDevice) get_motion_state() int8 {
+	return ed.motionState
+}
+func (ed EndDevice) set_motion_state(state uint8) {
+	if state == 0 || state == 1 {
+		ed.motionState = int8(state)
+	}
 }

@@ -599,7 +599,7 @@ func (zdo Zdo) bind(shortAddress uint16, macAddress uint64, endpoint uint8, clus
 
 // handler the particular command
 func (zdo *Zdo) handle_command(command Command) {
-	log.Printf("input_command cmd.id: 0x%04x %s Payload[0]=0x%02x \n", uint16(command.Id), command.Id.String(), command.Payload[0])
+	log.Printf("input_command cmd.id: 0x%04x %s \n", uint16(command.Id), command.Id.String())
 	switch command.Id {
 	case AF_INCOMING_MSG: // 0x4481
 		if !zdo.isReady {
@@ -620,7 +620,7 @@ func (zdo *Zdo) handle_command(command Command) {
 		log.Printf("Coordinator permit for %d seconds \n", command.Payload[0])
 
 	case ZDO_END_DEVICE_ANNCE_IND: //  0x45c1
-		fmt.Printf("ZDO_END_DEVICE_ANNCE_IND: payload len = %d", command.Payload_size())
+		fmt.Printf("ZDO_END_DEVICE_ANNCE_IND: payload len = %d, payload:  ", command.Payload_size())
 		for i := 0; i < int(command.Payload_size()); i++ {
 			fmt.Printf("0x%02x ", command.Payload[i])
 		}

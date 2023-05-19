@@ -1,3 +1,5 @@
+// GSB, 2023
+// gbatanov@yandex.ru
 package zigbee
 
 import (
@@ -9,7 +11,133 @@ import (
 
 // scenarios
 func (c *Controller) handle_motion(ed *EndDevice, cmd uint8) {
+	fmt.Println("handle_motion")
 
+	state := "No motion"
+	cur_motion := ed.get_motion_state()
+	// Fix the last activity of the motion sensor
+	// We fix in the activity only the activation of the sensor
+	// Since the motion sensor is also in custom, which send messages periodically,
+	// need to check the current state and commit the change
+	// turn on something for movement and set a sign that there is someone in the house for the water shutdown algorithm in case of power failure
+	if int8(cmd) != cur_motion {
+		if cmd == 1 {
+			ts := time.Now() // get time now
+			c.set_last_motion_sensor_activity(ts)
+			ed.set_last_action(ts)
+		}
+	}
+	ed.set_motion_state(cmd) // numeric value
+	if cmd == 1 {
+		state = "Motion"
+	}
+	ed.set_current_state(state, 1) // text value
+
+	macAddress := ed.macAddress
+
+	if macAddress == 0x00124b0025137475 { //Sonoff motion sensor 1 (coridor)
+		lum := int8(-1)
+
+		//  on/off  light in coridor 0x54ef4410001933d3
+		//  works in couple with custom2
+		custom2 := c.get_device_by_mac(0x00124b0014db2724)
+		if custom2.shortAddress > 0 {
+			lum = custom2.get_luminocity()
+		}
+		log.Printf("Motion sensor in coridor. cmd = %d, lum = %d\n", cmd, lum)
+		if cmd == 1 {
+			if lum != 1 {
+				log.Printf("Motion sensor in coridor. Turn on light relay. \n")
+				c.switch_relay(0x54ef4410001933d3, 1, 1)
+			}
+		} else if cmd == 0 {
+			if custom2.shortAddress > 0 {
+				cur_motion = custom2.get_motion_state()
+			}
+			if 1 != cur_motion {
+				log.Printf("Motion sensor in coridor. Turn off light relay. \n")
+				c.switch_relay(0x54ef4410001933d3, 0, 1)
+			}
+		}
+	} else if macAddress == 0x00124b0014db2724 {
+		// motion sensor in custom2 (hallway)
+		// it is necessary to take into account the illumination when turned on and the state of the motion sensor in the corridor
+		lum := ed.get_luminocity()
+		log.Printf("Motion sensor in custom2. cmd = %d, lum = %d\n", cmd, lum)
+
+		relay := c.get_device_by_mac(0x54ef4410001933d3)
+		relayCurrentState := relay.get_current_state(1)
+
+		if cmd == 1 && relayCurrentState != "On" {
+			// since the sensor sometimes falsely triggers, we ignore its triggering at night
+			h, _, _ := time.Now().Clock()
+			if h > 7 && h < 23 {
+				if lum != 1 {
+					log.Printf("Motion sensor in hallway. Turn on light relay. \n")
+					c.switch_relay(0x54ef4410001933d3, 1, 1)
+				}
+			}
+		} else if cmd == 0 && relayCurrentState != "Off" {
+			motion1 := c.get_device_by_mac(0x00124b0025137475)
+			if motion1.shortAddress > 0 {
+				cur_motion = motion1.get_motion_state()
+			}
+			if cur_motion != 1 {
+				log.Printf("Motion sensor in hallway. Turn off light relay. \n")
+				c.switch_relay(0x54ef4410001933d3, 0, 1)
+			}
+		}
+	} else if macAddress == 0x00124b0009451438 {
+		relay := c.get_device_by_mac(0x00158d0009414d7e)
+		relayCurrentState := relay.get_current_state(1)
+		// presence sensor 1, on/off light in kitchen - relay 7 endpoint 1
+		if cmd == 1 && relayCurrentState != "On" {
+			log.Printf("Turn on light in kitchen")
+			c.switch_relay(0x00158d0009414d7e, 1, 1)
+		} else if cmd == 0 && relayCurrentState != "Off" {
+			log.Printf("Turn off light in kitchen")
+			c.switch_relay(0x00158d0009414d7e, 0, 1)
+		}
+	} else if macAddress == 0x00124b002444d159 {
+		// motion sensor 3, children room
+		fmt.Print("Motion3 ")
+		if cmd == 1 {
+			fmt.Println("On")
+		} else {
+			fmt.Println("Off")
+		}
+	} else if macAddress == 0x00124b0024455048 {
+		// motion sensor 2 (bedroom)
+		fmt.Print("Motion2 ")
+		if cmd == 1 {
+			fmt.Println("On")
+		} else {
+			fmt.Println("Off")
+		}
+	} else if macAddress == 0x0c4314fffe17d8a8 {
+		// IKEA motion sensor
+		fmt.Print("IKEA motion sensor ")
+		if cmd == 1 {
+			fmt.Println("On")
+		} else {
+			fmt.Println("Off")
+		}
+		// switch off by timer (in test variant)
+		if cmd == 1 {
+			go func() {
+				time.Sleep(30 * time.Second)
+				c.handle_motion(ed, 0)
+			}()
+		}
+	} else if macAddress == 0x00124b0007246963 {
+		// motion sensor in Custom3(children room)
+		fmt.Print("motion sensor in Custom3(children room) ")
+		if cmd == 1 {
+			fmt.Println("On")
+		} else {
+			fmt.Println("Off")
+		}
+	}
 }
 
 // 0x01 On
@@ -73,13 +201,9 @@ func (c *Controller) level_command(ed *EndDevice, message Message) {
 	ts := time.Now() // get time now
 	ed.set_last_action(ts)
 
-	cmd1 := uint8(0)
-	if len(message.zclFrame.Payload) > 0 {
-		cmd1 = message.zclFrame.Payload[0]
-	}
 	cmd := message.zclFrame.Command // 5 - Hold+, 7 - button realised, 1 - Hold-
 
-	log.Printf("IKEA button level command: %d %d \n", cmd1, cmd)
+	log.Printf("IKEA button level command: 0x%0x \n", cmd)
 
 	switch cmd {
 	case 1: // Hold

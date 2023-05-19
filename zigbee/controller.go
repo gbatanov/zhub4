@@ -19,6 +19,7 @@ type Controller struct {
 	msgChan            chan Command   // chanel for receive incoming message command from zdo
 	joinChan           chan []byte    // chanel for receive command join device from zdo
 	motionMsgChan      chan MotionMsg // chanel for get message from motion sensors
+	lastMotion         time.Time      // last motion any motion sensor
 	smartPlugTS        time.Time      // timestamp for smart plug timer
 	switchOffTS        time.Time      // timestamp for switch off timer
 	mapFileMutex       sync.Mutex
@@ -49,6 +50,7 @@ func controllerCreate(Ports map[string]string, Os string, mode string) (*Control
 		msgChan:            chn1,
 		joinChan:           chn2,
 		motionMsgChan:      chn3,
+		lastMotion:         time.Time{},
 		smartPlugTS:        ts,
 		switchOffTS:        ts,
 		mapFileMutex:       sync.Mutex{}}
@@ -155,6 +157,7 @@ func (c *Controller) on_message() {
 }
 
 func (c *Controller) write_map_to_file() error {
+	log.Println("write_map_to_file")
 	m := sync.Mutex{}
 	m.Lock()
 	defer m.Unlock()
@@ -168,6 +171,7 @@ func (c *Controller) write_map_to_file() error {
 	} else {
 		for a, b := range c.devicessAddressMap {
 			fmt.Fprintf(fd, "%04x %016x\n", a, b)
+			fmt.Printf("%04x %016x\n", a, b)
 		}
 		fd.Sync()
 		fd.Close()
@@ -235,8 +239,7 @@ func (c *Controller) on_join() {
 			_, keyExists := c.devices[macAddress]
 			if keyExists {
 				// device exists, check shortAddr
-				ed := c.devices[macAddress]
-				_, keyExists := c.devicessAddressMap[ed.shortAddress]
+				_, keyExists := c.devicessAddressMap[shortAddress]
 				if keyExists {
 					// self rejoin
 					return
@@ -408,15 +411,14 @@ func (c *Controller) message_handler(command Command) {
 	now := time.Now()
 	ed.set_last_seen(now)
 
+	withStatus := (message.cluster != zcl.ANALOG_INPUT &&
+		message.cluster != zcl.XIAOMI_SWITCH &&
+		message.zclFrame.Command != uint8(zcl.REPORT_ATTRIBUTES))
+
 	// commands requiring attribute parsing
-	if ((message.zclFrame.Command == uint8(zcl.READ_ATTRIBUTES_RESPONSE) ||
-		message.zclFrame.Command == uint8(zcl.REPORT_ATTRIBUTES)) && message.cluster != zcl.ON_OFF) ||
+	if ((message.zclFrame.Command == uint8(zcl.READ_ATTRIBUTES_RESPONSE) || message.zclFrame.Command == uint8(zcl.REPORT_ATTRIBUTES)) && message.cluster != zcl.ON_OFF && message.cluster != zcl.LEVEL_CONTROL) ||
 		(message.zclFrame.Command == uint8(zcl.REPORT_ATTRIBUTES) && message.cluster == zcl.ON_OFF) ||
-		(message.zclFrame.Command == uint8(zcl.READ_ATTRIBUTES_RESPONSE) &&
-			message.cluster == zcl.Cluster(zcl.ON_OFF) && len(message.zclFrame.Payload) > 0) {
-		withStatus := (message.cluster != zcl.ANALOG_INPUT &&
-			message.cluster != zcl.XIAOMI_SWITCH &&
-			message.zclFrame.Command != uint8(zcl.REPORT_ATTRIBUTES))
+		(message.zclFrame.Command == uint8(zcl.READ_ATTRIBUTES_RESPONSE) && message.cluster == zcl.ON_OFF && len(message.zclFrame.Payload) > 0) {
 
 		if len(message.zclFrame.Payload) > 0 {
 			attributes := parse_attributes_payload(message.zclFrame.Payload, withStatus)
@@ -628,6 +630,13 @@ func (c *Controller) configureReporting(address uint16,
 
 	return c.zdo.send_message(endpoint, cluster, frame, 3*time.Second)
 }
+
+func (c *Controller) set_last_motion_sensor_activity(lastTime time.Time) {
+	if lastTime.Compare(c.lastMotion) > 0 {
+		c.lastMotion = lastTime
+	}
+}
+func (c *Controller) get_last_motion_sensor_activity() time.Time { return c.lastMotion }
 
 func Mapkey(m map[uint16]uint64, value uint64) (key uint16, ok bool) {
 	for k, v := range m {
