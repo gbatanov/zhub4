@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"examples/comport/zigbee"
 	"fmt"
 	"log"
 	"log/syslog"
@@ -11,11 +10,12 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"zhub4/zigbee"
 
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.5.31"
+const Version string = "v0.1.1"
 
 var Os string = ""
 var Flag bool = true

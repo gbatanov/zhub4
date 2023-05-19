@@ -3,11 +3,11 @@ package zigbee
 import (
 	"encoding/binary"
 	"errors"
-	"examples/comport/serial3"
-	"examples/comport/zigbee/zcl"
 	"fmt"
 	"log"
 	"time"
+	"zhub4/serial3"
+	"zhub4/zigbee/zcl"
 )
 
 type SimpleDescriptor struct {

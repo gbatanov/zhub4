@@ -2,12 +2,12 @@ package zigbee
 
 import (
 	"encoding/binary"
-	"examples/comport/zigbee/zcl"
 	"fmt"
 	"log"
 	"os"
 	"sync"
 	"time"
+	"zhub4/zigbee/zcl"
 )
 
 type Controller struct {
