@@ -1,0 +1,8 @@
+github.com/matishsiao/goInfo v0.0.0-20210923090445-da2e3fa8d45f h1:B0OD7nYl2FPQEVrw8g2uyc1lGEzNbvrKh7fspGZcbvY=
+github.com/matishsiao/goInfo v0.0.0-20210923090445-da2e3fa8d45f/go.mod h1:aEt7p9Rvh67BYApmZwNDPpgircTO2kgdmDUoF/1QmwA=
+github.com/stianeikeland/go-rpio/v4 v4.6.0 h1:eAJgtw3jTtvn/CqwbC82ntcS+dtzUTgo5qlZKe677EY=
+github.com/stianeikeland/go-rpio/v4 v4.6.0/go.mod h1:A3GvHxC1Om5zaId+HqB3HKqx4K/AqeckxB7qRjxMK7o=
+github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 h1:UyzmZLoiDWMRywV4DUYb9Fbt8uiOSooupjTq10vpvnU=
+github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07/go.mod h1:kDXzergiv9cbyO7IOYJZWg1U88JhDg3PB6klq9Hg2pA=
+golang.org/x/sys v0.8.0 h1:EBmGv8NaZBZTWvrbjNoL6HVt+IVy3QDQpJs7VRIw3tU=
+golang.org/x/sys v0.8.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
