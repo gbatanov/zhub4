@@ -10,7 +10,7 @@ type BasicCluster struct {
 
 func (b BasicCluster) handler_attributes(endpoint Endpoint, attributes []Attribute) {
 	for _, attribute := range attributes {
-		log.Printf("attribute id =0x%04x \n", attribute.id)
+		log.Printf("BasicCluster::attribute id =0x%04x \n", attribute.id)
 
 		switch BasicAttribute(attribute.id) {
 		case Basic_MANUFACTURER_NAME:
@@ -32,15 +32,19 @@ func (b BasicCluster) handler_attributes(endpoint Endpoint, attributes []Attribu
 				b.ed.set_product_code(identifier)
 				log.Printf("PRODUCT_CODE: 0x%02x %s \n\n", endpoint.address, identifier)
 			}
-
+		case Basic_APPLICATION_VERSION:
+			log.Printf("Basic_APPLICATION_VERSION: value: %d \n\n", attribute.value[0])
 		case Basic_PRODUCT_LABEL,
 			Basic_ZCL_VERSION,
 			Basic_GENERIC_DEVICE_TYPE,
 			Basic_GENERIC_DEVICE_CLASS,
 			Basic_PRODUCT_URL,
-			Basic_APPLICATION_VERSION,
 			Basic_SW_BUILD_ID:
 			{
+				if attribute.size > 0 {
+					identifier := string(attribute.value)
+					log.Printf("Basic attribute: 0x%04x, ep: 0x%02x value: %s \n\n", attribute.id, endpoint.address, identifier)
+				}
 			}
 		case Basic_POWER_SOURCE: // uint8
 

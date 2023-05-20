@@ -186,6 +186,9 @@ func parse_attributes_payload(payload []byte, wStatus bool) []Attribute {
 		if wStatus {
 			valid = payload[i] == byte(SUCCESS)
 			i++
+			if !valid {
+				continue
+			}
 		}
 		attribute.dataType = DataType(payload[i])
 		i++

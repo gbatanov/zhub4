@@ -9,8 +9,6 @@ import (
 	"github.com/tarm/serial"
 )
 
-var BufRead []byte
-
 const SOF byte = 0xFE
 
 type Uart struct {
@@ -45,14 +43,14 @@ func (u *Uart) Open() error {
 
 // Opening the given port
 func (u Uart) openPort() (*serial.Port, error) {
-	BufRead = make([]byte, 256)
+
 	// bitrate for linux (checked!) - 115200 230400 460800 500000 576000
 	// bitrate fo Mac - 115200 only!
 	var baud int = 576000
 	if u.os == "darwin" {
 		baud = 115200
 	}
-	c := &serial.Config{Name: u.port, Baud: baud, ReadTimeout: time.Second * 1}
+	c := &serial.Config{Name: u.port, Baud: baud, ReadTimeout: time.Second * 3}
 	return serial.OpenPort(c)
 
 }
@@ -80,9 +78,10 @@ func (u Uart) Write(text []byte) error {
 }
 
 // The cycle of receiving commands from the coordinator
+// in this serial port library version we get chunks 64 byte size !!!
 func (u *Uart) Loop(cmdinput chan []byte) {
 	for u.Flag {
-
+		BufRead := make([]byte, 256)
 		n, err := u.comport.Read(BufRead)
 		if err != nil {
 			if n != 0 {

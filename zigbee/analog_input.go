@@ -34,7 +34,7 @@ func (a AnalogInputCluster) handler_attributes(endpoint Endpoint, attributes []A
 			}
 
 		default:
-			log.Printf("Coordinator::on_attribute_report: unknown attribute Id 0x%04x in cluster ANALOG_INPUT device: 0x%04x\n", attribute.id, endpoint.address)
+			log.Printf("ANALOG_INPUT  unknown attribute Id 0x%04x,  device: 0x%04x\n", attribute.id, endpoint.address)
 		} //switch
 
 	} //for

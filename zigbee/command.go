@@ -28,7 +28,7 @@ func (c *Command) Set_data(data []byte) {
 
 // empty command
 func NewCommand(cmnd CommandId) *Command {
-	cmd := Command{Id: cmnd}
+	cmd := Command{Id: cmnd, Payload: []byte{}}
 	return &cmd
 }
 
@@ -152,6 +152,8 @@ func (c CommandId) String() string {
 		cmd_str = "ZDO_UNBIND_REQ"
 	case ZDO_BIND_RSP: //  0x45a1,
 		cmd_str = "ZDO_BIND_RSP"
+	case ZDO_BIND_SRSP: // 0x6521
+		cmd_str = "ZDO_BIND_SRSP"
 	case ZDO_UNBIND_RSP: //         0x45a2
 		cmd_str = "ZDO_UNBIND_RSP"
 	case ZDO_IEEE_ADDR_REQ: // 0x2501,

@@ -160,11 +160,11 @@ func (c *Controller) onoff_command(ed *EndDevice, message Message) {
 
 	if macAddress == 0x8cf681fffe0656ef {
 		// IKEA button on/off only
-		c.get_power(ed)
+		//		c.get_power(ed)
 		c.ikea_button_action(cmd)
 	} else if macAddress == 0x0c4314fffe17d8a8 {
 		// IKEA motion sensor
-		c.get_power(ed)
+		//		c.get_power(ed)
 		c.handle_motion(ed, 1) // switch off with timer
 	} else if macAddress == 0x00124b0028928e8a {
 		// button Sonoff1

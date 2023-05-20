@@ -32,9 +32,9 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	0x54ef441000609dcc: {9, "Aqara", "SSM-U01", "Реле6", "Реле 6", PowerSource_SINGLE_PHASE, 1, 0},
 	0x00158d0009414d7e: {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", PowerSource_SINGLE_PHASE, 1, 0},
 	// Умные розетки
-	0x70b3d52b6001b4a4: {10, "Girier", "TS011F", "Розетка1", "Розетка 1(Лампа Наташи)", PowerSource_SINGLE_PHASE, 1, 0},
+	0x70b3d52b6001b4a4: {10, "Girier", "TS011F", "Розетка1", "Розетка 1", PowerSource_SINGLE_PHASE, 1, 0},
 	0x70b3d52b6001b5d9: {10, "Girier", "TS011F", "Розетка2", "Розетка 2(Зарядники)", PowerSource_SINGLE_PHASE, 1, 0},
-	0x70b3d52b60022ac9: {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Моя лампа)", PowerSource_SINGLE_PHASE, 1, 0},
+	0x70b3d52b60022ac9: {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Лампы в десткой)", PowerSource_SINGLE_PHASE, 1, 0},
 	0x70b3d52b60022cfd: {10, "Girier", "TS011F", "Розетка3", "Розетка 4(Паяльник)", PowerSource_SINGLE_PHASE, 1, 0},
 	// краны
 	0xa4c138d9758e1dcd: {6, "TUYA", "Valve", "КранГВ", "Кран 1 ГВ", PowerSource_SINGLE_PHASE, 1, 0},
@@ -177,8 +177,14 @@ func (ed *EndDevice) set_power_source(value uint8) {
 func (ed *EndDevice) set_mains_voltage(value float32) {
 	ed.mainVoltage = value
 }
+func (ed *EndDevice) get_mains_voltage() float32 {
+	return ed.mainVoltage
+}
 func (ed *EndDevice) set_current(value float32) {
 	ed.current = value
+}
+func (ed *EndDevice) get_current() float32 {
+	return ed.current
 }
 
 // charge level, battery voltage

@@ -16,10 +16,9 @@ type MotionMsg struct {
 	cmd uint8
 }
 
-// TODO: remove controller dependency
 func (o OnOffCluster) handler_attributes(endpoint Endpoint, attributes []Attribute) {
 	for _, attribute := range attributes {
-		log.Printf("OnOff attribute id =0x%04x \n", attribute.id)
+		// log.Printf("OnOff attribute id =0x%04x \n", attribute.id)
 		switch OnOffAttribute(attribute.id) {
 		case OnOff_ON_OFF: // 0x0000
 			b_val := false
@@ -27,12 +26,12 @@ func (o OnOffCluster) handler_attributes(endpoint Endpoint, attributes []Attribu
 			if attribute.value[0] == 1 {
 				b_val = true
 			}
-			log.Printf("Coordinator::on_attribute_report: +Device 0x%04x endpoint %d Level %d \n", endpoint.address, endpoint.number, u_val)
+			log.Printf("OnOffCluster::handler_attributes: Device 0x%04x %s endpoint %d value[0]= %d \n", endpoint.address, o.ed.get_human_name(), endpoint.number, u_val)
 			macAddress := o.ed.get_mac_address()
 			if macAddress == 0x00124b0014db2724 {
 				// custom2 coridor
 				if endpoint.number == 2 { // loght sensor
-					log.Printf("Coordinator::on_attribute_report: Освещенность %d \n", u_val)
+					log.Printf("OnOffCluster::handler_attributes: Освещенность %d \n", u_val)
 					o.ed.set_luminocity(int8(u_val))
 				}
 				if endpoint.number == 6 { // motion sensor (1 - no motion, 0 - motion)
@@ -105,26 +104,26 @@ func (o OnOffCluster) handler_attributes(endpoint Endpoint, attributes []Attribu
 			//  every 30 second approximately
 			// UINT32 0x070000nn or 0x03<short_addr>mm, nn from 0 to ff cycle
 			val := binary.LittleEndian.Uint32(attribute.value)
-			log.Printf("Coordinator::on_attribute_report: attribute Id 0x%04x in cluster ON_OFF Device 0x%04x val 0x%08x\n", attribute.id, endpoint.address, val)
+			log.Printf("OnOffCluster::handler_attributes: attribute Id 0x%04x in cluster ON_OFF Device 0x%04x val 0x%08x\n", attribute.id, endpoint.address, val)
 
 		case OnOff_F000, // dualchannel relay, like relay in cluster 00F5
 			OnOff_F500, // from relay aqara T1
 			OnOff_F501: // from relay aqara T1
 			val := binary.LittleEndian.Uint32(attribute.value)
-			log.Printf("Coordinator::on_attribute_report: attribute Id 0x%04x in cluster ON_OFF Device 0x%04x val 0x%08x\n", attribute.id, endpoint.address, val)
+			log.Printf("OnOffCluster::handler_attributes: attribute Id 0x%04x in cluster ON_OFF Device 0x%04x val 0x%08x\n", attribute.id, endpoint.address, val)
 
 		case OnOff_00F7: // ???
 			val := string(attribute.value)
-			log.Printf("Coordinator::on_attribute_report: attribute Id 0x%04x in cluster ON_OFF Device 0x%04x value: %s \n", attribute.id, endpoint.address, val)
+			log.Printf("OnOffCluster::handler_attributes: attribute Id 0x%04x in cluster ON_OFF Device 0x%04x value: %s \n", attribute.id, endpoint.address, val)
 
 		case OnOff_5000,
 			OnOff_8000,
 			OnOff_8001,
 			OnOff_8002:
 			// Valves
-			log.Printf("Coordinator::on_attribute_report: attribute Id 0x%04x in cluster ON_OFF device: 0x%04x\n", attribute.id, endpoint.address)
+			log.Printf("OnOffCluster::handler_attributes: attribute Id 0x%04x in cluster ON_OFF device: 0x%04x\n", attribute.id, endpoint.address)
 		default:
-			log.Printf("Coordinator::on_attribute_report: unused attribute Id 0x%04x in cluster ON_OFF device: 0x%04x\n", attribute.id, endpoint.address)
+			log.Printf("OnOffCluster::handler_attributes: unused attribute Id 0x%04x in cluster ON_OFF device: 0x%04x\n", attribute.id, endpoint.address)
 		} //switch
 	} //for
 

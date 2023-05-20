@@ -29,8 +29,8 @@ func init() {
 	fmt.Println("Init in zigbee: controller")
 }
 func controllerCreate(Ports map[string]string, Os string, mode string) (*Controller, error) {
-	chn1 := make(chan Command, 1)
-	chn2 := make(chan []byte, 1)
+	chn1 := make(chan Command, 16)
+	chn2 := make(chan []byte, 12) // chan for join command shortAddr + macAddrj
 	chn3 := make(chan MotionMsg, 16)
 	ts := time.Now()
 
@@ -78,7 +78,7 @@ func (c *Controller) startNetwork(defconf NetworkConfiguration) error {
 		c.on_message()
 	}()
 	go func() {
-		c.on_join()
+		c.join_device()
 	}()
 
 	go func() {
@@ -202,12 +202,14 @@ func (c *Controller) read_map_from_file() error {
 			r, err = fmt.Fscanf(fd, "%4x %16x\n", &shortAddr, &macAddr)
 			if r > 0 {
 				c.devicessAddressMap[shortAddr] = macAddr
-				fmt.Printf("%d 0x%04x 0x%016x\n", r, shortAddr, macAddr)
+				// fmt.Printf("%d 0x%04x 0x%016x\n", r, shortAddr, macAddr)
 			}
 		}
 		fd.Close()
-		for a, b := range c.devicessAddressMap {
-			fmt.Printf("0x%04x : 0x%016x \n", a, b)
+		if true {
+			for a, b := range c.devicessAddressMap {
+				fmt.Printf("0x%04x : 0x%016x \n", a, b)
+			}
 		}
 	}
 
@@ -227,14 +229,14 @@ func (c *Controller) create_devices_by_map() {
 	}
 }
 
-func (c *Controller) on_join() {
+func (c *Controller) join_device() {
 	for c.flag {
 		FullAddr := <-c.joinChan
 		if c.flag && len(FullAddr) > 5 { // TODO: ??
 			var shortAddress uint16 = UINT16_(FullAddr[0], FullAddr[1])
 			var macAddress uint64 = binary.LittleEndian.Uint64(FullAddr[2:])
-			log.Printf("Controller::on_join: macAddress: 0x%016x \n", macAddress)
-			log.Printf("Controller::on_join: new shortAddress: 0x%04x\n", shortAddress)
+			log.Printf("Controller::join_device: macAddress: 0x%016x \n", macAddress)
+			log.Printf("Controller::join_device: new shortAddress: 0x%04x\n", shortAddress)
 
 			_, keyExists := c.devices[macAddress]
 			if keyExists {
@@ -258,24 +260,27 @@ func (c *Controller) on_join() {
 					}
 					c.devicessAddressMap[shortAddress] = macAddress
 					c.write_map_to_file()
-					c.join_device(shortAddress, macAddress)
+					ed := c.get_device_by_mac(macAddress)
+					ed.shortAddress = shortAddress
+					c.on_join(shortAddress, macAddress)
 				}
 
 			} else {
-				log.Printf("Controller::on_join: create device\n")
+				log.Printf("Controller::join_device: create device\n")
 				ed := EndDeviceCreate(macAddress, shortAddress)
 				c.devices[macAddress] = ed
 				c.devicessAddressMap[shortAddress] = macAddress
 				c.write_map_to_file()
-				c.join_device(shortAddress, macAddress)
+				c.on_join(shortAddress, macAddress)
 			}
 		}
 	}
 }
 
-func (c *Controller) join_device(shortAddress uint16, macAddress uint64) {
+func (c *Controller) on_join(shortAddress uint16, macAddress uint64) {
 	ed := c.get_device_by_mac(macAddress)
-	if ed.shortAddress == 0 {
+	if ed.shortAddress == 0 || ed.shortAddress != shortAddress {
+		log.Printf("Controller:: on_join: device 0x%016x doesn't exist, ed.shortAddress 0x%04x != shortAddres 0x%04x  \n", macAddress, ed.shortAddress, shortAddress)
 		return
 	}
 	c.zdo.bind(shortAddress, macAddress, 1, zcl.ON_OFF)
@@ -284,6 +289,7 @@ func (c *Controller) join_device(shortAddress uint16, macAddress uint64) {
 		c.configureReporting(shortAddress, zcl.ON_OFF, uint16(0), DataType_UINT8, uint16(0))
 	}
 	// SmartPlug, WaterValves - no binding and no report adjusting in ON_OFF cluster
+	//
 	// motion sensors and door sensors Sonoff
 	if ed.get_device_type() == 2 || ed.get_device_type() == 3 {
 		c.zdo.bind(shortAddress, macAddress, 1, zcl.IAS_ZONE)
@@ -329,7 +335,7 @@ func (c *Controller) get_identifier(address uint16) {
 	frame.Frame_control.DisableDefaultResponse = 1
 	frame.Frame_control.ManufacturerSpecific = 0
 	frame.Command = uint8(zcl.READ_ATTRIBUTES) // 0x00
-	frame.TransactionSequenceNumber = c.zdo.generateTransactionNumber()
+	frame.TransactionSequenceNumber = c.zdo.generateTransactionSequenceNumber()
 	// end ZCL Header
 
 	frame.Payload = make([]byte, 0)
@@ -389,18 +395,18 @@ func (c *Controller) message_handler(command Command) {
 	//	macAddress := ed.get_mac_address()
 	var ts uint32 = uint32(command.Payload[11]) + uint32(command.Payload[12])<<8 + uint32(command.Payload[13])<<16 + uint32(command.Payload[14])<<24
 	log.Printf("ClusterID: 0x%04x \n", message.cluster)
-	log.Printf("source shortAddr: 0x%04x \n", message.source.address)
-	log.Printf("source endpoint: 0x%02x \n", message.source.number)
-	log.Printf("linkQuality: %d \n", message.linkQuality)
-	log.Printf("ts %d \n", uint32(ts/1000))
-	log.Printf("length of ZCL data %d \n", length)
-	log.Printf("zcl_frame.frame_type: %02x \n", message.zclFrame.Frame_control.Ftype)
+	fmt.Printf("source shortAddr: 0x%04x \n", message.source.address)
+	fmt.Printf("source endpoint: 0x%02x \n", message.source.number)
+	fmt.Printf("linkQuality: %d \n", message.linkQuality)
+	fmt.Printf("ts %d \n", uint32(ts/1000))
+	fmt.Printf("length of ZCL data %d \n", length)
+	log.Printf("zclFrame.Frame_control.Ftype: %02x \n", message.zclFrame.Frame_control.Ftype)
 	if message.zclFrame.ManufacturerCode != 0xffff { // Manufacturer Code absent
-		log.Printf(" zcl_frame.manufacturer_code: %04x \n", message.zclFrame.ManufacturerCode)
+		fmt.Printf(" zcl_frame.manufacturer_code: %04x \n", message.zclFrame.ManufacturerCode)
 	}
-	log.Printf(" message.zcl_frame.command: 0x%02x \n", message.zclFrame.Command)
-	fmt.Printf("zdo: message.zcl_frame.payload: ")
-	for b := range message.zclFrame.Payload {
+	fmt.Printf("message.zclFrame.Command: 0x%02x \n", message.zclFrame.Command)
+	fmt.Printf("message.zclFrame.Payload: ")
+	for _, b := range message.zclFrame.Payload {
 		fmt.Printf("0x%02x ", b)
 	}
 	fmt.Println("")
@@ -411,19 +417,18 @@ func (c *Controller) message_handler(command Command) {
 	now := time.Now()
 	ed.set_last_seen(now)
 
-	withStatus := (message.cluster != zcl.ANALOG_INPUT &&
+	withStatus := message.cluster != zcl.ANALOG_INPUT &&
 		message.cluster != zcl.XIAOMI_SWITCH &&
-		message.zclFrame.Command != uint8(zcl.REPORT_ATTRIBUTES))
-
-	// commands requiring attribute parsing
-	if ((message.zclFrame.Command == uint8(zcl.READ_ATTRIBUTES_RESPONSE) || message.zclFrame.Command == uint8(zcl.REPORT_ATTRIBUTES)) && message.cluster != zcl.ON_OFF && message.cluster != zcl.LEVEL_CONTROL) ||
-		(message.zclFrame.Command == uint8(zcl.REPORT_ATTRIBUTES) && message.cluster == zcl.ON_OFF) ||
-		(message.zclFrame.Command == uint8(zcl.READ_ATTRIBUTES_RESPONSE) && message.cluster == zcl.ON_OFF && len(message.zclFrame.Payload) > 0) {
-
-		if len(message.zclFrame.Payload) > 0 {
-			attributes := parse_attributes_payload(message.zclFrame.Payload, withStatus)
-			if len(attributes) > 0 {
-				c.on_attribute_report(ed, message.source, message.cluster, attributes)
+		message.zclFrame.Command != uint8(zcl.REPORT_ATTRIBUTES)
+	if message.zclFrame.Frame_control.Ftype == zcl.FrameType_GLOBAL {
+		// commands requiring attribute parsing
+		if message.zclFrame.Command == uint8(zcl.READ_ATTRIBUTES_RESPONSE) ||
+			message.zclFrame.Command == uint8(zcl.REPORT_ATTRIBUTES) {
+			if len(message.zclFrame.Payload) > 0 {
+				attributes := parse_attributes_payload(message.zclFrame.Payload, withStatus)
+				if len(attributes) > 0 {
+					c.on_attribute_report(ed, message.source, message.cluster, attributes)
+				}
 			}
 		}
 	} else {
@@ -431,10 +436,16 @@ func (c *Controller) message_handler(command Command) {
 		// custom does not come here, they always have AttributeReport, even when activated
 		switch message.cluster {
 		case zcl.ON_OFF:
+			log.Printf("message handler::ON_OFF: command 0x%02x \n", message.zclFrame.Command)
 			// commands from the IKEA motion sensor also come here
 			c.onoff_command(ed, message)
+			c.get_power(ed) // TODO: by timer
+
 		case zcl.LEVEL_CONTROL:
+			log.Printf("message handler::LEVEL_CONTROL: command 0x%02x \n", message.zclFrame.Command)
 			c.level_command(ed, message)
+			c.get_power(ed) // TODO: by timer
+
 		case zcl.IAS_ZONE:
 			// this cluster includes motion sensors from Sonoff and door sensors from Sonoff
 			// split by device type
@@ -463,6 +474,8 @@ func (c *Controller) message_handler(command Command) {
 				}
 
 			}
+		case zcl.IDENTIFY:
+			log.Printf("Cluster IDENTIFY:: command 0x%02x \n", message.zclFrame.Command)
 		} //switch
 	}
 	c.after_message_action(ed)
@@ -470,10 +483,13 @@ func (c *Controller) message_handler(command Command) {
 func (c *Controller) on_attribute_report(ed *EndDevice, ep Endpoint, cluster zcl.Cluster, attributes []Attribute) {
 	switch cluster {
 	case zcl.BASIC:
-		c := BasicCluster{ed: ed} // TODO: remove controller dependency
+		c := BasicCluster{ed: ed}
 		c.handler_attributes(ep, attributes)
 	case zcl.POWER_CONFIGURATION:
 		c := PowerConfigurationCluster{ed: ed}
+		c.handler_attributes(ep, attributes)
+	case zcl.IDENTIFY:
+		c := IdentifyCluster{ed: ed}
 		c.handler_attributes(ep, attributes)
 	case zcl.ON_OFF:
 		c := OnOffCluster{ed: ed, msgChan: c.motionMsgChan}
@@ -538,7 +554,7 @@ func (c *Controller) read_attribute(address uint16, cl zcl.Cluster, ids []uint16
 	frame.Frame_control.DisableDefaultResponse = 1
 	frame.Frame_control.ManufacturerSpecific = 0
 	frame.Command = uint8(zcl.READ_ATTRIBUTES) // 0x00
-	frame.TransactionSequenceNumber = c.zdo.generateTransactionNumber()
+	frame.TransactionSequenceNumber = c.zdo.generateTransactionSequenceNumber()
 	frame.ManufacturerCode = 0
 	// end ZCL Header
 	frame.Payload = make([]byte, 2*len(ids))
@@ -551,6 +567,26 @@ func (c *Controller) read_attribute(address uint16, cl zcl.Cluster, ids []uint16
 }
 func (c *Controller) get_power(ed *EndDevice) {
 	// var cluster zcl.Cluster = zcl.POWER_CONFIGURATION
+	cluster := zcl.POWER_CONFIGURATION
+	endpoint := Endpoint{ed.shortAddress, 1}
+
+	frame := zcl.Frame{}
+	frame.Frame_control.Ftype = zcl.FrameType_GLOBAL
+	frame.Frame_control.Direction = zcl.FROM_CLIENT_TO_SERVER
+	frame.Frame_control.DisableDefaultResponse = 0
+	frame.Frame_control.ManufacturerSpecific = 0
+	frame.ManufacturerCode = 0
+	frame.TransactionSequenceNumber = c.zdo.generateTransactionSequenceNumber()
+	frame.Command = uint8(zcl.READ_ATTRIBUTES) // 0x00
+	// in payload set of required attributes
+	frame.Payload = append(frame.Payload, LOWBYTE(uint16(PowerConfiguration_MAINS_VOLTAGE)))    // 0x0000 Напряжение основного питания в 0,1 В UINT16
+	frame.Payload = append(frame.Payload, HIGHBYTE(uint16(PowerConfiguration_MAINS_VOLTAGE)))   //
+	frame.Payload = append(frame.Payload, LOWBYTE(uint16(PowerConfiguration_BATTERY_VOLTAGE)))  // 0x0020 возвращает напряжение батарейки в десятых долях вольта UINT8
+	frame.Payload = append(frame.Payload, HIGHBYTE(uint16(PowerConfiguration_BATTERY_VOLTAGE))) //
+	frame.Payload = append(frame.Payload, LOWBYTE(uint16(PowerConfiguration_BATTERY_REMAIN)))   //  0x0021 Остаток заряда батареи в процентах
+	frame.Payload = append(frame.Payload, HIGHBYTE(uint16(PowerConfiguration_BATTERY_REMAIN)))  //
+
+	c.zdo.send_message(endpoint, cluster, frame, 10*time.Second)
 }
 
 // Turn off the relay according to the list with a long press on the buttons Sonoff1 Sonoff2
@@ -590,7 +626,7 @@ func (c *Controller) send_command_to_onoff_device(address uint16, cmd uint8, ep 
 	frame.Frame_control.Direction = zcl.FROM_CLIENT_TO_SERVER
 	frame.Frame_control.DisableDefaultResponse = 0
 	frame.ManufacturerCode = 0
-	frame.TransactionSequenceNumber = c.zdo.generateTransactionNumber()
+	frame.TransactionSequenceNumber = c.zdo.generateTransactionSequenceNumber()
 	frame.Command = cmd
 
 	c.zdo.send_message(endpoint, cluster, frame, 3*time.Second)
@@ -610,7 +646,7 @@ func (c *Controller) configureReporting(address uint16,
 	frame.Frame_control.Direction = zcl.FROM_CLIENT_TO_SERVER
 	frame.Frame_control.DisableDefaultResponse = 0
 	frame.ManufacturerCode = 0
-	frame.TransactionSequenceNumber = c.zdo.generateTransactionNumber()
+	frame.TransactionSequenceNumber = c.zdo.generateTransactionSequenceNumber()
 	frame.Command = byte(zcl.CONFIGURE_REPORTING) // 0x06
 	// end ZCL Header
 
