@@ -77,7 +77,7 @@ func (u Uart) Write(text []byte) error {
 	return nil
 }
 
-// The cycle of receiving commands from the coordinator
+// The cycle of receiving commands from the zhub
 // in this serial port library version we get chunks 64 byte size !!!
 func (u *Uart) Loop(cmdinput chan []byte) {
 	for u.Flag {

@@ -29,7 +29,7 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	0x54ef4410001933d3: {9, "Aqara", "SSM-U01", "КоридорСвет", "Реле 4(Свет в коридоре)", PowerSource_SINGLE_PHASE, 1, 0},
 	0x54ef44100018b523: {9, "Aqara", "SSM-U01", "ШкафСвет", "Реле 3(Шкаф, подсветка)", PowerSource_SINGLE_PHASE, 1, 0},
 	0x54ef4410005b2639: {9, "Aqara", "SSM-U01", "ТулетЗанят", "Реле 5(Туалет занят)", PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef441000609dcc: {9, "Aqara", "SSM-U01", "Реле6", "Реле 6", PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef441000609dcc: {9, "Aqara", "SSM-U01", "Реле6", "Реле 6", PowerSource_SINGLE_PHASE, 1, 1},
 	0x00158d0009414d7e: {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", PowerSource_SINGLE_PHASE, 1, 0},
 	// Умные розетки
 	0x70b3d52b6001b4a4: {10, "Girier", "TS011F", "Розетка1", "Розетка 1", PowerSource_SINGLE_PHASE, 1, 0},

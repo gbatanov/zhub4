@@ -88,9 +88,9 @@ func (c *Controller) startNetwork(defconf NetworkConfiguration) error {
 		}
 	}()
 
-	// reset of coordinator
+	// reset of zhub
 	log.Println("Controller reset adapter")
-	_, err := c.zdo.Reset(RESET_TYPE_HARD)
+	err := c.zdo.Reset()
 	if err != nil {
 		return err
 	}
@@ -102,19 +102,18 @@ func (c *Controller) startNetwork(defconf NetworkConfiguration) error {
 		return err
 	}
 	if !nc.Compare(defconf) {
-		// rewrite configuration in coordinator
+		// rewrite configuration in zhub
 		log.Println("Controller write NetworkConfiguration")
 		err = c.zdo.writeNetworkConfiguration(defconf)
 		if err != nil {
 			return err
 		}
-		// soft reset of coordinator after reconfiguration
-		log.Println("Controller soft reset coordinator")
-		_, err := c.zdo.Reset(RESET_TYPE_SOFT)
+		// soft reset of zhub after reconfiguration
+		log.Println("Controller soft reset zhub")
+		err := c.zdo.Reset()
 		if err != nil {
 			return err
 		}
-
 	}
 
 	// startup
@@ -516,6 +515,8 @@ func (c *Controller) on_attribute_report(ed *EndDevice, ep Endpoint, cluster zcl
 		c := TuyaCluster{}
 		c.handler_attributes2(ep, attributes)
 	default: // unattended clusters
+		log.Printf("unattended clusters::endpoint address: 0x%04x number = %d \n", ep.address, ep.number)
+
 		for _, attribute := range attributes {
 			log.Printf("Cluster 0x%04x, attribute id =0x%04x \n", cluster, attribute.id)
 		}

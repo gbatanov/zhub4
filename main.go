@@ -17,7 +17,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.1.3"
+const Version string = "v0.1.4"
 
 var Os string = ""
 var Flag bool = true
@@ -54,7 +54,7 @@ func main() {
 		"linux":   "/dev/ttyACM0",
 		"linux2":  "/dev/ttyACM1"}
 
-	coordinator, err := zigbee.CoordinatorCreate(Ports, Os, "test")
+	zhub, err := zigbee.ZhubCreate(Ports, Os, "test")
 	if err != nil {
 		sysLog.Emerg(err.Error())
 		log.Println(err)
@@ -62,8 +62,8 @@ func main() {
 	}
 
 	if Flag {
-		coordinator.Start()
-		defer coordinator.Stop()
+		zhub.Start()
+		defer zhub.Stop()
 		var wg sync.WaitGroup
 		wg.Add(1)
 		go func() {
@@ -75,7 +75,7 @@ func main() {
 					case 'q':
 						Flag = false
 					case 'j':
-						coordinator.Get_controller().Get_zdo().Permit_join(60 * time.Second)
+						zhub.Get_controller().Get_zdo().Permit_join(60 * time.Second)
 					} //switch
 				}
 			} //for

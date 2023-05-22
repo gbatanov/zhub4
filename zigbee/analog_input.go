@@ -12,6 +12,7 @@ type AnalogInputCluster struct {
 func (a AnalogInputCluster) handler_attributes(endpoint Endpoint, attributes []Attribute) {
 	var value float32 = -100.0
 	var unit string
+	log.Printf("AnalogInputCluster::endpoint address: 0x%04x number = %d \n", endpoint.address, endpoint.number)
 
 	for _, attribute := range attributes {
 		log.Printf("attribute id =0x%04x \n", attribute.id)

@@ -205,64 +205,47 @@ func (zdo *Zdo) parse_command(BufRead []byte, n int) ([]Command, bool) {
 }
 
 // reset zigbee-adapter
-// If there was no hardware reset, use a soft reset without clearing the config and network
-// there are two options:
-// 1 - hardware reset, command from coordinator SYS_RESET_IND comes first
-// 2 - program restart without hardware reset, SYS_RESET_IND missing by first response
-func (zdo *Zdo) Reset(rType ResetType) (uint8, error) {
+func (zdo *Zdo) Reset() error {
 	var cmd Command = *NewCommand(0)
-	if rType == RESET_TYPE_HARD {
-		// check hard reset
-		// in this case SYS_RESET_IND comes first
-		zdo.eh.AddEvent(SYS_RESET_IND) //0x4180
-		cmd = zdo.eh.wait(SYS_RESET_IND, 60*time.Second)
+	zdo.eh.clear(SYS_RESET_IND)
+	// writeNv call sync request
+	startup_options := make([]byte, 1)
+	startup_options[0] = 0
+	err := zdo.writeNv(STARTUP_OPTION, startup_options) // STARTUP_OPTION = 0x0003
+	if err != nil {
+		return err
 	}
-	var resetType uint8 = 1
+	log.Println("WriteNv success")
+	log.Println("")
+
+	reset_request := New2(SYS_RESET_REQ, 1)
+	reset_request.Payload[0] = byte(RESET_TYPE_SOFT)
+
+	buff := zdo.prepare_command(*reset_request)
+	fmt.Print("Reset buff: ")
+	for i := 0; i < len(buff); i++ {
+		fmt.Printf(" 0x%02x", buff[i])
+	}
+	fmt.Println("")
+
+	err = zdo.Uart.Send_command_to_device(buff)
+	if err != nil {
+		return err
+	}
+	cmd = zdo.eh.wait(SYS_RESET_IND, 10*time.Second)
 	if cmd.Id == 0 {
-		resetType = 2
-		// there was no hardware reset, we do a software one,
-		// at the same time, the network configuration can be left alone
-		log.Println("there was no hardware reset")
-
-		// writeNv call sync request
-		startup_options := make([]byte, 1)
-		startup_options[0] = 0
-		err := zdo.writeNv(STARTUP_OPTION, startup_options) // STARTUP_OPTION = 0x0003
-		if err != nil {
-			return 0, err
-		}
-		log.Println("WriteNv success")
-		log.Println("")
-
-		reset_request := New2(SYS_RESET_REQ, 1)
-		reset_request.Payload[0] = byte(RESET_TYPE_SOFT)
-
-		buff := zdo.prepare_command(*reset_request)
-		fmt.Print("Reset buff: ")
-		for i := 0; i < len(buff); i++ {
-			fmt.Printf(" 0x%02x", buff[i])
-		}
-		fmt.Println("")
-
-		err = zdo.Uart.Send_command_to_device(buff)
-		if err != nil {
-			return 0, err
-		}
-		cmd = zdo.eh.wait(SYS_RESET_IND, 10*time.Second)
-		if cmd.Id == 0 {
-			return 0, errors.New("bad reset")
-		}
-
+		return errors.New("bad reset")
 	}
+
 	if cmd.Payload_size() > 5 {
 		log.Printf("Version: %d.%d.%d \n", cmd.Payload[3], cmd.Payload[4], cmd.Payload[5])
 	} else {
 		log.Printf("reset answer: %q \n", cmd)
 	}
-	return resetType, nil
+	return nil
 }
 
-// write into NVRAM of coordinator
+// write into NVRAM of zhub
 func (zdo *Zdo) writeNv(item NvItems, item_data []byte) error {
 	write_nv_request := New2(SYS_OSAL_NV_WRITE, uint8(len(item_data)+4))
 	data := make([]byte, len(item_data)+4)
@@ -283,9 +266,9 @@ func (zdo *Zdo) writeNv(item NvItems, item_data []byte) error {
 	}
 }
 
-// read from coordinator NVRAM
+// read from zhub NVRAM
 func (zdo *Zdo) readNv(item NvItems) []byte {
-	log.Println("read from NVRAM")
+	//	log.Println("read from NVRAM")
 	read_nv_request := New2(SYS_OSAL_NV_READ, 3)
 	read_nv_request.Payload[0] = LOWBYTE(uint16(item))
 	read_nv_request.Payload[1] = HIGHBYTE(uint16(item))
@@ -301,7 +284,7 @@ func (zdo *Zdo) readNv(item NvItems) []byte {
 
 }
 
-// read network configuration from coordinator
+// read network configuration from zhub
 func (zdo *Zdo) readNetworkConfiguration() (NetworkConfiguration, error) {
 	nc := NetworkConfiguration{
 		pan_id:            0,
@@ -318,11 +301,11 @@ func (zdo *Zdo) readNetworkConfiguration() (NetworkConfiguration, error) {
 	}
 	item_data = zdo.readNv(EXTENDED_PAN_ID) // EXTENDED_PAN_ID = 0x002D MAC address
 	if len(item_data) == 8 {
-		nc.extended_pan_id = binary.BigEndian.Uint64(item_data)
+		nc.extended_pan_id = binary.LittleEndian.Uint64(item_data)
 		log.Printf("nc.extended_pan_id: 0x%016x\n", nc.extended_pan_id)
 	}
-	item_data = zdo.readNv(LOGICAL_TYPE) // LOGICAL_TYPE = 0x0087 coordinator|router|endpoint
-	if len(item_data) == 4 {
+	item_data = zdo.readNv(LOGICAL_TYPE) // LOGICAL_TYPE = 0x0087 zhub|router|endpoint
+	if len(item_data) == 1 {
 		nc.logical_type = LogicalType(item_data[0])
 		log.Printf("nc.logical_type: 0x%02x\n", nc.logical_type)
 	}
@@ -331,52 +314,72 @@ func (zdo *Zdo) readNetworkConfiguration() (NetworkConfiguration, error) {
 		nc.precfg_key_enable = (item_data[0] == 1)
 		log.Printf("nc.precfg_key_enable: %d\n", item_data[0])
 	}
-
-	item_data = zdo.readNv(PRECFG_KEY) // PRECFG_KEY = 0x0062
-	if len(item_data) == 16 {
-		log.Println("nc.precfg_key:")
-		for i := 0; i < 16; i++ {
-			nc.precfg_key[i] = item_data[i]
-			log.Printf("0x%02x ", nc.precfg_key[i])
+	if nc.precfg_key_enable {
+		item_data = zdo.readNv(PRECFG_KEY) // PRECFG_KEY = 0x0062
+		if len(item_data) == 16 {
+			log.Println("nc.precfg_key:")
+			for i := 0; i < 16; i++ {
+				nc.precfg_key[i] = item_data[i]
+				log.Printf("0x%02x ", nc.precfg_key[i])
+			}
+			log.Println("")
 		}
-		log.Println("")
 	}
 	item_data = zdo.readNv(CHANNEL_LIST) // CHANNEL_LIST = 0x00000084 //channel bit mask. Little endian. Default is 0x00000800 for CH11;  Ex: value: [ 0x00, 0x00, 0x00, 0x04 ] for CH26, [ 0x00, 0x00, 0x20, 0x00 ] for CH15.
-	if len(item_data) == 4 {             //CHANNEL_LIST = 0x00000800 CH11
+	if len(item_data) == 4 {             //CHANNEL_LIST = 0x00000800 CH11 0x00008000 CH15
 		var channelBitMask uint32 = binary.LittleEndian.Uint32(item_data)
-		log.Printf("nc.channels bitMask: 0x%08x ", channelBitMask)
+		log.Printf("nc.channels bitMask: 0x%08x \n", channelBitMask)
 		for i := 0; i < 32; i++ {
-			if (channelBitMask & (1 << i)) == 1 {
+			if (channelBitMask & uint32(1<<i)) != 0 {
 				nc.channels = append(nc.channels, uint8(i))
+				log.Printf("channel %d\n", i)
 			}
 		}
-		log.Println("")
 	}
 	return nc, nil
 }
 
-// write new configuration into coordinator
+// write new configuration into zhub
 func (zdo *Zdo) writeNetworkConfiguration(configuration NetworkConfiguration) error {
 
 	err := zdo.writeNv(LOGICAL_TYPE, []byte{byte(configuration.logical_type)})
 	if err != nil {
 		return err
 	}
+	channelBitMask := uint32(0)
+	for _, channel := range configuration.channels {
+		channelBitMask |= (1 << channel)
+	}
+	log.Printf("write bitMask: 0x%08x \n", channelBitMask)
+
+	chann := []byte{0, 0, 0, 0}
+	for i := 0; i < 4; i++ {
+		ch := byte(channelBitMask >> (i * 8))
+		chann[i] = ch
+	}
+	log.Printf("write channels: %q\n", chann)
+
+	err = zdo.writeNv(CHANNEL_LIST, chann) // старший байт последний
+	if err != nil {
+		return err
+	}
+
 	var v byte = 0
 	if configuration.precfg_key_enable {
 		v = 1
-	}
-	err = zdo.writeNv(PRECFG_KEYS_ENABLE, []byte{v})
-	if err != nil {
-		return err
-	}
-	var temp_v []byte = make([]byte, 16)
-	for i := 0; i < 16; i++ {
-		temp_v[i] = configuration.precfg_key[i]
-	}
-	err = zdo.writeNv(PRECFG_KEY, temp_v)
-	if err != nil {
-		return err
+
+		err = zdo.writeNv(PRECFG_KEYS_ENABLE, []byte{v})
+		if err != nil {
+			return err
+		}
+		var temp_v []byte = make([]byte, 16)
+		for i := 0; i < 16; i++ {
+			temp_v[i] = configuration.precfg_key[i]
+		}
+		err = zdo.writeNv(PRECFG_KEY, temp_v)
+		if err != nil {
+			return err
+		}
 	}
 	err = zdo.writeNv(ZDO_DIRECT_CB, []byte{1})
 	if err != nil {
@@ -393,7 +396,7 @@ func (zdo *Zdo) writeNetworkConfiguration(configuration NetworkConfiguration) er
 	return nil
 }
 
-// init element in coordinator NVRAM
+// init element in zhub NVRAM
 func (zdo *Zdo) initNv(item NvItems, length uint16, item_data []byte) error {
 
 	init_nv_request := New2(SYS_OSAL_NV_ITEM_INIT, uint8(len(item_data)+5))
@@ -576,7 +579,7 @@ func (zdo *Zdo) simpleDescriptor(address uint16, endpointNumber uint8) error {
 
 }
 
-// bind device with coordinator
+// bind device with zhub
 func (zdo *Zdo) bind(shortAddress uint16, macAddress uint64, endpoint uint8, cluster zcl.Cluster) error {
 	bindRequest := NewCommand(ZDO_BIND_REQ)
 	bindRequest.Payload = []byte{}
@@ -613,16 +616,16 @@ func (zdo *Zdo) handle_command(command Command) {
 		zdo.msgChan <- command // send incoming message to controller
 
 	case ZDO_STATE_CHANGE_IND:
-		log.Printf("New coordinator status = %d \n", command.Payload[0])
+		log.Printf("New zhub status = %d \n", command.Payload[0])
 		if command.Payload[0] == 9 {
 			zdo.isReady = true
 		}
 
 	case ZDO_MGMT_PERMIT_JOIN_RSP:
-		log.Printf("Coordinator permit join status = %d\n", command.Payload[2])
+		log.Printf("Zhub permit join status = %d\n", command.Payload[2])
 
 	case ZDO_PERMIT_JOIN_IND:
-		log.Printf("Coordinator permit for %d seconds \n", command.Payload[0])
+		log.Printf("Zhub permit for %d seconds \n", command.Payload[0])
 
 	case ZDO_END_DEVICE_ANNCE_IND: //  0x45c1
 		fmt.Printf("ZDO_END_DEVICE_ANNCE_IND: payload len = %d, payload:  ", command.Payload_size())

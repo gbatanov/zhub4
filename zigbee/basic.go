@@ -9,30 +9,34 @@ type BasicCluster struct {
 }
 
 func (b BasicCluster) handler_attributes(endpoint Endpoint, attributes []Attribute) {
+	log.Printf("BasicCluster::endpoint address: 0x%04x number = %d \n", endpoint.address, endpoint.number)
+
 	for _, attribute := range attributes {
 		log.Printf("BasicCluster::attribute id =0x%04x \n", attribute.id)
+		log.Printf("BasicCluster::attribute value = %q \n", attribute.value)
+		log.Printf("BasicCluster::attribute size = %d \n", attribute.size)
 
 		switch BasicAttribute(attribute.id) {
-		case Basic_MANUFACTURER_NAME:
+		case Basic_MANUFACTURER_NAME: //0x0004
 			if attribute.size > 0 {
 				identifier := string(attribute.value)
 				b.ed.set_manufacturer(identifier)
 				log.Printf("MANUFACTURER_NAME: 0x%02x %s \n\n", endpoint.address, identifier)
 			}
 
-		case Basic_MODEL_IDENTIFIER:
+		case Basic_MODEL_IDENTIFIER: //0x0005
 			if attribute.size > 0 {
 				identifier := string(attribute.value)
 				b.ed.set_model_identifier(identifier)
 				log.Printf("MODEL_IDENTIFIER: 0x%02x %s \n\n", endpoint.address, identifier)
 			}
-		case Basic_PRODUCT_CODE:
+		case Basic_PRODUCT_CODE: //0x000a
 			if attribute.size > 0 {
 				identifier := string(attribute.value)
 				b.ed.set_product_code(identifier)
 				log.Printf("PRODUCT_CODE: 0x%02x %s \n\n", endpoint.address, identifier)
 			}
-		case Basic_APPLICATION_VERSION:
+		case Basic_APPLICATION_VERSION: //0x0001
 			log.Printf("Basic_APPLICATION_VERSION: value: %d \n\n", attribute.value[0])
 		case Basic_PRODUCT_LABEL,
 			Basic_ZCL_VERSION,
@@ -65,7 +69,7 @@ func (b BasicCluster) handler_attributes(endpoint Endpoint, attributes []Attribu
 			// 0x06 24 01 00 00 00 00  // ?? UINT40
 			// 08 21 06 02 // no  description
 			// 09 21 00 04 // no  description
-			// 0a 21 00 00  // parent NWK - coordinator (0000)
+			// 0a 21 00 00  // parent NWK - zhub (0000)
 			// 64 10 00    // false - OFF
 			// двухканальное реле
 			// 0x03   0x28   0x1e //int8

@@ -10,6 +10,8 @@ type ElectricalMeasurementCluster struct {
 
 // SmartPlug
 func (e ElectricalMeasurementCluster) handler_attributes(endpoint Endpoint, attributes []Attribute) {
+	log.Printf("ElectricalMeasurementCluster::endpoint address: 0x%04x number = %d \n", endpoint.address, endpoint.number)
+
 	for _, attribute := range attributes {
 		log.Printf("ElectricalMeasurementCluster::  attribute id =0x%04x \n", attribute.id)
 		switch ElectricalMeasurementAttribute(attribute.id) {
