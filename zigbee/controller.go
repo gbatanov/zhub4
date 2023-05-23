@@ -1,3 +1,7 @@
+/*
+GSB, 2023
+gbatanov@yandex.ru
+*/
 package zigbee
 
 import (
@@ -149,7 +153,7 @@ func (c *Controller) on_message() {
 	for c.flag {
 		command := <-c.msgChan
 		if c.flag && command.Id > 0 {
-			log.Printf("Command %s \n", command.Id.String())
+			//			log.Printf("Command  0x%04x\n", command.Id)
 			go func(cmd Command) { c.message_handler(cmd) }(command)
 		}
 	}
@@ -201,7 +205,6 @@ func (c *Controller) read_map_from_file() error {
 			r, err = fmt.Fscanf(fd, "%4x %16x\n", &shortAddr, &macAddr)
 			if r > 0 {
 				c.devicessAddressMap[shortAddr] = macAddr
-				// fmt.Printf("%d 0x%04x 0x%016x\n", r, shortAddr, macAddr)
 			}
 		}
 		fd.Close()
@@ -391,18 +394,18 @@ func (c *Controller) message_handler(command Command) {
 		log.Printf("message handler: device not found\n")
 		return
 	}
-	//	macAddress := ed.get_mac_address()
-	var ts uint32 = uint32(command.Payload[11]) + uint32(command.Payload[12])<<8 + uint32(command.Payload[13])<<16 + uint32(command.Payload[14])<<24
-	log.Printf("ClusterID: 0x%04x \n", message.cluster)
-	fmt.Printf("source shortAddr: 0x%04x \n", message.source.address)
-	fmt.Printf("source endpoint: 0x%02x \n", message.source.number)
+
+	//	var ts uint32 = uint32(command.Payload[11]) + uint32(command.Payload[12])<<8 + uint32(command.Payload[13])<<16 + uint32(command.Payload[14])<<24
+	log.Printf("Cluster %s (0x%04X) \n", zcl.Cluster_to_string(message.cluster), message.cluster)
+	fmt.Printf("source endpoint shortAddr: 0x%04x ", message.source.address)
+	fmt.Printf("number: 0x%02x \n", message.source.number)
 	fmt.Printf("linkQuality: %d \n", message.linkQuality)
-	fmt.Printf("ts %d \n", uint32(ts/1000))
+	//	fmt.Printf("ts %d \n", uint32(ts/1000))
 	fmt.Printf("length of ZCL data %d \n", length)
-	log.Printf("zclFrame.Frame_control.Ftype: %02x \n", message.zclFrame.Frame_control.Ftype)
 	if message.zclFrame.ManufacturerCode != 0xffff { // Manufacturer Code absent
 		fmt.Printf(" zcl_frame.manufacturer_code: %04x \n", message.zclFrame.ManufacturerCode)
 	}
+	fmt.Printf("zclFrame.Frame_control.Ftype: %02x ", message.zclFrame.Frame_control.Ftype)
 	fmt.Printf("message.zclFrame.Command: 0x%02x \n", message.zclFrame.Command)
 	fmt.Printf("message.zclFrame.Payload: ")
 	for _, b := range message.zclFrame.Payload {

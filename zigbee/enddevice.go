@@ -1,8 +1,13 @@
-// GSB, 2023
-// gbatanov@yandex.ru
+/*
+GSB, 2023
+gbatanov@yandex.ru
+*/
 package zigbee
 
 import (
+	"bytes"
+	"encoding/binary"
+	"errors"
 	"time"
 )
 
@@ -242,4 +247,18 @@ func (ed EndDevice) set_motion_state(state uint8) {
 	if state == 0 || state == 1 {
 		ed.motionState = int8(state)
 	}
+}
+
+func (ed *EndDevice) bytesToFloat32(src []byte) (float32, error) {
+
+	if len(src) != 4 {
+		return 0.0, errors.New("bad source slice")
+	}
+	var value float32
+	buff := bytes.NewReader(src)
+	err := binary.Read(buff, binary.LittleEndian, &value)
+	if err != nil {
+		return 0.0, err
+	}
+	return value, nil
 }

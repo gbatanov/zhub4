@@ -1,5 +1,7 @@
-// GSB, 2023
-// gbatanov@yandex.ru
+/*
+GSB, 2023
+gbatanov@yandex.ru
+*/
 package zigbee
 
 import (
@@ -54,7 +56,7 @@ func (c *Controller) handle_motion(ed *EndDevice, cmd uint8) {
 			if custom2.shortAddress > 0 {
 				cur_motion = custom2.get_motion_state()
 			}
-			if 1 != cur_motion {
+			if cur_motion != 1 {
 				log.Printf("Motion sensor in coridor. Turn off light relay. \n")
 				c.switch_relay(0x54ef4410001933d3, 0, 1)
 			}

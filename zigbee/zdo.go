@@ -1,3 +1,7 @@
+/*
+GSB, 2023
+gbatanov@yandex.ru
+*/
 package zigbee
 
 import (
@@ -97,29 +101,6 @@ func (zdo *Zdo) stop() {
 	zdo.Cmdinput <- []byte{0}
 }
 
-// receive command from UART and call command handler
-func (zdo *Zdo) input_command() {
-
-	for zdo.Flag {
-		command_src := <-zdo.Cmdinput
-		if zdo.Flag {
-			if len(zdo.tmpBuff) > 0 {
-				command_src = append(zdo.tmpBuff, command_src...)
-			}
-			commands, next := zdo.parse_command(command_src, len(command_src))
-			if next {
-				zdo.tmpBuff = command_src // TODO: if payload length  > 128 bytes
-			} else {
-				zdo.tmpBuff = []byte{}
-				for _, command := range commands {
-					go func(cmd Command) { zdo.handle_command(cmd) }(command)
-				}
-			}
-		}
-	}
-	zdo.Uart.Flag = false
-}
-
 // call sync request
 func (zdo *Zdo) sync_request(request Command, timeout time.Duration) Command {
 
@@ -159,10 +140,33 @@ func (zdo *Zdo) prepare_command(command Command) []byte {
 	return buff
 }
 
+// receive command from UART and call command handler
+func (zdo *Zdo) input_command() {
+
+	for zdo.Flag {
+		command_src := <-zdo.Cmdinput
+		if zdo.Flag {
+			if len(zdo.tmpBuff) > 0 {
+				command_src = append(zdo.tmpBuff, command_src...)
+			}
+			commands, next := zdo.parse_command(command_src, len(command_src))
+			if next {
+				zdo.tmpBuff = append(zdo.tmpBuff, command_src...)
+			} else {
+				zdo.tmpBuff = []byte{}
+				for _, command := range commands {
+					go func(cmd Command) { zdo.handle_command(cmd) }(command)
+				}
+			}
+		}
+	}
+	zdo.Uart.Flag = false
+}
+
 func (zdo *Zdo) parse_command(BufRead []byte, n int) ([]Command, bool) {
 	var result []Command = make([]Command, 0)
 
-	if false {
+	if true {
 		fmt.Printf("parse_command:: BufRead: len = %d , data: ", len(BufRead))
 		for i := 0; i < len(BufRead); i++ {
 			fmt.Printf("0x%02x ", BufRead[i])
@@ -188,10 +192,8 @@ func (zdo *Zdo) parse_command(BufRead []byte, n int) ([]Command, bool) {
 			var cmd CommandId = CommandId(UINT16_(cmd1, cmd0))
 			var command Command = *NewCommand(cmd)
 
-			//			fmt.Printf("parse command:: commandId:0x%04x Payload: ", UINT16_(cmd1, cmd0))
 			for j := 0; j < int(payload_length) && j < n; j++ {
 				command.Payload = append(command.Payload, BufRead[i])
-				//				fmt.Printf(" 0x%02x ", BufRead[i])
 				i++
 			}
 			//			fmt.Println("")
@@ -207,7 +209,7 @@ func (zdo *Zdo) parse_command(BufRead []byte, n int) ([]Command, bool) {
 // reset zigbee-adapter
 func (zdo *Zdo) Reset() error {
 	var cmd Command = *NewCommand(0)
-	zdo.eh.clear(SYS_RESET_IND)
+	//	zdo.eh.clear(SYS_RESET_IND)
 	// writeNv call sync request
 	startup_options := make([]byte, 1)
 	startup_options[0] = 0
@@ -215,19 +217,19 @@ func (zdo *Zdo) Reset() error {
 	if err != nil {
 		return err
 	}
-	log.Println("WriteNv success")
-	log.Println("")
+	//	log.Println("WriteNv success")
 
 	reset_request := New2(SYS_RESET_REQ, 1)
 	reset_request.Payload[0] = byte(RESET_TYPE_SOFT)
 
 	buff := zdo.prepare_command(*reset_request)
-	fmt.Print("Reset buff: ")
-	for i := 0; i < len(buff); i++ {
-		fmt.Printf(" 0x%02x", buff[i])
+	if false {
+		fmt.Print("Reset buff: ")
+		for i := 0; i < len(buff); i++ {
+			fmt.Printf(" 0x%02x", buff[i])
+		}
+		fmt.Println("")
 	}
-	fmt.Println("")
-
 	err = zdo.Uart.Send_command_to_device(buff)
 	if err != nil {
 		return err
@@ -350,14 +352,14 @@ func (zdo *Zdo) writeNetworkConfiguration(configuration NetworkConfiguration) er
 	for _, channel := range configuration.channels {
 		channelBitMask |= (1 << channel)
 	}
-	log.Printf("write bitMask: 0x%08x \n", channelBitMask)
+	//	log.Printf("write bitMask: 0x%08x \n", channelBitMask)
 
 	chann := []byte{0, 0, 0, 0}
 	for i := 0; i < 4; i++ {
 		ch := byte(channelBitMask >> (i * 8))
 		chann[i] = ch
 	}
-	log.Printf("write channels: %q\n", chann)
+	//	log.Printf("write channels: %q\n", chann)
 
 	err = zdo.writeNv(CHANNEL_LIST, chann) // старший байт последний
 	if err != nil {
@@ -607,7 +609,7 @@ func (zdo *Zdo) bind(shortAddress uint16, macAddress uint64, endpoint uint8, clu
 
 // handler the particular command
 func (zdo *Zdo) handle_command(command Command) {
-	log.Printf("zdo.handle_command:: input_command cmd.id: 0x%04x %s \n", uint16(command.Id), command.Id.String())
+	log.Printf("zdo.handle_command:: input_command cmd.id: 0x%04x %s \n", uint16(command.Id), Command_to_string(command.Id))
 	switch command.Id {
 	case AF_INCOMING_MSG: // 0x4481
 		if !zdo.isReady {

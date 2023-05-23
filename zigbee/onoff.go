@@ -1,3 +1,7 @@
+/*
+GSB, 2023
+gbatanov@yandex.ru
+*/
 package zigbee
 
 import (
@@ -103,7 +107,7 @@ func (o OnOffCluster) handler_attributes(endpoint Endpoint, attributes []Attribu
 
 		case OnOff_00F5: //from relay aqara T1
 			//  every 30 second approximately
-			// UINT32 0x070000nn or 0x03<short_addr>mm, nn from 0 to ff cycle
+			//  0x03<short_addr>mm, by switch on or off
 			val := binary.LittleEndian.Uint32(attribute.value)
 			log.Printf("OnOffCluster::handler_attributes: attribute Id 0x%04x in cluster ON_OFF Device 0x%04x val 0x%08x\n", attribute.id, endpoint.address, val)
 

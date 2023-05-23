@@ -1,3 +1,7 @@
+/*
+GSB, 2023
+gbatanov@yandex.ru
+*/
 package zigbee
 
 import "fmt"
@@ -50,7 +54,7 @@ func LOWBYTE(x uint16) byte {
 	return byte(x & 0x00ff)
 }
 
-func (c CommandId) String() string {
+func Command_to_string(c CommandId) string {
 	var cmd_str string
 
 	switch c {

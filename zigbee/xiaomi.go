@@ -1,3 +1,7 @@
+/*
+GSB, 2023
+gbatanov@yandex.ru
+*/
 package zigbee
 
 import (
@@ -28,16 +32,17 @@ func (x XiaomiCluster) handler_attributes(endpoint Endpoint, attributes []Attrib
 			// 98 39 00 00 00 00 float Single precision  Power    instant
 			// 9a 28 00          uint8
 			//
-			for i := 0; i < int(attribute.size); i++ {
+			for i := 0; i < len(attribute.value); i++ {
 
 				attId := attribute.value[i]
 
 				switch attId {
-				case 0x01: //DataType_DATA16
-					i = i + 3
+
 				case 0x03: // temperature
 					i = i + 2
+					log.Printf("Xiaomi temperature: %d \n", int8(attribute.value[i]))
 					x.ed.set_temperature(int8(attribute.value[i]))
+
 				case 0x05: // Power outages
 					i = i + 3
 
@@ -47,8 +52,6 @@ func (x XiaomiCluster) handler_attributes(endpoint Endpoint, attributes []Attrib
 
 				case 0x20: // bool
 					i = i + 2
-				case 0x21: //DataType_UINT56
-					i = i + 8
 
 				case 0x64: // status
 					i = i + 2
@@ -58,6 +61,7 @@ func (x XiaomiCluster) handler_attributes(endpoint Endpoint, attributes []Attrib
 					}
 					x.ed.set_current_state(state, 1)
 					log.Printf("State %s\n", state)
+
 				case 0x65: // status2
 					i = i + 2
 					state := "Off"
@@ -71,33 +75,41 @@ func (x XiaomiCluster) handler_attributes(endpoint Endpoint, attributes []Attrib
 					i = i + 5
 
 				case 0x96: // voltage
-					value := float32(uint32(attribute.value[i+2]) + uint32(attribute.value[i+3])<<8 + uint32(attribute.value[i+3])<<16 + uint32(attribute.value[i+5])<<24)
-					x.ed.set_power_source(0x01)
-					x.ed.set_mains_voltage(value / 10)
-					log.Printf("Voltage %0.3fV\n", value/10)
+					value, err := x.ed.bytesToFloat32(attribute.value[i+2 : i+6])
+					if err == nil {
+						x.ed.set_power_source(0x01)
+						x.ed.set_mains_voltage(value / 10)
+						log.Printf("Voltage %0.2fV\n", value/10)
+					}
 					i = i + 5
 
 				case 0x97: // current
-					value := float32(uint32(attribute.value[i+2]) + uint32(attribute.value[i+3])<<8 + uint32(attribute.value[i+3])<<16 + uint32(attribute.value[i+5])<<24)
-					val := value / 1000
-					x.ed.set_current(val)
-					log.Printf("Current %0.3fA\n", val)
+					value, err := x.ed.bytesToFloat32(attribute.value[i+2 : i+6])
+					if err == nil {
+						val := value / 1000
+						x.ed.set_current(val)
+						log.Printf("Current %0.3fA\n", val)
+					}
 					i = i + 5
 
 				case 0x98: // instant power
-					value := float32(uint32(attribute.value[i+2]) + uint32(attribute.value[i+3])<<8 + uint32(attribute.value[i+3])<<16 + uint32(attribute.value[i+5])<<24)
-					log.Printf("Текущая потребляемая мощность(0x98) %0.6f\n", value)
+					value, err := x.ed.bytesToFloat32(attribute.value[i+2 : i+6])
+					if err == nil {
+						log.Printf("Текущая потребляемая мощность(0x98) %0.6f\n", value)
+					}
 					i = i + 5
 
 				case 0x9a: // uint8
+					i = i + 2
+
 				case 0x0b: // uint8
 					i = i + 2
 
 				default:
 					log.Printf("Необработанный тэг 0x%02x type 0x%02x \n ", attId, attribute.value[i+1])
-					i++
+					i = 1000 // big value for break
 				} // switch
-				if i >= int(attribute.size) {
+				if i >= len(attribute.value) {
 					break
 				}
 			} // for
