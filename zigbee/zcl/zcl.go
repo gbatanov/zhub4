@@ -138,7 +138,7 @@ func Cluster_to_string(cl Cluster) string {
 	case POLL_CONTROL: // 0x0020 //
 		result = "POLL_CONTROL"
 	case XIAOMI_SWITCH_OUTPUT: // 0x0021
-		result = "BASXIAOMI_SWITCH_OUTPUTIC"
+		result = "XIAOMI_SWITCH_OUTPUT"
 	case KEEP_ALIVE: // 0x0025
 		result = "KEEP_ALIVE"
 	case WINDOW_COVERING: // 0x0102

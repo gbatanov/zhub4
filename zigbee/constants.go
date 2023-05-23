@@ -1,3 +1,7 @@
+/*
+GSB, 2023
+gbatanov@yandex.ru
+*/
 package zigbee
 
 type StartupStatus byte

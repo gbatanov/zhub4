@@ -88,7 +88,7 @@ func (x XiaomiCluster) handler_attributes(endpoint Endpoint, attributes []Attrib
 					if err == nil {
 						val := value / 1000
 						x.ed.set_current(val)
-						log.Printf("Current %0.3fA\n", val)
+						log.Printf("Current %0.3fA\n\n", val)
 					}
 					i = i + 5
 

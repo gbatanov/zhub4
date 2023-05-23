@@ -25,7 +25,7 @@ func (p PowerConfigurationCluster) handler_attributes(endpoint Endpoint, attribu
 
 		case PowerConfiguration_BATTERY_REMAIN:
 			val := attribute.value[0] // 0x00-0x30 0x30-0x60 0x60-0x90 0x90-0xc8
-			log.Printf("Device 0x%04x BATTERY_REMAIN: 0x%02x \n", endpoint.address, val)
+			log.Printf("Device 0x%04x BATTERY_REMAIN: 0x%02x \n\n", endpoint.address, val)
 			p.ed.set_battery_params(val, 0.0)
 
 		default:

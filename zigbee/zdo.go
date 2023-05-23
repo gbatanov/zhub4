@@ -149,7 +149,7 @@ func (zdo *Zdo) input_command() {
 			if len(zdo.tmpBuff) > 0 {
 				command_src = append(zdo.tmpBuff, command_src...)
 			}
-			commands, next := zdo.parse_command(command_src, len(command_src))
+			commands, next := zdo.parse_command(command_src)
 			if next {
 				zdo.tmpBuff = append(zdo.tmpBuff, command_src...)
 			} else {
@@ -163,10 +163,15 @@ func (zdo *Zdo) input_command() {
 	zdo.Uart.Flag = false
 }
 
-func (zdo *Zdo) parse_command(BufRead []byte, n int) ([]Command, bool) {
+// len(BufRead) >= 5!!! SOF Length Cmd0 Cmd1 FCS
+func (zdo *Zdo) parse_command(BufRead []byte) ([]Command, bool) {
+
+	if len(BufRead) < 5 {
+		return []Command{}, true
+	}
 	var result []Command = make([]Command, 0)
 
-	if true {
+	if false {
 		fmt.Printf("parse_command:: BufRead: len = %d , data: ", len(BufRead))
 		for i := 0; i < len(BufRead); i++ {
 			fmt.Printf("0x%02x ", BufRead[i])
@@ -174,12 +179,12 @@ func (zdo *Zdo) parse_command(BufRead []byte, n int) ([]Command, bool) {
 		fmt.Println("")
 	}
 
-	for i := 0; i < n; {
+	for i := 0; i < len(BufRead); i++ {
 		b := BufRead[i]
-		i++
 		if b == serial3.SOF {
+			i++
 			payload_length := BufRead[i]
-			if payload_length > byte(n) {
+			if payload_length > byte(len(BufRead)-5) {
 				return []Command{}, true
 			}
 
@@ -190,19 +195,19 @@ func (zdo *Zdo) parse_command(BufRead []byte, n int) ([]Command, bool) {
 			i++
 			// в команде сначала идет старший байт Cmd0, за ним младший Cmd1
 			var cmd CommandId = CommandId(UINT16_(cmd1, cmd0))
-			var command Command = *NewCommand(cmd)
+			var command *Command = NewCommand(cmd)
 
-			for j := 0; j < int(payload_length) && j < n; j++ {
+			for j := 0; j < int(payload_length); j++ {
 				command.Payload = append(command.Payload, BufRead[i])
 				i++
 			}
 			//			fmt.Println("")
 
 			if BufRead[i] == command.Fcs() {
-				result = append(result, command)
+				result = append(result, *command)
 			}
-		}
-	}
+		} //if
+	} //for
 	return result, false
 }
 
@@ -609,7 +614,7 @@ func (zdo *Zdo) bind(shortAddress uint16, macAddress uint64, endpoint uint8, clu
 
 // handler the particular command
 func (zdo *Zdo) handle_command(command Command) {
-	log.Printf("zdo.handle_command:: input_command cmd.id: 0x%04x %s \n", uint16(command.Id), Command_to_string(command.Id))
+	//	log.Printf("zdo.handle_command:: input_command cmd.id: 0x%04x %s \n", uint16(command.Id), Command_to_string(command.Id))
 	switch command.Id {
 	case AF_INCOMING_MSG: // 0x4481
 		if !zdo.isReady {
@@ -652,7 +657,9 @@ func (zdo *Zdo) handle_command(command Command) {
 			log.Printf("Zdo:: Device 0x%04x Endpoints count: %d list: ", shortAddr, ep_count)
 			for i := 0; i < int(ep_count); i++ { // Number of active endpoint in the list
 				endpoints[i] = command.Payload[6+i]
-				log.Printf("%d ", endpoints[i])
+				log.Printf("Query descriptor for endpoint %d \n", endpoints[i])
+				zdo.simpleDescriptor(shortAddr, endpoints[i])
+
 			}
 			log.Println("")
 		}
@@ -660,18 +667,18 @@ func (zdo *Zdo) handle_command(command Command) {
 	case ZDO_SIMPLE_DESC_RSP: // 0x4584
 		len := command.Payload_size()
 		if len > 0 {
-			fmt.Println("zdo.handle_command::ZDO_SIMPLE_DESC_RSP:: Payload: ")
+			// fmt.Println("zdo.handle_command::ZDO_SIMPLE_DESC_RSP:: Payload: ")
 			i := byte(0)
 			for len > 0 {
-				fmt.Printf(" %02x ", command.Payload[i])
+				// fmt.Printf(" %02x ", command.Payload[i])
 				i++
 				len--
 			}
-			fmt.Println("")
+			// fmt.Println("")
 			if command.Payload[2] == byte(SUCCESS) {
 				shortAddr := UINT16_(command.Payload[0], command.Payload[1])
 
-				descriptorLen := command.Payload[5] // длина дескриптора, начинается с номера эндпойнта
+				// descriptorLen := command.Payload[5] // длина дескриптора, начинается с номера эндпойнта
 
 				descriptor := SimpleDescriptor{}
 				descriptor.endpointNumber = uint16(command.Payload[6])                 // номер эндпойнта, для которого пришел дескриптор
@@ -679,7 +686,7 @@ func (zdo *Zdo) handle_command(command Command) {
 				descriptor.deviceId = UINT16_(command.Payload[9], command.Payload[10]) // ID устройства
 				descriptor.deviceVersion = uint16(command.Payload[11])                 // Версия устройства
 
-				log.Printf("ZDO_SIMPLE_DESC_RSP:: Device 0x%04x Descriptor length %d \n", shortAddr, descriptorLen)
+				//				log.Printf("ZDO_SIMPLE_DESC_RSP:: Device 0x%04x Descriptor length %d \n", shortAddr, descriptorLen)
 				log.Printf("ZDO_SIMPLE_DESC_RSP:: Device 0x%04x Endpoint %d ProfileId 0x%04x DeviceId 0x%04x \n", shortAddr, descriptor.endpointNumber, descriptor.profileId, descriptor.deviceId)
 				i := 12 // Index of number of input clusters/
 
@@ -692,7 +699,7 @@ func (zdo *Zdo) handle_command(command Command) {
 					i++
 					p2 := command.Payload[i]
 					i++
-					fmt.Printf("ZDO_SIMPLE_DESC_RSP: Input Cluster 0x%04x \n", UINT16_(p1, p2))
+					fmt.Printf("ZDO_SIMPLE_DESC_RSP: Input Cluster %s 0x%04X \n", zcl.Cluster_to_string(zcl.Cluster(UINT16_(p1, p2))), UINT16_(p1, p2))
 
 					descriptor.inputClusters = append(descriptor.inputClusters, UINT16_(p1, p2)) // List of input cluster Id's supported.
 					inputClustersNumber--
@@ -708,7 +715,7 @@ func (zdo *Zdo) handle_command(command Command) {
 					p2 := command.Payload[i]
 					i++
 
-					fmt.Printf("ZDO_SIMPLE_DESC_RSP: Output Cluster 0x%04x  ", UINT16_(p1, p2))
+					fmt.Printf("ZDO_SIMPLE_DESC_RSP: Output Cluster %s 0x%04X \n", zcl.Cluster_to_string(zcl.Cluster(UINT16_(p1, p2))), UINT16_(p1, p2))
 
 					descriptor.outputClusters = append(descriptor.outputClusters, UINT16_(p1, p2)) // List of output cluster Id's supported.
 					outputClustersNumber--

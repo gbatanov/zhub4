@@ -25,7 +25,7 @@ type Controller struct {
 	motionMsgChan      chan MotionMsg // chanel for get message from motion sensors
 	lastMotion         time.Time      // last motion any motion sensor
 	smartPlugTS        time.Time      // timestamp for smart plug timer
-	switchOffTS        time.Time      // timestamp for switch off timer
+	switchOffTS        bool           // flag for switch off timer
 	mapFileMutex       sync.Mutex
 }
 
@@ -46,7 +46,8 @@ func controllerCreate(Ports map[string]string, Os string, mode string) (*Control
 		return &Controller{}, err
 	}
 
-	controller := Controller{zdo: zdo,
+	controller := Controller{
+		zdo:                zdo,
 		mode:               mode,
 		devices:            map[uint64]*EndDevice{},
 		devicessAddressMap: map[uint16]uint64{},
@@ -54,9 +55,9 @@ func controllerCreate(Ports map[string]string, Os string, mode string) (*Control
 		msgChan:            chn1,
 		joinChan:           chn2,
 		motionMsgChan:      chn3,
-		lastMotion:         time.Time{},
+		lastMotion:         time.Now(),
 		smartPlugTS:        ts,
-		switchOffTS:        ts,
+		switchOffTS:        false,
 		mapFileMutex:       sync.Mutex{}}
 	return &controller, nil
 
@@ -397,22 +398,23 @@ func (c *Controller) message_handler(command Command) {
 
 	//	var ts uint32 = uint32(command.Payload[11]) + uint32(command.Payload[12])<<8 + uint32(command.Payload[13])<<16 + uint32(command.Payload[14])<<24
 	log.Printf("Cluster %s (0x%04X) \n", zcl.Cluster_to_string(message.cluster), message.cluster)
-	fmt.Printf("source endpoint shortAddr: 0x%04x ", message.source.address)
-	fmt.Printf("number: 0x%02x \n", message.source.number)
-	fmt.Printf("linkQuality: %d \n", message.linkQuality)
-	//	fmt.Printf("ts %d \n", uint32(ts/1000))
-	fmt.Printf("length of ZCL data %d \n", length)
-	if message.zclFrame.ManufacturerCode != 0xffff { // Manufacturer Code absent
-		fmt.Printf(" zcl_frame.manufacturer_code: %04x \n", message.zclFrame.ManufacturerCode)
+	if message.cluster != zcl.TIME { // too often
+		fmt.Printf("source endpoint shortAddr: 0x%04x ", message.source.address)
+		fmt.Printf("number: 0x%02x \n", message.source.number)
+		fmt.Printf("linkQuality: %d \n", message.linkQuality)
+		//	fmt.Printf("ts %d \n", uint32(ts/1000))
+		fmt.Printf("length of ZCL data %d \n", length)
+		if message.zclFrame.ManufacturerCode != 0xffff { // Manufacturer Code absent
+			fmt.Printf(" zcl_frame.manufacturer_code: %04x \n", message.zclFrame.ManufacturerCode)
+		}
+		fmt.Printf("zclFrame.Frame_control.Ftype: %02x ", message.zclFrame.Frame_control.Ftype)
+		fmt.Printf("message.zclFrame.Command: 0x%02x \n", message.zclFrame.Command)
+		fmt.Printf("message.zclFrame.Payload: ")
+		for _, b := range message.zclFrame.Payload {
+			fmt.Printf("0x%02x ", b)
+		}
+		fmt.Print("\n\n")
 	}
-	fmt.Printf("zclFrame.Frame_control.Ftype: %02x ", message.zclFrame.Frame_control.Ftype)
-	fmt.Printf("message.zclFrame.Command: 0x%02x \n", message.zclFrame.Command)
-	fmt.Printf("message.zclFrame.Payload: ")
-	for _, b := range message.zclFrame.Payload {
-		fmt.Printf("0x%02x ", b)
-	}
-	fmt.Println("")
-
 	if message.linkQuality > 0 {
 		ed.set_linkQuality(message.linkQuality)
 	}
@@ -541,9 +543,10 @@ func (c *Controller) after_message_action(ed *EndDevice) {
 			}
 		}
 	}
-	diffOff := time.Since(c.switchOffTS)
-	if diffOff.Minutes() > 30 {
-		c.switchOffTS = time.Now()
+	lastMotion := c.get_last_motion_sensor_activity()
+	diffOff := time.Since(lastMotion)
+	if diffOff.Minutes() > 30 && !c.switchOffTS {
+		c.switchOffTS = true
 		c.switch_off_with_list()
 	}
 }
@@ -606,7 +609,7 @@ func (c *Controller) switch_off_with_list() {
 }
 func (c *Controller) switch_relay(macAddress uint64, cmd uint8, channel uint8) {
 	ed := c.get_device_by_mac(macAddress)
-	if ed.shortAddress > 0 {
+	if ed.shortAddress > 0 && ed.di.available == 1 {
 		c.send_command_to_onoff_device(ed.shortAddress, cmd, channel)
 		ts := time.Now() // get time now
 		ed.set_last_action(ts)

@@ -27,6 +27,7 @@ func (c *Controller) handle_motion(ed *EndDevice, cmd uint8) {
 			ts := time.Now() // get time now
 			c.set_last_motion_sensor_activity(ts)
 			ed.set_last_action(ts)
+			c.switchOffTS = false
 		}
 	}
 	ed.set_motion_state(cmd) // numeric value

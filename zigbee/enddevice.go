@@ -64,6 +64,7 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	0x00124b000b1bb401: {4, "GSB", "CC2530", "КлиматБалкон", "Датчик климата (балкон)", PowerSource_BATTERY, 1, 0},
 }
 
+// Input clusters can have commands sent to them to perform actions, where as output clusters instead send these commands to a bound device.
 var DEVICE_TYPES map[uint8]string = map[uint8]string{
 	1: "SonoffButton",       // 1 endpoint (3 input cluster - 0x0000, 0x0001, 0x0003,        2 output cluster - 0x0003, 0x0006 )
 	2: "SonoffMotionSensor", // 1 endpoint (4 input cluster - 0x0000, 0x0001, 0x0003,0x0500, 1 output cluster - 0x0003,        )
