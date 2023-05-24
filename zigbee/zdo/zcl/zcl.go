@@ -84,10 +84,10 @@ const (
 	METER_IDENTIFICATION             Cluster = 0x0b01 // Attributes and commands that provide an interface to meter identification
 	ELECTRICAL_MEASUREMENTS          Cluster = 0x0b04 //
 	DIAGNOSTICS                      Cluster = 0x0b05 // Attributes and commands that provide an interface to diagnostics of the ZigBee stack
-	TOUCHLINK_COMISSIONING           Cluster = 0x1000 // Для устройств со светом, в другом варианте LIGHT_LINK
+	LIGHT_LINK                       Cluster = 0x1000 // Для устройств со светом
 	TUYA_SWITCH_MODE_0               Cluster = 0xe000 // кран
 	TUYA_ELECTRICIAN_PRIVATE_CLUSTER Cluster = 0xe001 // имеется у умной розетки и крана Voltage - ??
-	IKEA_BUTTON_ATTR_UNKNOWN2        Cluster = 0xfc7c // Имеется у кнопки IKEA
+	IKEA_BUTTON                      Cluster = 0xfc7c // Имеется у кнопки IKEA
 	XIAOMI_SWITCH                    Cluster = 0xfcc0 // проприетарный кластер (Lumi) на реле Aquara, присутствует код производителя и длинная строка payload
 	SMOKE_SENSOR                     Cluster = 0xfe00 // Датчик дыма, TUYA-совместимый
 	UNKNOWN_CLUSTER                  Cluster = 0xffff
@@ -168,14 +168,14 @@ func Cluster_to_string(cl Cluster) string {
 		result = "ELECTRICAL_MEASUREMENTS"
 	case DIAGNOSTICS: // 0x0b05
 		result = "DIAGNOSTICS"
-	case TOUCHLINK_COMISSIONING: // 0x1000
-		result = "TOUCHLINK_COMISSIONING"
+	case LIGHT_LINK: // 0x1000
+		result = "LIGHT_LINK"
 	case TUYA_SWITCH_MODE_0: // 0xe000
 		result = "TUYA_SWITCH_MODE_0"
 	case TUYA_ELECTRICIAN_PRIVATE_CLUSTER: // 0xe001
 		result = "TUYA_ELECTRICIAN_PRIVATE_CLUSTER"
-	case IKEA_BUTTON_ATTR_UNKNOWN2: // 0xfc7c
-		result = "IKEA_BUTTON_ATTR_UNKNOWN2"
+	case IKEA_BUTTON: // 0xfc7c
+		result = "IKEA_BUTTON"
 	case XIAOMI_SWITCH: //0xfcc0
 		result = "XIAOMI_SWITCH"
 	case SMOKE_SENSOR: // 0xfe00

@@ -491,59 +491,76 @@ func (c *Controller) on_attribute_report(ed *zdo.EndDevice, ep zcl.Endpoint, clu
 
 	switch cluster {
 	case zcl.BASIC:
-
 		c := clusters.BasicCluster{Ed: ed}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.POWER_CONFIGURATION:
-
 		c := clusters.PowerConfigurationCluster{Ed: ed}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.IDENTIFY:
-
 		c := clusters.IdentifyCluster{Ed: ed}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.ON_OFF:
-
 		c := clusters.OnOffCluster{Ed: ed, MsgChan: c.motionMsgChan}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.ANALOG_INPUT:
-
 		c := clusters.AnalogInputCluster{Ed: ed}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.MULTISTATE_INPUT:
-
 		c := clusters.MultistateInputCluster{}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.XIAOMI_SWITCH:
-
 		c := clusters.XiaomiCluster{Ed: ed}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.SIMPLE_METERING:
-
 		c := clusters.SimpleMeteringCluster{}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.ELECTRICAL_MEASUREMENTS:
-
 		c := clusters.ElectricalMeasurementCluster{Ed: ed}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.TUYA_ELECTRICIAN_PRIVATE_CLUSTER:
-
 		c := clusters.TuyaCluster{}
 		c.Handler_attributes1(ep, attributes)
 
 	case zcl.TUYA_SWITCH_MODE_0:
-
 		c := clusters.TuyaCluster{}
 		c.Handler_attributes2(ep, attributes)
+
+	case zcl.IAS_ZONE:
+		c := clusters.IasZoneCluster{}
+		c.Handler_attributes(ep, attributes)
+
+	case zcl.ALARMS:
+		c := clusters.AlarmsCluster{}
+		c.Handler_attributes(ep, attributes)
+
+	case zcl.POLL_CONTROL:
+		c := clusters.PollControlCluster{}
+		c.Handler_attributes(ep, attributes)
+
+	case zcl.LIGHT_LINK:
+		c := clusters.LightLinkCluster{}
+		c.Handler_attributes(ep, attributes)
+
+	case zcl.IKEA_BUTTON:
+		c := clusters.IkeaCluster{}
+		c.Handler_attributes(ep, attributes)
+
+	case zcl.GROUPS:
+		c := clusters.GroupsCluster{}
+		c.Handler_attributes(ep, attributes)
+
+	case zcl.TIME:
+		c := clusters.TimeCluster{}
+		c.Handler_attributes(ep, attributes)
 
 	default: // unattended clusters
 
