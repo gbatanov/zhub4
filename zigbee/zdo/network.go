@@ -1,6 +1,6 @@
-package zigbee
+package zdo
 
-import "zhub4/zigbee/zcl"
+import "zhub4/zigbee/zdo/zcl"
 
 type NetworkConfiguration struct {
 	pan_id            uint16          // = 0;

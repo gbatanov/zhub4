@@ -3,7 +3,7 @@ package zigbee
 import (
 	"fmt"
 	"log"
-	"zhub4/zigbee/zcl"
+	"zhub4/zigbee/zdo/zcl"
 )
 
 type ElectricalMeasurementCluster struct {

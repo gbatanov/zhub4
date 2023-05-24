@@ -2,7 +2,7 @@
 GSB, 2023
 gbatanov@yandex.ru
 */
-package zigbee
+package zdo
 
 import (
 	"encoding/binary"
@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 	"zhub4/serial3"
-	"zhub4/zigbee/zcl"
+	"zhub4/zigbee/zdo/zcl"
 )
 
 type SimpleDescriptor struct {
@@ -24,7 +24,7 @@ type SimpleDescriptor struct {
 	outputClusters []uint16
 }
 
-var default_endpoint SimpleDescriptor = SimpleDescriptor{1, // Enpoint number.
+var Default_endpoint SimpleDescriptor = SimpleDescriptor{1, // Enpoint number.
 	0x0104,     // Profile ID.
 	0x05,       // Device ID.
 	0,          // Device version.
@@ -32,11 +32,11 @@ var default_endpoint SimpleDescriptor = SimpleDescriptor{1, // Enpoint number.
 	[]uint16{}} // Output clusters list.
 
 type Message struct {
-	source      zcl.Endpoint
-	destination zcl.Endpoint
-	cluster     zcl.Cluster
-	zclFrame    zcl.Frame
-	linkQuality uint8
+	Source      zcl.Endpoint
+	Destination zcl.Endpoint
+	Cluster     zcl.Cluster
+	ZclFrame    zcl.Frame
+	LinkQuality uint8
 }
 
 type Zdo struct {
@@ -48,7 +48,7 @@ type Zdo struct {
 	transactionSecuenseNumber uint8
 	tsnMutex                  sync.Mutex
 	macAddress                uint64
-	shortAddress              uint16
+	ShortAddress              uint16
 	isReady                   bool
 	os                        string
 	msgChan                   chan Command // chanel for send command to controller
@@ -60,7 +60,7 @@ func init() {
 	fmt.Println("Init in zigbee: zdo")
 }
 
-func zdoCreate(port string, Os string, chn chan Command, jchn chan []byte) (*Zdo, error) {
+func ZdoCreate(port string, Os string, chn chan Command, jchn chan []byte) (*Zdo, error) {
 	eh := CreateEventHandler()
 	uart := serial3.UartCreate(port, Os)
 	cmdinput := make(chan []byte, 256)
@@ -76,7 +76,7 @@ func zdoCreate(port string, Os string, chn chan Command, jchn chan []byte) (*Zdo
 		transactionSecuenseNumber: 0,
 		tsnMutex:                  sync.Mutex{},
 		macAddress:                0x0000000000000000,
-		shortAddress:              0x0000,
+		ShortAddress:              0x0000,
 		isReady:                   false,
 		os:                        Os,
 		msgChan:                   chn,
@@ -86,7 +86,7 @@ func zdoCreate(port string, Os string, chn chan Command, jchn chan []byte) (*Zdo
 	return &zdo, nil
 }
 
-func (zdo *Zdo) stop() {
+func (zdo *Zdo) Stop() {
 	zdo.Uart.Stop()
 	zdo.Flag = false
 	zdo.Cmdinput <- []byte{0}
@@ -132,7 +132,7 @@ func (zdo *Zdo) prepare_command(command Command) []byte {
 }
 
 // receive command from UART and call command handler
-func (zdo *Zdo) input_command() {
+func (zdo *Zdo) Input_command() {
 
 	for zdo.Flag {
 		command_src := <-zdo.Cmdinput
@@ -283,7 +283,7 @@ func (zdo *Zdo) readNv(item zcl.NvItems) []byte {
 }
 
 // read network configuration from zhub
-func (zdo *Zdo) readNetworkConfiguration() (NetworkConfiguration, error) {
+func (zdo *Zdo) ReadNetworkConfiguration() (NetworkConfiguration, error) {
 	nc := NetworkConfiguration{
 		pan_id:            0,
 		extended_pan_id:   0,
@@ -338,7 +338,7 @@ func (zdo *Zdo) readNetworkConfiguration() (NetworkConfiguration, error) {
 }
 
 // write new configuration into zhub
-func (zdo *Zdo) writeNetworkConfiguration(configuration NetworkConfiguration) error {
+func (zdo *Zdo) WriteNetworkConfiguration(configuration NetworkConfiguration) error {
 
 	err := zdo.writeNv(zcl.LOGICAL_TYPE, []byte{byte(configuration.logical_type)})
 	if err != nil {
@@ -434,8 +434,8 @@ func (zdo *Zdo) Startup(delay time.Duration) error {
 
 		zdo.macAddress = binary.LittleEndian.Uint64(device_info_response.Payload[1:10])
 		log.Printf("Configurator info: IEEE address: 0x%016x \n", zdo.macAddress)
-		zdo.shortAddress = zcl.UINT16_(device_info_response.Payload[9], device_info_response.Payload[10])
-		log.Printf("Configurator info: shortAddr: 0x%04x \n", zdo.shortAddress)
+		zdo.ShortAddress = zcl.UINT16_(device_info_response.Payload[9], device_info_response.Payload[10])
+		log.Printf("Configurator info: shortAddr: 0x%04x \n", zdo.ShortAddress)
 		log.Printf("Configurator info: Device Type: 0x%02x \n", device_info_response.Payload[11])
 		log.Printf("Configurator info: Device State: 0x%02x \n", device_info_response.Payload[12])
 		fmt.Printf("Configurator info: Associated devices count: %d \n", device_info_response.Payload[13])
@@ -450,7 +450,7 @@ func (zdo *Zdo) Startup(delay time.Duration) error {
 	}
 	return nil
 }
-func (zdo *Zdo) registerEndpointDescriptor(endpoint_descriptor SimpleDescriptor) error {
+func (zdo *Zdo) RegisterEndpointDescriptor(endpoint_descriptor SimpleDescriptor) error {
 
 	register_ep_request := New2(AF_REGISTER, 9)
 	register_ep_request.Payload[0] = 1 //uint8(endpoint_descriptor.endpoint_number)
@@ -484,7 +484,7 @@ func (zdo *Zdo) Permit_join(duration time.Duration) error {
 	return zdo.async_request(*permitJoinRequest, 3*time.Second)
 }
 
-func (zdo *Zdo) parse_zcl_data(data []byte) zcl.Frame {
+func (zdo *Zdo) Parse_zcl_data(data []byte) zcl.Frame {
 	var zclFrame zcl.Frame
 
 	zclFrame.Frame_control.Ftype = zcl.FrameType(data[0] & 0b00000011)
@@ -509,44 +509,44 @@ func (zdo *Zdo) parse_zcl_data(data []byte) zcl.Frame {
 	return zclFrame
 }
 
-func (zdo *Zdo) send_message(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame, timeout time.Duration) error {
+func (zdo *Zdo) Send_message(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame, timeout time.Duration) error {
 	var message Message = Message{}
-	message.cluster = cl
-	message.source = zcl.Endpoint{Address: 0x0000, Number: 1}
-	message.destination = ep
-	message.zclFrame = frame
-	message.linkQuality = 0
-	transactionNumber := zdo.generateTransactionNumber()
+	message.Cluster = cl
+	message.Source = zcl.Endpoint{Address: 0x0000, Number: 1}
+	message.Destination = ep
+	message.ZclFrame = frame
+	message.LinkQuality = 0
+	transactionNumber := zdo.GenerateTransactionNumber()
 
 	afDataRequest := New2(AF_DATA_REQUEST, 255)
-	afDataRequest.Payload[0] = zcl.LOWBYTE(message.destination.Address)
-	afDataRequest.Payload[1] = zcl.HIGHBYTE(message.destination.Address)
-	afDataRequest.Payload[2] = message.destination.Number
-	afDataRequest.Payload[3] = message.source.Number
-	afDataRequest.Payload[4] = zcl.LOWBYTE(uint16(message.cluster))
-	afDataRequest.Payload[5] = zcl.HIGHBYTE(uint16(message.cluster))
+	afDataRequest.Payload[0] = zcl.LOWBYTE(message.Destination.Address)
+	afDataRequest.Payload[1] = zcl.HIGHBYTE(message.Destination.Address)
+	afDataRequest.Payload[2] = message.Destination.Number
+	afDataRequest.Payload[3] = message.Source.Number
+	afDataRequest.Payload[4] = zcl.LOWBYTE(uint16(message.Cluster))
+	afDataRequest.Payload[5] = zcl.HIGHBYTE(uint16(message.Cluster))
 	afDataRequest.Payload[6] = transactionNumber
 	afDataRequest.Payload[7] = 0
 	afDataRequest.Payload[8] = 7 // DEFAULT_RADIUS
-	afDataRequest.Payload[10] = byte(message.zclFrame.Frame_control.Ftype&0b00000011) +
-		byte(message.zclFrame.Frame_control.ManufacturerSpecific)<<2 +
-		byte(message.zclFrame.Frame_control.Direction)<<3 +
-		message.zclFrame.Frame_control.DisableDefaultResponse<<4
+	afDataRequest.Payload[10] = byte(message.ZclFrame.Frame_control.Ftype&0b00000011) +
+		byte(message.ZclFrame.Frame_control.ManufacturerSpecific)<<2 +
+		byte(message.ZclFrame.Frame_control.Direction)<<3 +
+		message.ZclFrame.Frame_control.DisableDefaultResponse<<4
 
 	var i uint8 = 11
-	if message.zclFrame.Frame_control.ManufacturerSpecific == 1 {
-		afDataRequest.Payload[i] = zcl.LOWBYTE(message.zclFrame.ManufacturerCode)
+	if message.ZclFrame.Frame_control.ManufacturerSpecific == 1 {
+		afDataRequest.Payload[i] = zcl.LOWBYTE(message.ZclFrame.ManufacturerCode)
 		i++
-		afDataRequest.Payload[i] = zcl.HIGHBYTE(message.zclFrame.ManufacturerCode)
+		afDataRequest.Payload[i] = zcl.HIGHBYTE(message.ZclFrame.ManufacturerCode)
 		i++
 	}
-	afDataRequest.Payload[i] = message.zclFrame.TransactionSequenceNumber
+	afDataRequest.Payload[i] = message.ZclFrame.TransactionSequenceNumber
 	i++
-	afDataRequest.Payload[i] = message.zclFrame.Command
+	afDataRequest.Payload[i] = message.ZclFrame.Command
 	i++
 
-	for n := 0; n < len(message.zclFrame.Payload); n++ {
-		afDataRequest.Payload[i] = message.zclFrame.Payload[n]
+	for n := 0; n < len(message.ZclFrame.Payload); n++ {
+		afDataRequest.Payload[i] = message.ZclFrame.Payload[n]
 		i++
 	}
 	afDataRequest.Payload[9] = i                      // data length
@@ -556,7 +556,7 @@ func (zdo *Zdo) send_message(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame, t
 }
 
 // get endpoint list from device
-func (zdo *Zdo) activeEndpoints(address uint16) error {
+func (zdo *Zdo) ActiveEndpoints(address uint16) error {
 	activeEndpointsRequest := New2(ZDO_ACTIVE_EP_REQ, 4)
 	activeEndpointsRequest.Payload[0] = zcl.LOWBYTE(address)
 	activeEndpointsRequest.Payload[1] = zcl.HIGHBYTE(address)
@@ -566,7 +566,7 @@ func (zdo *Zdo) activeEndpoints(address uint16) error {
 }
 
 // get endpoint descriptor from device
-func (zdo *Zdo) simpleDescriptor(address uint16, endpointNumber uint8) error {
+func (zdo *Zdo) SimpleDescriptor(address uint16, endpointNumber uint8) error {
 	activeEndpointsRequest := New2(ZDO_SIMPLE_DESC_REQ, 5)
 	activeEndpointsRequest.Payload[0] = zcl.LOWBYTE(address)
 	activeEndpointsRequest.Payload[1] = zcl.HIGHBYTE(address)
@@ -578,7 +578,7 @@ func (zdo *Zdo) simpleDescriptor(address uint16, endpointNumber uint8) error {
 }
 
 // bind device with zhub
-func (zdo *Zdo) bind(shortAddress uint16, macAddress uint64, endpoint uint8, cluster zcl.Cluster) error {
+func (zdo *Zdo) Bind(shortAddress uint16, macAddress uint64, endpoint uint8, cluster zcl.Cluster) error {
 	bindRequest := NewCommand(ZDO_BIND_REQ)
 	bindRequest.Payload = []byte{}
 	bindRequest.Payload = append(bindRequest.Payload, zcl.LOWBYTE(shortAddress))
@@ -649,7 +649,7 @@ func (zdo *Zdo) handle_command(command Command) {
 			for i := 0; i < int(ep_count); i++ { // Number of active endpoint in the list
 				endpoints[i] = command.Payload[6+i]
 				log.Printf("Query descriptor for endpoint %d \n", endpoints[i])
-				zdo.simpleDescriptor(shortAddr, endpoints[i])
+				zdo.SimpleDescriptor(shortAddr, endpoints[i])
 
 			}
 			log.Println("")
@@ -732,7 +732,7 @@ func (zdo *Zdo) handle_command(command Command) {
 }
 
 // in payload
-func (zdo *Zdo) generateTransactionNumber() uint8 {
+func (zdo *Zdo) GenerateTransactionNumber() uint8 {
 
 	ret := zdo.transactionNumber
 	zdo.transactionNumber++
@@ -740,7 +740,7 @@ func (zdo *Zdo) generateTransactionNumber() uint8 {
 }
 
 // in zcl.Frame
-func (zdo *Zdo) generateTransactionSequenceNumber() uint8 {
+func (zdo *Zdo) GenerateTransactionSequenceNumber() uint8 {
 	zdo.tsnMutex.Lock()
 	defer zdo.tsnMutex.Unlock()
 	zdo.transactionSecuenseNumber++

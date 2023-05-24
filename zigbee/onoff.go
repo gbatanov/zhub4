@@ -8,7 +8,7 @@ import (
 	"encoding/binary"
 	"log"
 	"time"
-	"zhub4/zigbee/zcl"
+	"zhub4/zigbee/zdo/zcl"
 )
 
 type OnOffCluster struct {

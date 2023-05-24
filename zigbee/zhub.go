@@ -3,6 +3,7 @@ package zigbee
 import (
 	"fmt"
 	"log"
+	"zhub4/zigbee/zdo"
 )
 
 type Zhub struct {
@@ -28,9 +29,9 @@ func (zhub *Zhub) Start() error {
 	zhub.Flag = true
 	var err error
 	if zhub.mode == "prod" {
-		err = zhub.controller.startNetwork(DefaultConfiguration)
+		err = zhub.controller.startNetwork(zdo.DefaultConfiguration)
 	} else {
-		err = zhub.controller.startNetwork(TestConfiguration)
+		err = zhub.controller.startNetwork(zdo.TestConfiguration)
 	}
 	if err != nil {
 		log.Fatal(err)

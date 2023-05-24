@@ -2,7 +2,7 @@ package zigbee
 
 import (
 	"log"
-	"zhub4/zigbee/zcl"
+	"zhub4/zigbee/zdo/zcl"
 )
 
 type BasicCluster struct {

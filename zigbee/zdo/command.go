@@ -2,11 +2,11 @@
 GSB, 2023
 gbatanov@yandex.ru
 */
-package zigbee
+package zdo
 
 import (
 	"fmt"
-	"zhub4/zigbee/zcl"
+	"zhub4/zigbee/zdo/zcl"
 )
 
 type Command struct {

@@ -9,6 +9,7 @@ import (
 	"log"
 	"time"
 	"zhub4/pi4"
+	"zhub4/zigbee/zdo"
 )
 
 // scenarios
@@ -149,11 +150,11 @@ func (c *Controller) handle_motion(ed *EndDevice, cmd uint8) {
 // 0x40 Off with effect
 // 0x41 On with recall global scene
 // 0x42 On with timed off  payload:0x00 (исполняем безусловно) 0x08 0x07(ON на 0x0708 (180,0)секунд) 0x00 0x00
-func (c *Controller) onoff_command(ed *EndDevice, message Message) {
+func (c *Controller) onoff_command(ed *EndDevice, message zdo.Message) {
 	fmt.Println("onoff_command")
 
 	macAddress := ed.macAddress
-	cmd := message.zclFrame.Command
+	cmd := message.ZclFrame.Command
 	state := "Off"
 	if cmd == 1 {
 		state = "On"
@@ -200,12 +201,12 @@ func (c *Controller) onoff_command(ed *EndDevice, message Message) {
 }
 
 // I have IKEA button only with this function
-func (c *Controller) level_command(ed *EndDevice, message Message) {
+func (c *Controller) level_command(ed *EndDevice, message zdo.Message) {
 	fmt.Println("level_command")
 	ts := time.Now() // get time now
 	ed.set_last_action(ts)
 
-	cmd := message.zclFrame.Command // 5 - Hold+, 7 - button realised, 1 - Hold-
+	cmd := message.ZclFrame.Command // 5 - Hold+, 7 - button realised, 1 - Hold-
 
 	log.Printf("IKEA button level command: 0x%0x \n", cmd)
 

@@ -3,7 +3,7 @@ package zigbee
 import (
 	"log"
 	"strings"
-	"zhub4/zigbee/zcl"
+	"zhub4/zigbee/zdo/zcl"
 )
 
 type AnalogInputCluster struct {
