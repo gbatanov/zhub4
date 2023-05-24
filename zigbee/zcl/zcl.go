@@ -6,6 +6,15 @@ package zcl
 
 import "fmt"
 
+type Endpoint struct {
+	Address uint16
+	Number  uint8 //endpoint
+}
+
+func (ep Endpoint) Compare(ep2 Endpoint) bool {
+	return ep.Address == ep2.Address && ep.Number == ep2.Number
+}
+
 type FrameType uint8
 
 const (
@@ -179,4 +188,15 @@ func Cluster_to_string(cl Cluster) string {
 
 func init() {
 	fmt.Println("Init in zcl")
+}
+
+// байт b будет старшим, b младшим
+func UINT16_(a uint8, b uint8) uint16 {
+	return uint16(b)<<8 + uint16(a)
+}
+func HIGHBYTE(x uint16) byte {
+	return byte(x >> 8)
+}
+func LOWBYTE(x uint16) byte {
+	return byte(x & 0x00ff)
 }

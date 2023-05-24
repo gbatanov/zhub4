@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"time"
+	"zhub4/zigbee/zcl"
 )
 
 type DeviceInfo struct {
@@ -17,51 +18,51 @@ type DeviceInfo struct {
 	productCode  string // model
 	engName      string // name for Grafana
 	humanName    string
-	powerSource  PowerSource
+	powerSource  zcl.PowerSource
 	available    uint8 // include in prod configuration
 	test         uint8 //include in test configuration
 }
 
 // MAC Address,Type, Vendor,Model, GrafanaName, Human name, Power source,available,test
 var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
-	0x00158d0006e469a4: {5, "Aqara", "SJCGQ11LM", "Протечка1", "Датчик протечки 1 (туалет)", PowerSource_BATTERY, 1, 0},
-	0x00158d0006f8fc61: {5, "Aqara", "SJCGQ11LM", "Протечка2", "Датчик протечки 2 (кухня)", PowerSource_BATTERY, 1, 0},
-	0x00158d0006b86b79: {5, "Aqara", "SJCGQ11LM", "Протечка3", "Датчик протечки 3 (ванна)", PowerSource_BATTERY, 1, 0},
-	0x00158d0006ea99db: {5, "Aqara", "SJCGQ11LM", "Протечка4", "Датчик протечки 4 (кухня)", PowerSource_BATTERY, 1, 0},
+	0x00158d0006e469a4: {5, "Aqara", "SJCGQ11LM", "Протечка1", "Датчик протечки 1 (туалет)", zcl.PowerSource_BATTERY, 1, 0},
+	0x00158d0006f8fc61: {5, "Aqara", "SJCGQ11LM", "Протечка2", "Датчик протечки 2 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
+	0x00158d0006b86b79: {5, "Aqara", "SJCGQ11LM", "Протечка3", "Датчик протечки 3 (ванна)", zcl.PowerSource_BATTERY, 1, 0},
+	0x00158d0006ea99db: {5, "Aqara", "SJCGQ11LM", "Протечка4", "Датчик протечки 4 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
 	// реле
-	0x54ef44100019335b: {9, "Aqara", "SSM-U01", "Реле1", "Реле 1", PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef441000193352: {9, "Aqara", "SSM-U01", "Стиралка", "Реле 2(Стиральная машина)", PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef4410001933d3: {9, "Aqara", "SSM-U01", "КоридорСвет", "Реле 4(Свет в коридоре)", PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef44100018b523: {9, "Aqara", "SSM-U01", "ШкафСвет", "Реле 3(Шкаф, подсветка)", PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef4410005b2639: {9, "Aqara", "SSM-U01", "ТулетЗанят", "Реле 5(Туалет занят)", PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef441000609dcc: {9, "Aqara", "SSM-U01", "Реле6", "Реле 6", PowerSource_SINGLE_PHASE, 1, 1},
-	0x00158d0009414d7e: {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef44100019335b: {9, "Aqara", "SSM-U01", "Реле1", "Реле 1", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef441000193352: {9, "Aqara", "SSM-U01", "Стиралка", "Реле 2(Стиральная машина)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef4410001933d3: {9, "Aqara", "SSM-U01", "КоридорСвет", "Реле 4(Свет в коридоре)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef44100018b523: {9, "Aqara", "SSM-U01", "ШкафСвет", "Реле 3(Шкаф, подсветка)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef4410005b2639: {9, "Aqara", "SSM-U01", "ТулетЗанят", "Реле 5(Туалет занят)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef441000609dcc: {9, "Aqara", "SSM-U01", "Реле6", "Реле 6", zcl.PowerSource_SINGLE_PHASE, 1, 1},
+	0x00158d0009414d7e: {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// Умные розетки
-	0x70b3d52b6001b4a4: {10, "Girier", "TS011F", "Розетка1", "Розетка 1", PowerSource_SINGLE_PHASE, 1, 0},
-	0x70b3d52b6001b5d9: {10, "Girier", "TS011F", "Розетка2", "Розетка 2(Зарядники)", PowerSource_SINGLE_PHASE, 1, 0},
-	0x70b3d52b60022ac9: {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Лампы в десткой)", PowerSource_SINGLE_PHASE, 1, 0},
-	0x70b3d52b60022cfd: {10, "Girier", "TS011F", "Розетка3", "Розетка 4(Паяльник)", PowerSource_SINGLE_PHASE, 1, 0},
+	0x70b3d52b6001b4a4: {10, "Girier", "TS011F", "Розетка1", "Розетка 1", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x70b3d52b6001b5d9: {10, "Girier", "TS011F", "Розетка2", "Розетка 2(Зарядники)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x70b3d52b60022ac9: {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Лампы в десткой)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x70b3d52b60022cfd: {10, "Girier", "TS011F", "Розетка3", "Розетка 4(Паяльник)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// краны
-	0xa4c138d9758e1dcd: {6, "TUYA", "Valve", "КранГВ", "Кран 1 ГВ", PowerSource_SINGLE_PHASE, 1, 0},
-	0xa4c138373e89d731: {6, "TUYA", "Valve", "КранХВ", "Кран 2 ХВ", PowerSource_SINGLE_PHASE, 1, 0},
+	0xa4c138d9758e1dcd: {6, "TUYA", "Valve", "КранГВ", "Кран 1 ГВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0xa4c138373e89d731: {6, "TUYA", "Valve", "КранХВ", "Кран 2 ХВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// датчики движения и/или освещения
-	0x00124b0025137475: {2, "Sonoff", "SNZB-03", "КоридорДвижение", "Датчик движения 1 (коридор)", PowerSource_BATTERY, 1, 0},
-	0x00124b0024455048: {2, "Sonoff", "SNZB-03", "КомнатаДвижение", "Датчик движения 2 (комната)", PowerSource_BATTERY, 1, 0},
-	0x00124b002444d159: {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3 ", PowerSource_BATTERY, 1, 0},
-	0x00124b0009451438: {4, "Custom", "CC2530", "КухняДвижение", "Датчик присутствия1 (кухня)", PowerSource_SINGLE_PHASE, 1, 0},
-	0x00124b0014db2724: {4, "Custom", "CC2530", "ПрихожаяДвижение", "Датчик движение + освещение (прихожая)", PowerSource_SINGLE_PHASE, 1, 0},
-	0x0c4314fffe17d8a8: {8, "IKEA", "E1745", "ИкеаДвижение", "Датчик движения IKEA", PowerSource_BATTERY, 0, 1},
-	0x00124b0007246963: {4, "Custom", "CC2530", "ДетскаяДвижение", "Датчик движение + освещение (детская)", PowerSource_SINGLE_PHASE, 1, 0},
+	0x00124b0025137475: {2, "Sonoff", "SNZB-03", "КоридорДвижение", "Датчик движения 1 (коридор)", zcl.PowerSource_BATTERY, 1, 0},
+	0x00124b0024455048: {2, "Sonoff", "SNZB-03", "КомнатаДвижение", "Датчик движения 2 (комната)", zcl.PowerSource_BATTERY, 1, 0},
+	0x00124b002444d159: {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3 ", zcl.PowerSource_BATTERY, 1, 0},
+	0x00124b0009451438: {4, "Custom", "CC2530", "КухняДвижение", "Датчик присутствия1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x00124b0014db2724: {4, "Custom", "CC2530", "ПрихожаяДвижение", "Датчик движение + освещение (прихожая)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x0c4314fffe17d8a8: {8, "IKEA", "E1745", "ИкеаДвижение", "Датчик движения IKEA", zcl.PowerSource_BATTERY, 0, 1},
+	0x00124b0007246963: {4, "Custom", "CC2530", "ДетскаяДвижение", "Датчик движение + освещение (детская)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// Датчики открытия дверей
-	0x00124b0025485ee6: {3, "Sonoff", "SNZB-04", "ТуалетДатчик", "Датчик открытия 1 (туалет)", PowerSource_BATTERY, 1, 0},
-	0x00124b002512a60b: {3, "Sonoff", "SNZB-04", "ШкафДатчик", "Датчик открытия 2 (шкаф, подсветка)", PowerSource_BATTERY, 1, 0},
-	0x00124b00250bba63: {3, "Sonoff", "SNZB-04", "ЯщикДатчик", "Датчик открытия 3 (ящик)", PowerSource_BATTERY, 1, 0},
+	0x00124b0025485ee6: {3, "Sonoff", "SNZB-04", "ТуалетДатчик", "Датчик открытия 1 (туалет)", zcl.PowerSource_BATTERY, 1, 0},
+	0x00124b002512a60b: {3, "Sonoff", "SNZB-04", "ШкафДатчик", "Датчик открытия 2 (шкаф, подсветка)", zcl.PowerSource_BATTERY, 1, 0},
+	0x00124b00250bba63: {3, "Sonoff", "SNZB-04", "ЯщикДатчик", "Датчик открытия 3 (ящик)", zcl.PowerSource_BATTERY, 1, 0},
 	// Кнопки
-	0x8cf681fffe0656ef: {7, "IKEA", "E1743", "КнопкаИкеа", "Кнопка ИКЕА", PowerSource_BATTERY, 0, 1},
-	0x00124b0028928e8a: {1, "Sonoff", "SNZB-01", "Кнопка1", "Кнопка Sonoff 1", PowerSource_BATTERY, 1, 0},
-	0x00124b00253ba75f: {1, "Sonoff", "SNZB-01", "Кнопка2", "Кнопка Sonoff 2", PowerSource_BATTERY, 1, 0},
+	0x8cf681fffe0656ef: {7, "IKEA", "E1743", "КнопкаИкеа", "Кнопка ИКЕА", zcl.PowerSource_BATTERY, 0, 1},
+	0x00124b0028928e8a: {1, "Sonoff", "SNZB-01", "Кнопка1", "Кнопка Sonoff 1", zcl.PowerSource_BATTERY, 1, 0},
+	0x00124b00253ba75f: {1, "Sonoff", "SNZB-01", "Кнопка2", "Кнопка Sonoff 2", zcl.PowerSource_BATTERY, 1, 0},
 	// Датчики климата
-	0x00124b000b1bb401: {4, "GSB", "CC2530", "КлиматБалкон", "Датчик климата (балкон)", PowerSource_BATTERY, 1, 0},
+	0x00124b000b1bb401: {4, "GSB", "CC2530", "КлиматБалкон", "Датчик климата (балкон)", zcl.PowerSource_BATTERY, 1, 0},
 }
 
 // Input clusters can have commands sent to them to perform actions, where as output clusters instead send these commands to a bound device.
@@ -178,7 +179,7 @@ func (ed *EndDevice) set_product_code(value string) {
 	ed.di.productCode = value
 }
 func (ed *EndDevice) set_power_source(value uint8) {
-	ed.di.powerSource = PowerSource(value)
+	ed.di.powerSource = zcl.PowerSource(value)
 }
 func (ed *EndDevice) set_mains_voltage(value float32) {
 	ed.mainVoltage = value

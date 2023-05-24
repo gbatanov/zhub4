@@ -6,18 +6,19 @@ package zigbee
 
 import (
 	"log"
+	"zhub4/zigbee/zcl"
 )
 
 type XiaomiCluster struct {
 	ed *EndDevice
 }
 
-func (x XiaomiCluster) handler_attributes(endpoint Endpoint, attributes []Attribute) {
-	log.Printf("XiaomiCluster::endpoint address: 0x%04x number = %d \n", endpoint.address, endpoint.number)
+func (x XiaomiCluster) handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
+	log.Printf("XiaomiCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
 	for _, attribute := range attributes {
-		log.Printf("XiaomiCluster::attribute id =0x%04x \n", attribute.id)
-		switch XiaomiAttribute(attribute.id) {
-		case Xiaomi_0x00F7:
+		log.Printf("XiaomiCluster::attribute id =0x%04x \n", attribute.Id)
+		switch zcl.XiaomiAttribute(attribute.Id) {
+		case zcl.Xiaomi_0x00F7:
 			// 03 28 1e          int8                 Device_temperature
 			// 05 21 08 00       uint16                PowerOutages
 			// 08 21 00 00       uint16
@@ -32,16 +33,16 @@ func (x XiaomiCluster) handler_attributes(endpoint Endpoint, attributes []Attrib
 			// 98 39 00 00 00 00 float Single precision  Power    instant
 			// 9a 28 00          uint8
 			//
-			for i := 0; i < len(attribute.value); i++ {
+			for i := 0; i < len(attribute.Value); i++ {
 
-				attId := attribute.value[i]
+				attId := attribute.Value[i]
 
 				switch attId {
 
 				case 0x03: // temperature
 					i = i + 2
-					log.Printf("Xiaomi temperature: %d \n", int8(attribute.value[i]))
-					x.ed.set_temperature(int8(attribute.value[i]))
+					log.Printf("Xiaomi temperature: %d \n", int8(attribute.Value[i]))
+					x.ed.set_temperature(int8(attribute.Value[i]))
 
 				case 0x05: // Power outages
 					i = i + 3
@@ -56,7 +57,7 @@ func (x XiaomiCluster) handler_attributes(endpoint Endpoint, attributes []Attrib
 				case 0x64: // status
 					i = i + 2
 					state := "Off"
-					if attribute.value[i] == 1 {
+					if attribute.Value[i] == 1 {
 						state = "On"
 					}
 					x.ed.set_current_state(state, 1)
@@ -65,7 +66,7 @@ func (x XiaomiCluster) handler_attributes(endpoint Endpoint, attributes []Attrib
 				case 0x65: // status2
 					i = i + 2
 					state := "Off"
-					if attribute.value[i] == 1 {
+					if attribute.Value[i] == 1 {
 						state = "On"
 					}
 					x.ed.set_current_state(state, 2)
@@ -75,7 +76,7 @@ func (x XiaomiCluster) handler_attributes(endpoint Endpoint, attributes []Attrib
 					i = i + 5
 
 				case 0x96: // voltage
-					value, err := x.ed.bytesToFloat32(attribute.value[i+2 : i+6])
+					value, err := x.ed.bytesToFloat32(attribute.Value[i+2 : i+6])
 					if err == nil {
 						x.ed.set_power_source(0x01)
 						x.ed.set_mains_voltage(value / 10)
@@ -84,7 +85,7 @@ func (x XiaomiCluster) handler_attributes(endpoint Endpoint, attributes []Attrib
 					i = i + 5
 
 				case 0x97: // current
-					value, err := x.ed.bytesToFloat32(attribute.value[i+2 : i+6])
+					value, err := x.ed.bytesToFloat32(attribute.Value[i+2 : i+6])
 					if err == nil {
 						val := value / 1000
 						x.ed.set_current(val)
@@ -93,7 +94,7 @@ func (x XiaomiCluster) handler_attributes(endpoint Endpoint, attributes []Attrib
 					i = i + 5
 
 				case 0x98: // instant power
-					value, err := x.ed.bytesToFloat32(attribute.value[i+2 : i+6])
+					value, err := x.ed.bytesToFloat32(attribute.Value[i+2 : i+6])
 					if err == nil {
 						log.Printf("Текущая потребляемая мощность(0x98) %0.6f\n", value)
 					}
@@ -106,27 +107,27 @@ func (x XiaomiCluster) handler_attributes(endpoint Endpoint, attributes []Attrib
 					i = i + 2
 
 				default:
-					log.Printf("Необработанный тэг 0x%02x type 0x%02x \n ", attId, attribute.value[i+1])
+					log.Printf("Необработанный тэг 0x%02x type 0x%02x \n ", attId, attribute.Value[i+1])
 					i = 1000 // big value for break
 				} // switch
-				if i >= len(attribute.value) {
+				if i >= len(attribute.Value) {
 					break
 				}
 			} // for
 
-		case Xiaomi_0xFF01:
-			for i := 0; i < int(attribute.size); i++ {
+		case zcl.Xiaomi_0xFF01:
+			for i := 0; i < int(attribute.Size); i++ {
 
-				switch attribute.value[i] {
+				switch attribute.Value[i] {
 				case 0x03: // device temperature
 					i = i + 2
 				case 0x05: // RSSI
-					// rssi := int16(UINT16_(attribute.value[i+2], attribute.value[i+3]) - 90)
+					// rssi := int16(UINT16_(attribute.Value[i+2], attribute.Value[i+3]) - 90)
 					i = i + 3
 				}
 			} //for
 		default:
-			log.Printf("Cluster::XIAOMI_SWITCH unknown attribute Id 0x%04x\n", attribute.id)
+			log.Printf("Cluster::XIAOMI_SWITCH unknown attribute Id 0x%04x\n", attribute.Id)
 		} //switch
 	} //for
 

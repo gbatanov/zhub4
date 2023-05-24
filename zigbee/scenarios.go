@@ -125,6 +125,7 @@ func (c *Controller) handle_motion(ed *EndDevice, cmd uint8) {
 		} else {
 			fmt.Println("Off")
 		}
+		fmt.Println("")
 		// switch off by timer (in test variant)
 		if cmd == 1 {
 			go func() {
@@ -219,6 +220,7 @@ func (c *Controller) level_command(ed *EndDevice, message Message) {
 		ed.set_current_state("No act", 1)
 		log.Printf("IKEA button: realised\n")
 	}
+	fmt.Println("")
 }
 
 // processing a command from an active IAS_ZONE device
@@ -318,6 +320,7 @@ func (c *Controller) ikea_button_action(cmd uint8) {
 	} else {
 		fmt.Println("IKEA button off action")
 	}
+	fmt.Println("")
 }
 
 func (c *Controller) ringer() {

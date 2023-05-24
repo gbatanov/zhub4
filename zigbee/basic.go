@@ -2,63 +2,64 @@ package zigbee
 
 import (
 	"log"
+	"zhub4/zigbee/zcl"
 )
 
 type BasicCluster struct {
 	ed *EndDevice
 }
 
-func (b BasicCluster) handler_attributes(endpoint Endpoint, attributes []Attribute) {
-	log.Printf("BasicCluster::endpoint address: 0x%04x number = %d \n", endpoint.address, endpoint.number)
+func (b BasicCluster) handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
+	log.Printf("BasicCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
 
 	for _, attribute := range attributes {
-		log.Printf("BasicCluster::attribute id =0x%04x \n", attribute.id)
-		log.Printf("BasicCluster::attribute value = %q \n", attribute.value)
-		log.Printf("BasicCluster::attribute size = %d \n", attribute.size)
+		log.Printf("BasicCluster::attribute id =0x%04x \n", attribute.Id)
+		log.Printf("BasicCluster::attribute value = %q \n", attribute.Value)
+		log.Printf("BasicCluster::attribute size = %d \n", attribute.Size)
 
-		switch BasicAttribute(attribute.id) {
-		case Basic_MANUFACTURER_NAME: //0x0004
-			if attribute.size > 0 {
-				identifier := string(attribute.value)
+		switch zcl.BasicAttribute(attribute.Id) {
+		case zcl.Basic_MANUFACTURER_NAME: //0x0004
+			if attribute.Size > 0 {
+				identifier := string(attribute.Value)
 				b.ed.set_manufacturer(identifier)
-				log.Printf("MANUFACTURER_NAME: 0x%02x %s \n\n", endpoint.address, identifier)
+				log.Printf("MANUFACTURER_NAME: 0x%02x %s \n\n", endpoint.Address, identifier)
 			}
 
-		case Basic_MODEL_IDENTIFIER: //0x0005
-			if attribute.size > 0 {
-				identifier := string(attribute.value)
+		case zcl.Basic_MODEL_IDENTIFIER: //0x0005
+			if attribute.Size > 0 {
+				identifier := string(attribute.Value)
 				b.ed.set_model_identifier(identifier)
-				log.Printf("MODEL_IDENTIFIER: 0x%02x %s \n\n", endpoint.address, identifier)
+				log.Printf("MODEL_IDENTIFIER: 0x%02x %s \n\n", endpoint.Address, identifier)
 			}
-		case Basic_PRODUCT_CODE: //0x000a
-			if attribute.size > 0 {
-				identifier := string(attribute.value)
+		case zcl.Basic_PRODUCT_CODE: //0x000a
+			if attribute.Size > 0 {
+				identifier := string(attribute.Value)
 				b.ed.set_product_code(identifier)
-				log.Printf("PRODUCT_CODE: 0x%02x %s \n\n", endpoint.address, identifier)
+				log.Printf("PRODUCT_CODE: 0x%02x %s \n\n", endpoint.Address, identifier)
 			}
-		case Basic_APPLICATION_VERSION: //0x0001
-			log.Printf("Basic_APPLICATION_VERSION: value: %d \n\n", attribute.value[0])
-		case Basic_PRODUCT_LABEL,
-			Basic_ZCL_VERSION,
-			Basic_GENERIC_DEVICE_TYPE,
-			Basic_GENERIC_DEVICE_CLASS,
-			Basic_PRODUCT_URL,
-			Basic_SW_BUILD_ID:
+		case zcl.Basic_APPLICATION_VERSION: //0x0001
+			log.Printf("Basic_APPLICATION_VERSION: value: %d \n\n", attribute.Value[0])
+		case zcl.Basic_PRODUCT_LABEL,
+			zcl.Basic_ZCL_VERSION,
+			zcl.Basic_GENERIC_DEVICE_TYPE,
+			zcl.Basic_GENERIC_DEVICE_CLASS,
+			zcl.Basic_PRODUCT_URL,
+			zcl.Basic_SW_BUILD_ID:
 			{
-				if attribute.size > 0 {
-					identifier := string(attribute.value)
-					log.Printf("Basic attribute: 0x%04x, ep: 0x%02x value: %s \n\n", attribute.id, endpoint.address, identifier)
+				if attribute.Size > 0 {
+					identifier := string(attribute.Value)
+					log.Printf("Basic attribute: 0x%04x, ep: 0x%02x value: %s \n\n", attribute.Id, endpoint.Address, identifier)
 				}
 			}
-		case Basic_POWER_SOURCE: // uint8
+		case zcl.Basic_POWER_SOURCE: // uint8
 
-			val := attribute.value[0]
-			log.Printf("Device 0x%04x POWER_SOURCE: %d \n", endpoint.address, val)
+			val := attribute.Value[0]
+			log.Printf("Device 0x%04x POWER_SOURCE: %d \n", endpoint.Address, val)
 			if val > 0 && val < 0x8f {
 				b.ed.set_power_source(val)
 			}
 
-		case Basic_FF01: // string
+		case zcl.Basic_FF01: // string
 			// water leak sensor Xiaomi. duochannel relay Aqara.
 
 			// датчик протечек
@@ -89,23 +90,23 @@ func (b BasicCluster) handler_attributes(endpoint Endpoint, attributes []Attribu
 			// 0x9c   0x20   0x01
 			// 0x0a   0x21   0x00   0x00 //uint16
 			// 0x0c   0x28   0x00   0x00
-			for i := 0; i < len(attribute.value); i++ {
-				switch attribute.value[i] {
+			for i := 0; i < len(attribute.Value); i++ {
+				switch attribute.Value[i] {
 				case 0x01: // battery voltage
-					bat := float32(UINT16_(attribute.value[i+2], attribute.value[i+3]))
+					bat := float32(zcl.UINT16_(attribute.Value[i+2], attribute.Value[i+3]))
 					i = i + 3
 					b.ed.set_battery_params(0, bat/1000)
 
 				case 0x03: // temperature
 					i = i + 2
-					b.ed.set_temperature(int8(attribute.value[i]))
+					b.ed.set_temperature(int8(attribute.Value[i]))
 
 				case 0x04:
 					i = i + 3
 
 				case 0x05: // RSSI  val - 90
-					rssi := int16(UINT16_(attribute.value[i+2], attribute.value[i+3]) - 90)
-					log.Printf("device 0x%04x RSSI:  %d dBm \n", endpoint.address, rssi)
+					rssi := int16(zcl.UINT16_(attribute.Value[i+2], attribute.Value[i+3]) - 90)
+					log.Printf("device 0x%04x RSSI:  %d dBm \n", endpoint.Address, rssi)
 					i = i + 3
 
 				case 0x06: // ?
@@ -122,7 +123,7 @@ func (b BasicCluster) handler_attributes(endpoint Endpoint, attributes []Attribu
 				case 0x64: // device state, channel 1
 					i = i + 2
 					state := "Off"
-					if attribute.value[i] == 1 {
+					if attribute.Value[i] == 1 {
 						state = "On"
 					}
 					b.ed.set_current_state(state, 1)
@@ -130,7 +131,7 @@ func (b BasicCluster) handler_attributes(endpoint Endpoint, attributes []Attribu
 				case 0x65: //  device state, channel 2
 					i = i + 2
 					state := "Off"
-					if attribute.value[i] == 1 {
+					if attribute.Value[i] == 1 {
 						state = "On"
 					}
 					b.ed.set_current_state(state, 2)
@@ -145,14 +146,14 @@ func (b BasicCluster) handler_attributes(endpoint Endpoint, attributes []Attribu
 					i = i + 5
 
 				case 0x96: // voltage
-					value := float32(uint32(attribute.value[i+2]) + uint32(attribute.value[i+3])<<8 + uint32(attribute.value[i+4])<<16 + uint32(attribute.value[i+5])<<24)
+					value := float32(uint32(attribute.Value[i+2]) + uint32(attribute.Value[i+3])<<8 + uint32(attribute.Value[i+4])<<16 + uint32(attribute.Value[i+5])<<24)
 					b.ed.set_power_source(0x01)
 					b.ed.set_mains_voltage(value / 10)
 					log.Printf("Напряжение:  %0.2f\n", value/10)
 					i = i + 5
 
 				case 0x97: // current
-					value := float32(uint32(attribute.value[i+2]) + uint32(attribute.value[i+3])<<8 + uint32(attribute.value[i+4])<<16 + uint32(attribute.value[i+5])<<24)
+					value := float32(uint32(attribute.Value[i+2]) + uint32(attribute.Value[i+3])<<8 + uint32(attribute.Value[i+4])<<16 + uint32(attribute.Value[i+5])<<24)
 					b.ed.set_current(value)
 					log.Printf("Ток: %0.3f\n", value)
 					i = i + 5

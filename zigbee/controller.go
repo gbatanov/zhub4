@@ -236,7 +236,7 @@ func (c *Controller) join_device() {
 	for c.flag {
 		FullAddr := <-c.joinChan
 		if c.flag && len(FullAddr) > 5 { // TODO: ??
-			var shortAddress uint16 = UINT16_(FullAddr[0], FullAddr[1])
+			var shortAddress uint16 = zcl.UINT16_(FullAddr[0], FullAddr[1])
 			var macAddress uint64 = binary.LittleEndian.Uint64(FullAddr[2:])
 			log.Printf("Controller::join_device: macAddress: 0x%016x \n", macAddress)
 			log.Printf("Controller::join_device: new shortAddress: 0x%04x\n", shortAddress)
@@ -289,19 +289,19 @@ func (c *Controller) on_join(shortAddress uint16, macAddress uint64) {
 	c.zdo.bind(shortAddress, macAddress, 1, zcl.ON_OFF)
 	if ed.get_device_type() != 4 {
 		// for customs no report adjusting in ON_OFF cluster
-		c.configureReporting(shortAddress, zcl.ON_OFF, uint16(0), DataType_UINT8, uint16(0))
+		c.configureReporting(shortAddress, zcl.ON_OFF, uint16(0), zcl.DataType_UINT8, uint16(0))
 	}
 	// SmartPlug, WaterValves - no binding and no report adjusting in ON_OFF cluster
 	//
 	// motion sensors and door sensors Sonoff
 	if ed.get_device_type() == 2 || ed.get_device_type() == 3 {
 		c.zdo.bind(shortAddress, macAddress, 1, zcl.IAS_ZONE)
-		c.configureReporting(shortAddress, zcl.IAS_ZONE, uint16(0), DataType_UINT8, uint16(0))
+		c.configureReporting(shortAddress, zcl.IAS_ZONE, uint16(0), zcl.DataType_UINT8, uint16(0))
 	}
 	// IKEA motion sensors
 	if ed.get_device_type() == 8 {
 		c.zdo.bind(shortAddress, macAddress, 1, zcl.IAS_ZONE)
-		c.configureReporting(shortAddress, zcl.IAS_ZONE, uint16(0), DataType_UINT8, uint16(0))
+		c.configureReporting(shortAddress, zcl.IAS_ZONE, uint16(0), zcl.DataType_UINT8, uint16(0))
 	}
 	// IKEA devices
 	if ed.get_device_type() == 7 || ed.get_device_type() == 8 {
@@ -309,7 +309,7 @@ func (c *Controller) on_join(shortAddress uint16, macAddress uint64) {
 	}
 	c.zdo.bind(shortAddress, macAddress, 1, zcl.POWER_CONFIGURATION)
 	if ed.get_device_type() != 4 {
-		c.configureReporting(shortAddress, zcl.POWER_CONFIGURATION, uint16(0), DataType_UINT8, uint16(0))
+		c.configureReporting(shortAddress, zcl.POWER_CONFIGURATION, uint16(0), zcl.DataType_UINT8, uint16(0))
 	}
 
 	//
@@ -323,13 +323,13 @@ func (c *Controller) get_identifier(address uint16) {
 	//   zigbee::Message message;
 	cl := zcl.BASIC
 	var id, id2, id3, id4, id5, id6 uint16
-	endpoint := Endpoint{address, 1}
-	id = uint16(Basic_MODEL_IDENTIFIER)
-	id2 = uint16(Basic_MANUFACTURER_NAME)
-	id3 = uint16(Basic_SW_BUILD_ID)          // SW_BUILD_ID = 0x4000
-	id4 = uint16(Basic_PRODUCT_LABEL)        //
-	id5 = uint16(Basic_DEVICE_ENABLED)       // у датчиков движения Sonoff его нет
-	id6 = uint16(Basic_PHYSICAL_ENVIRONMENT) //
+	endpoint := zcl.Endpoint{address, 1}
+	id = uint16(zcl.Basic_MODEL_IDENTIFIER)
+	id2 = uint16(zcl.Basic_MANUFACTURER_NAME)
+	id3 = uint16(zcl.Basic_SW_BUILD_ID)          // SW_BUILD_ID = 0x4000
+	id4 = uint16(zcl.Basic_PRODUCT_LABEL)        //
+	id5 = uint16(zcl.Basic_DEVICE_ENABLED)       // у датчиков движения Sonoff его нет
+	id6 = uint16(zcl.Basic_PHYSICAL_ENVIRONMENT) //
 
 	// ZCL Header
 	frame := zcl.Frame{}
@@ -342,18 +342,18 @@ func (c *Controller) get_identifier(address uint16) {
 	// end ZCL Header
 
 	frame.Payload = make([]byte, 0)
-	frame.Payload = append(frame.Payload, LOWBYTE(id))
-	frame.Payload = append(frame.Payload, HIGHBYTE(id))
-	frame.Payload = append(frame.Payload, LOWBYTE(id2))
-	frame.Payload = append(frame.Payload, HIGHBYTE(id2))
-	frame.Payload = append(frame.Payload, LOWBYTE(id3))
-	frame.Payload = append(frame.Payload, HIGHBYTE(id3))
-	frame.Payload = append(frame.Payload, LOWBYTE(id4))
-	frame.Payload = append(frame.Payload, HIGHBYTE(id4))
-	frame.Payload = append(frame.Payload, LOWBYTE(id5))
-	frame.Payload = append(frame.Payload, HIGHBYTE(id5))
-	frame.Payload = append(frame.Payload, LOWBYTE(id6))
-	frame.Payload = append(frame.Payload, HIGHBYTE(id6))
+	frame.Payload = append(frame.Payload, zcl.LOWBYTE(id))
+	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(id))
+	frame.Payload = append(frame.Payload, zcl.LOWBYTE(id2))
+	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(id2))
+	frame.Payload = append(frame.Payload, zcl.LOWBYTE(id3))
+	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(id3))
+	frame.Payload = append(frame.Payload, zcl.LOWBYTE(id4))
+	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(id4))
+	frame.Payload = append(frame.Payload, zcl.LOWBYTE(id5))
+	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(id5))
+	frame.Payload = append(frame.Payload, zcl.LOWBYTE(id6))
+	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(id6))
 
 	c.zdo.send_message(endpoint, cl, frame, 3*time.Second)
 }
@@ -381,16 +381,16 @@ func (c *Controller) get_device_by_mac(macAddress uint64) *EndDevice {
 func (c *Controller) message_handler(command Command) {
 
 	var message Message = Message{}
-	message.cluster = zcl.Cluster(UINT16_(command.Payload[2], command.Payload[3]))
-	message.source.address = UINT16_(command.Payload[4], command.Payload[5])
-	message.destination.address = c.zdo.shortAddress
-	message.source.number = command.Payload[6]
-	message.destination.number = command.Payload[7]
+	message.cluster = zcl.Cluster(zcl.UINT16_(command.Payload[2], command.Payload[3]))
+	message.source.Address = zcl.UINT16_(command.Payload[4], command.Payload[5])
+	message.destination.Address = c.zdo.shortAddress
+	message.source.Number = command.Payload[6]
+	message.destination.Number = command.Payload[7]
 	message.linkQuality = command.Payload[9]
 	length := command.Payload[16]
 	message.zclFrame = c.zdo.parse_zcl_data(command.Payload[17 : 17+length])
 
-	ed := c.get_device_by_short_addr(message.source.address)
+	ed := c.get_device_by_short_addr(message.source.Address)
 	if ed.macAddress == 0 {
 		log.Printf("message handler: device not found\n")
 		return
@@ -399,8 +399,8 @@ func (c *Controller) message_handler(command Command) {
 	//	var ts uint32 = uint32(command.Payload[11]) + uint32(command.Payload[12])<<8 + uint32(command.Payload[13])<<16 + uint32(command.Payload[14])<<24
 	log.Printf("Cluster %s (0x%04X) \n", zcl.Cluster_to_string(message.cluster), message.cluster)
 	if message.cluster != zcl.TIME { // too often
-		fmt.Printf("source endpoint shortAddr: 0x%04x ", message.source.address)
-		fmt.Printf("number: 0x%02x \n", message.source.number)
+		fmt.Printf("source endpoint shortAddr: 0x%04x ", message.source.Address)
+		fmt.Printf("number: 0x%02x \n", message.source.Number)
 		fmt.Printf("linkQuality: %d \n", message.linkQuality)
 		//	fmt.Printf("ts %d \n", uint32(ts/1000))
 		fmt.Printf("length of ZCL data %d \n", length)
@@ -429,7 +429,7 @@ func (c *Controller) message_handler(command Command) {
 		if message.zclFrame.Command == uint8(zcl.READ_ATTRIBUTES_RESPONSE) ||
 			message.zclFrame.Command == uint8(zcl.REPORT_ATTRIBUTES) {
 			if len(message.zclFrame.Payload) > 0 {
-				attributes := parse_attributes_payload(message.zclFrame.Payload, withStatus)
+				attributes := zcl.Parse_attributes_payload(message.zclFrame.Payload, withStatus)
 				if len(attributes) > 0 {
 					c.on_attribute_report(ed, message.source, message.cluster, attributes)
 				}
@@ -484,48 +484,74 @@ func (c *Controller) message_handler(command Command) {
 	}
 	c.after_message_action(ed)
 }
-func (c *Controller) on_attribute_report(ed *EndDevice, ep Endpoint, cluster zcl.Cluster, attributes []Attribute) {
+func (c *Controller) on_attribute_report(ed *EndDevice, ep zcl.Endpoint, cluster zcl.Cluster, attributes []zcl.Attribute) {
+	//	zcl.Handler_attributes(cluster, ep, attributes)
+
 	switch cluster {
 	case zcl.BASIC:
+
 		c := BasicCluster{ed: ed}
 		c.handler_attributes(ep, attributes)
+
 	case zcl.POWER_CONFIGURATION:
+
 		c := PowerConfigurationCluster{ed: ed}
 		c.handler_attributes(ep, attributes)
+
 	case zcl.IDENTIFY:
+
 		c := IdentifyCluster{ed: ed}
 		c.handler_attributes(ep, attributes)
+
 	case zcl.ON_OFF:
+
 		c := OnOffCluster{ed: ed, msgChan: c.motionMsgChan}
 		c.handler_attributes(ep, attributes)
+
 	case zcl.ANALOG_INPUT:
+
 		c := AnalogInputCluster{ed: ed}
 		c.handler_attributes(ep, attributes)
+
 	case zcl.MULTISTATE_INPUT:
+
 		c := MultistateInputCluster{}
 		c.handler_attributes(ep, attributes)
+
 	case zcl.XIAOMI_SWITCH:
+
 		c := XiaomiCluster{ed: ed}
 		c.handler_attributes(ep, attributes)
+
 	case zcl.SIMPLE_METERING:
+
 		c := SimpleMeteringCluster{}
 		c.handler_attributes(ep, attributes)
+
 	case zcl.ELECTRICAL_MEASUREMENTS:
+
 		c := ElectricalMeasurementCluster{ed: ed}
 		c.handler_attributes(ep, attributes)
+
 	case zcl.TUYA_ELECTRICIAN_PRIVATE_CLUSTER:
+
 		c := TuyaCluster{}
 		c.handler_attributes1(ep, attributes)
+
 	case zcl.TUYA_SWITCH_MODE_0:
+
 		c := TuyaCluster{}
 		c.handler_attributes2(ep, attributes)
+
 	default: // unattended clusters
-		log.Printf("unattended clusters::endpoint address: 0x%04x number = %d \n", ep.address, ep.number)
+
+		log.Printf("unattended clusters::endpoint address: 0x%04x number = %d \n", ep.Address, ep.Number)
 
 		for _, attribute := range attributes {
-			log.Printf("Cluster 0x%04x, attribute id =0x%04x \n", cluster, attribute.id)
+			log.Printf("Cluster 0x%04x, attribute id =0x%04x \n", cluster, attribute.Id)
 		}
 	}
+
 }
 func (c *Controller) after_message_action(ed *EndDevice) {
 	if ed.get_device_type() == 10 { // SmartPlug
@@ -552,7 +578,7 @@ func (c *Controller) after_message_action(ed *EndDevice) {
 }
 func (c *Controller) read_attribute(address uint16, cl zcl.Cluster, ids []uint16) error {
 
-	endpoint := Endpoint{address, 1}
+	endpoint := zcl.Endpoint{address, 1}
 
 	// ZCL Header
 	var frame zcl.Frame = zcl.Frame{}
@@ -567,15 +593,15 @@ func (c *Controller) read_attribute(address uint16, cl zcl.Cluster, ids []uint16
 	frame.Payload = make([]byte, 2*len(ids))
 
 	for i := 0; i < len(ids); i++ {
-		frame.Payload[0+i*2] = LOWBYTE(ids[i])
-		frame.Payload[1+i*2] = HIGHBYTE(ids[i])
+		frame.Payload[0+i*2] = zcl.LOWBYTE(ids[i])
+		frame.Payload[1+i*2] = zcl.HIGHBYTE(ids[i])
 	}
 	return c.zdo.send_message(endpoint, cl, frame, 3*time.Second)
 }
 func (c *Controller) get_power(ed *EndDevice) {
 	// var cluster zcl.Cluster = zcl.POWER_CONFIGURATION
 	cluster := zcl.POWER_CONFIGURATION
-	endpoint := Endpoint{ed.shortAddress, 1}
+	endpoint := zcl.Endpoint{ed.shortAddress, 1}
 
 	frame := zcl.Frame{}
 	frame.Frame_control.Ftype = zcl.FrameType_GLOBAL
@@ -586,12 +612,12 @@ func (c *Controller) get_power(ed *EndDevice) {
 	frame.TransactionSequenceNumber = c.zdo.generateTransactionSequenceNumber()
 	frame.Command = uint8(zcl.READ_ATTRIBUTES) // 0x00
 	// in payload set of required attributes
-	frame.Payload = append(frame.Payload, LOWBYTE(uint16(PowerConfiguration_MAINS_VOLTAGE)))    // 0x0000 Напряжение основного питания в 0,1 В UINT16
-	frame.Payload = append(frame.Payload, HIGHBYTE(uint16(PowerConfiguration_MAINS_VOLTAGE)))   //
-	frame.Payload = append(frame.Payload, LOWBYTE(uint16(PowerConfiguration_BATTERY_VOLTAGE)))  // 0x0020 возвращает напряжение батарейки в десятых долях вольта UINT8
-	frame.Payload = append(frame.Payload, HIGHBYTE(uint16(PowerConfiguration_BATTERY_VOLTAGE))) //
-	frame.Payload = append(frame.Payload, LOWBYTE(uint16(PowerConfiguration_BATTERY_REMAIN)))   //  0x0021 Остаток заряда батареи в процентах
-	frame.Payload = append(frame.Payload, HIGHBYTE(uint16(PowerConfiguration_BATTERY_REMAIN)))  //
+	frame.Payload = append(frame.Payload, zcl.LOWBYTE(uint16(zcl.PowerConfiguration_MAINS_VOLTAGE)))    // 0x0000 Напряжение основного питания в 0,1 В UINT16
+	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(uint16(zcl.PowerConfiguration_MAINS_VOLTAGE)))   //
+	frame.Payload = append(frame.Payload, zcl.LOWBYTE(uint16(zcl.PowerConfiguration_BATTERY_VOLTAGE)))  // 0x0020 возвращает напряжение батарейки в десятых долях вольта UINT8
+	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(uint16(zcl.PowerConfiguration_BATTERY_VOLTAGE))) //
+	frame.Payload = append(frame.Payload, zcl.LOWBYTE(uint16(zcl.PowerConfiguration_BATTERY_REMAIN)))   //  0x0021 Остаток заряда батареи в процентах
+	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(uint16(zcl.PowerConfiguration_BATTERY_REMAIN)))  //
 
 	c.zdo.send_message(endpoint, cluster, frame, 10*time.Second)
 }
@@ -624,7 +650,7 @@ func (c *Controller) send_command_to_onoff_device(address uint16, cmd uint8, ep 
 	if cmd > 2 {
 		return
 	}
-	endpoint := Endpoint{address, ep}
+	endpoint := zcl.Endpoint{address, ep}
 	cluster := zcl.ON_OFF
 
 	frame := zcl.Frame{}
@@ -642,10 +668,10 @@ func (c *Controller) send_command_to_onoff_device(address uint16, cmd uint8, ep 
 func (c *Controller) configureReporting(address uint16,
 	cluster zcl.Cluster,
 	attributeId uint16,
-	attributeDataType DataType,
+	attributeDataType zcl.DataType,
 	reportable_change uint16) error {
 
-	endpoint := Endpoint{address, 1}
+	endpoint := zcl.Endpoint{address, 1}
 	// ZCL Header
 	frame := zcl.Frame{}
 	frame.Frame_control.Ftype = zcl.FrameType_GLOBAL
@@ -661,15 +687,15 @@ func (c *Controller) configureReporting(address uint16,
 	var max_interval uint16 = 3600 // 1 hours
 
 	frame.Payload = make([]byte, 9)
-	frame.Payload = append(frame.Payload, LOWBYTE(attributeId))
-	frame.Payload = append(frame.Payload, HIGHBYTE(attributeId))
+	frame.Payload = append(frame.Payload, zcl.LOWBYTE(attributeId))
+	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(attributeId))
 	frame.Payload = append(frame.Payload, byte(attributeDataType))
-	frame.Payload = append(frame.Payload, LOWBYTE(min_interval))
-	frame.Payload = append(frame.Payload, HIGHBYTE(min_interval))
-	frame.Payload = append(frame.Payload, LOWBYTE(max_interval))
-	frame.Payload = append(frame.Payload, HIGHBYTE(max_interval))
-	frame.Payload = append(frame.Payload, LOWBYTE(reportable_change))
-	frame.Payload = append(frame.Payload, HIGHBYTE(reportable_change))
+	frame.Payload = append(frame.Payload, zcl.LOWBYTE(min_interval))
+	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(min_interval))
+	frame.Payload = append(frame.Payload, zcl.LOWBYTE(max_interval))
+	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(max_interval))
+	frame.Payload = append(frame.Payload, zcl.LOWBYTE(reportable_change))
+	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(reportable_change))
 
 	return c.zdo.send_message(endpoint, cluster, frame, 3*time.Second)
 }

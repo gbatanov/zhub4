@@ -4,7 +4,10 @@ gbatanov@yandex.ru
 */
 package zigbee
 
-import "fmt"
+import (
+	"fmt"
+	"zhub4/zigbee/zcl"
+)
 
 type Command struct {
 	Id      CommandId // command ID
@@ -13,8 +16,8 @@ type Command struct {
 
 // control summ
 func (c Command) Fcs() byte {
-	var _fcs byte = byte(c.Payload_size()) ^ HIGHBYTE(uint16(c.Id))
-	_fcs = _fcs ^ LOWBYTE(uint16(c.Id))
+	var _fcs byte = byte(c.Payload_size()) ^ zcl.HIGHBYTE(uint16(c.Id))
+	_fcs = _fcs ^ zcl.LOWBYTE(uint16(c.Id))
 	for _, b := range c.Payload {
 		_fcs = _fcs ^ b
 	}
@@ -41,17 +44,6 @@ func New2(cmnd CommandId, payload_length uint8) *Command {
 	data := make([]byte, payload_length)
 	cmd := Command{Id: cmnd, Payload: data}
 	return &cmd
-}
-
-// байт b будет старшим, b младшим
-func UINT16_(a uint8, b uint8) uint16 {
-	return uint16(b)<<8 + uint16(a)
-}
-func HIGHBYTE(x uint16) byte {
-	return byte(x >> 8)
-}
-func LOWBYTE(x uint16) byte {
-	return byte(x & 0x00ff)
 }
 
 func Command_to_string(c CommandId) string {
@@ -170,3 +162,77 @@ func Command_to_string(c CommandId) string {
 
 	return cmd_str
 }
+
+// commands
+type CommandId uint16
+
+const (
+	//System
+	SYS_RESET_REQ              CommandId = 0x4100
+	SYS_RESET_IND              CommandId = 0x4180
+	SYS_PING                   CommandId = 0x2101
+	SYS_PING_SRSP              CommandId = 0x6101
+	SYS_OSAL_NV_READ           CommandId = 0x2108
+	SYS_OSAL_NV_READ_SRSP      CommandId = 0x6108
+	SYS_OSAL_NV_WRITE          CommandId = 0x2109
+	SYS_OSAL_NV_WRITE_SRSP     CommandId = 0x6109
+	SYS_OSAL_NV_ITEM_INIT      CommandId = 0x2107
+	SYS_OSAL_NV_ITEM_INIT_SRSP CommandId = 0x6107
+	SYS_OSAL_NV_LENGTH         CommandId = 0x2113
+	SYS_OSAL_NV_LENGTH_SRSP    CommandId = 0x6113
+	SYS_OSAL_NV_DELETE         CommandId = 0x2112
+	SYS_OSAL_NV_DELETE_SRSP    CommandId = 0x6112
+	SYS_SET_TX_POWER           CommandId = 0x2114
+	SYS_SET_TX_POWER_SRSP      CommandId = 0x6114
+	SYS_VERSION                CommandId = 0x2102
+	SYS_VERSION_SRSP           CommandId = 0x6102
+
+	// ZDO
+	ZDO_STARTUP_FROM_APP_SRSP CommandId = 0x6540
+	ZDO_STATE_CHANGE_IND      CommandId = 0x45c0
+	ZDO_BIND_REQ              CommandId = 0x2521
+	ZDO_BIND_RSP              CommandId = 0x45a1
+	ZDO_BIND_SRSP             CommandId = 0x6521
+	ZDO_UNBIND_REQ            CommandId = 0x2522
+	ZDO_UNBIND_RSP            CommandId = 0x45a2
+	ZDO_MGMT_LQI_REQ          CommandId = 0x2531
+	ZDO_MGMT_LQI_SRSP         CommandId = 0x6531
+	ZDO_MGMT_LQI_RSP          CommandId = 0x45b1
+	ZDO_SRC_RTG_IND           CommandId = 0x45C4
+	ZDO_MGMT_PERMIT_JOIN_REQ  CommandId = 0x2536
+	ZDO_MGMT_PERMIT_JOIN_SRSP CommandId = 0x6536
+	ZDO_MGMT_PERMIT_JOIN_RSP  CommandId = 0x45b6
+	ZDO_PERMIT_JOIN_IND       CommandId = 0x45cb
+	ZDO_TC_DEV_IND            CommandId = 0x45ca
+	ZDO_LEAVE_IND             CommandId = 0x45c9
+	ZDO_END_DEVICE_ANNCE_IND  CommandId = 0x45c1
+	ZDO_ACTIVE_EP_REQ         CommandId = 0x2505
+	ZDO_ACTIVE_EP_SRSP        CommandId = 0x6505
+	ZDO_ACTIVE_EP_RSP         CommandId = 0x4585
+	ZDO_SIMPLE_DESC_REQ       CommandId = 0x2504
+	ZDO_SIMPLE_DESC_SRSP      CommandId = 0x6504
+	ZDO_SIMPLE_DESC_RSP       CommandId = 0x4584
+	ZDO_POWER_DESC_REQ        CommandId = 0x2503
+	ZDO_POWER_DESC_SRSP       CommandId = 0x6503
+	ZDO_POWER_DESC_RSP        CommandId = 0x4583
+	ZDO_IEEE_ADDR_REQ         CommandId = 0x2501
+	ZDO_IEEE_ADDR_REQ_SRSP    CommandId = 0x6501
+	ZDO_IEEE_ADDR_RSP         CommandId = 0x4581
+	ZDO_STARTUP_FROM_APP      CommandId = 0x2540
+
+	// AF
+	AF_REGISTER          CommandId = 0x2400
+	AF_REGISTER_SRSP     CommandId = 0x6400
+	AF_INCOMING_MSG      CommandId = 0x4481
+	AF_DATA_REQUEST      CommandId = 0x2401
+	AF_DATA_REQUEST_SRSP CommandId = 0x6401
+	AF_DATA_CONFIRM      CommandId = 0x4480
+
+	// UTIL
+	UTIL_GET_DEVICE_INFO      CommandId = 0x2700
+	UTIL_GET_DEVICE_INFO_SRSP CommandId = 0x6700
+
+	// ZB
+	ZB_GET_DEVICE_INFO      CommandId = 0x2606
+	ZB_GET_DEVICE_INFO_SRSP CommandId = 0x6606
+)

@@ -1,5 +1,7 @@
-// GSB, 2023
-// gbatanov@yandex.ru
+/*
+GSB, 2023
+gbatanov@yandex.ru
+*/
 package main
 
 import (
@@ -17,7 +19,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.1.6"
+const Version string = "v0.1.7"
 
 var Os string = ""
 var Flag bool = true

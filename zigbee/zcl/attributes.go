@@ -1,4 +1,4 @@
-package zigbee
+package zcl
 
 import "log"
 
@@ -159,14 +159,14 @@ const (
 
 // ------------------------------------------
 type Attribute struct {
-	id       uint16
-	value    []byte
+	Id       uint16
+	Value    []byte
 	dataType DataType
-	size     uint16
+	Size     uint16
 }
 
 // return an array of bytes with array size and attribute type
-func parse_attributes_payload(payload []byte, wStatus bool) []Attribute {
+func Parse_attributes_payload(payload []byte, wStatus bool) []Attribute {
 	var attributes []Attribute = make([]Attribute, 0)
 
 	i := uint16(0)
@@ -181,7 +181,7 @@ func parse_attributes_payload(payload []byte, wStatus bool) []Attribute {
 		i++
 		hi := payload[i]
 		i++
-		attribute.id = UINT16_(lo, hi)
+		attribute.Id = UINT16_(lo, hi)
 
 		if wStatus {
 			valid = payload[i] == byte(SUCCESS)
@@ -210,15 +210,15 @@ func parse_attributes_payload(payload []byte, wStatus bool) []Attribute {
 			hi := payload[i]
 			i++
 			size = UINT16_(lo, hi)
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_OCT_STRING,
 			DataType_CHARACTER_STRING:
 			size = uint16(payload[i])
 			i++
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_LONG_OCT_STRING,
 			DataType_LONG_CHARACTER_STRING:
@@ -227,150 +227,150 @@ func parse_attributes_payload(payload []byte, wStatus bool) []Attribute {
 			hi := payload[i]
 			i++
 			size = UINT16_(lo, hi)
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_BOOLEAN:
-			attribute.value = []byte{payload[i]}
+			attribute.Value = []byte{payload[i]}
 			size = 1
-			attribute.size = size
+			attribute.Size = size
 
 		case DataType_ENUM8,
 			DataType_BITMAP8,
 			DataType_DATA8,
 			DataType_UINT8:
-			attribute.value = []byte{payload[i]}
+			attribute.Value = []byte{payload[i]}
 			size = 1
-			attribute.size = size
+			attribute.Size = size
 
 		case DataType_ENUM16,
 			DataType_BITMAP16,
 			DataType_DATA16,
 			DataType_UINT16:
 			size = 2
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_BITMAP32,
 			DataType_DATA32,
 			DataType_UINT32:
 			size = 4
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_BITMAP40,
 			DataType_DATA40,
 			DataType_UINT40:
 			size = 5
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_BITMAP48,
 			DataType_DATA48,
 			DataType_UINT48:
 			size = 6
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_BITMAP56,
 			DataType_DATA56,
 			DataType_UINT56:
 			size = 7
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_BITMAP64,
 			DataType_DATA64,
 			DataType_UINT64:
 			size = 8
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_INT8:
-			attribute.value = []byte{payload[i]}
+			attribute.Value = []byte{payload[i]}
 			size = 1
-			attribute.size = size
+			attribute.Size = size
 
 		case DataType_INT16:
 			size = 2
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_INT24:
 			size = 3
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_INT32:
 			size = 4
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_INT40:
 			size = 5
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_INT48:
 			size = 6
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_INT56:
 			size = 7
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_INT64:
 			size = 8
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_SEMI_FLOAT: // half precision
 			size = 2
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_FLOAT: // single precision
 			size = 4
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_DOUBLE: // double precision
 			size = 8
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_TIME_OF_DAY: // hours minutes seconds hundredths
 		case DataType_DATE: // year-1900 month day_of_month day_of_week
 		case DataType_UTC_TIME: // the number of seconds since 0 hours, 0 minutes, 0 seconds, on the 1st of January, 2000 UTC.
 			size = 4
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_CLUSTER_ID:
 		case DataType_ATTRIBUTE_ID:
 			size = 2
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_BACNET_OID:
 			size = 4
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		case DataType_IEEE_ADDRESS:
-			attribute.value = []byte{payload[i+7], payload[i+6], payload[i+5], payload[i+4], payload[i+3], payload[i+2], payload[i+1], payload[i]}
+			attribute.Value = []byte{payload[i+7], payload[i+6], payload[i+5], payload[i+4], payload[i+3], payload[i+2], payload[i+1], payload[i]}
 			size = 8
-			attribute.size = size
+			attribute.Size = size
 
 		case DataType_SECURITY_KEY_128:
 			size = 16
-			attribute.value = payload[i : i+size]
-			attribute.size = size
+			attribute.Value = payload[i : i+size]
+			attribute.Size = size
 
 		default:
-			log.Printf("Unknown attribute data type: 0x%02x for attribute 0x%04x\n", uint8(attribute.dataType), attribute.id)
+			log.Printf("Unknown attribute data type: 0x%02x for attribute 0x%04x\n", uint8(attribute.dataType), attribute.Id)
 			valid = false
 			return attributes
 		} // switch

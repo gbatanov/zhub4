@@ -1,26 +1,28 @@
 package zigbee
 
+import "zhub4/zigbee/zcl"
+
 type NetworkConfiguration struct {
-	pan_id            uint16      // = 0;
-	extended_pan_id   uint64      // = 0;
-	logical_type      LogicalType //= LogicalType_COORDINATOR
-	channels          []uint8     //  really use default list - CH11
-	precfg_key        [16]uint8   //{}
-	precfg_key_enable bool        //= false; // value: 0 (FALSE) only coord defualtKey need to be set, and OTA to set other devices in the network.
+	pan_id            uint16          // = 0;
+	extended_pan_id   uint64          // = 0;
+	logical_type      zcl.LogicalType //= LogicalType_COORDINATOR
+	channels          []uint8         //  really use default list - CH11
+	precfg_key        [16]uint8       //{}
+	precfg_key_enable bool            //= false; // value: 0 (FALSE) only coord defualtKey need to be set, and OTA to set other devices in the network.
 }
 
 var DefaultConfiguration NetworkConfiguration = NetworkConfiguration{0xFFFF, // Pan ID.
-	0xDDDDDDDDDDDDDDDD,      // Extended pan ID. (mac address of coordinator)
-	LogicalType_COORDINATOR, // Logical type.
-	[]uint8{11},             // RF channel list.
-	[16]uint8{},             // Precfg key.
+	0xDDDDDDDDDDDDDDDD,          // Extended pan ID. (mac address of coordinator)
+	zcl.LogicalType_COORDINATOR, // Logical type.
+	[]uint8{11},                 // RF channel list.
+	[16]uint8{},                 // Precfg key.
 	false}
 
 var TestConfiguration NetworkConfiguration = NetworkConfiguration{0x1a62, // Pan ID.
-	0xDDDDDDDDDDDDDDDE,      // Extended pan ID.(mac address of coordinator)
-	LogicalType_COORDINATOR, // Logical type.
-	[]uint8{15},             // RF channel list.
-	[16]uint8{},             // Precfg key.
+	0xDDDDDDDDDDDDDDDE,          // Extended pan ID.(mac address of coordinator)
+	zcl.LogicalType_COORDINATOR, // Logical type.
+	[]uint8{15},                 // RF channel list.
+	[16]uint8{},                 // Precfg key.
 	false}
 
 func (nc NetworkConfiguration) Compare(nc2 NetworkConfiguration) bool {
