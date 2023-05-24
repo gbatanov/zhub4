@@ -323,7 +323,7 @@ func (c *Controller) get_identifier(address uint16) {
 	//   zigbee::Message message;
 	cl := zcl.BASIC
 	var id, id2, id3, id4, id5, id6 uint16
-	endpoint := zcl.Endpoint{address, 1}
+	endpoint := zcl.Endpoint{Address: address, Number: 1}
 	id = uint16(zcl.Basic_MODEL_IDENTIFIER)
 	id2 = uint16(zcl.Basic_MANUFACTURER_NAME)
 	id3 = uint16(zcl.Basic_SW_BUILD_ID)          // SW_BUILD_ID = 0x4000
@@ -578,7 +578,7 @@ func (c *Controller) after_message_action(ed *EndDevice) {
 }
 func (c *Controller) read_attribute(address uint16, cl zcl.Cluster, ids []uint16) error {
 
-	endpoint := zcl.Endpoint{address, 1}
+	endpoint := zcl.Endpoint{Address: address, Number: 1}
 
 	// ZCL Header
 	var frame zcl.Frame = zcl.Frame{}
@@ -601,7 +601,7 @@ func (c *Controller) read_attribute(address uint16, cl zcl.Cluster, ids []uint16
 func (c *Controller) get_power(ed *EndDevice) {
 	// var cluster zcl.Cluster = zcl.POWER_CONFIGURATION
 	cluster := zcl.POWER_CONFIGURATION
-	endpoint := zcl.Endpoint{ed.shortAddress, 1}
+	endpoint := zcl.Endpoint{Address: ed.shortAddress, Number: 1}
 
 	frame := zcl.Frame{}
 	frame.Frame_control.Ftype = zcl.FrameType_GLOBAL
@@ -650,7 +650,7 @@ func (c *Controller) send_command_to_onoff_device(address uint16, cmd uint8, ep 
 	if cmd > 2 {
 		return
 	}
-	endpoint := zcl.Endpoint{address, ep}
+	endpoint := zcl.Endpoint{Address: address, Number: ep}
 	cluster := zcl.ON_OFF
 
 	frame := zcl.Frame{}
@@ -671,7 +671,7 @@ func (c *Controller) configureReporting(address uint16,
 	attributeDataType zcl.DataType,
 	reportable_change uint16) error {
 
-	endpoint := zcl.Endpoint{address, 1}
+	endpoint := zcl.Endpoint{Address: address, Number: 1}
 	// ZCL Header
 	frame := zcl.Frame{}
 	frame.Frame_control.Ftype = zcl.FrameType_GLOBAL
