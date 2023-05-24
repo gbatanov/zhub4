@@ -1,4 +1,4 @@
-package clhandler
+package clusters
 
 import (
 	"fmt"

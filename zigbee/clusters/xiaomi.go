@@ -2,7 +2,7 @@
 GSB, 2023
 gbatanov@yandex.ru
 */
-package clhandler
+package clusters
 
 import (
 	"log"

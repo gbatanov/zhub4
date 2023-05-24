@@ -11,7 +11,7 @@ import (
 	"os"
 	"sync"
 	"time"
-	"zhub4/zigbee/clhandler"
+	"zhub4/zigbee/clusters"
 	"zhub4/zigbee/zdo"
 	"zhub4/zigbee/zdo/zcl"
 )
@@ -22,12 +22,12 @@ type Controller struct {
 	devices            map[uint64]*zdo.EndDevice
 	devicessAddressMap map[uint16]uint64
 	flag               bool
-	msgChan            chan zdo.Command         // chanel for receive incoming message command from zdo
-	joinChan           chan []byte              // chanel for receive command join device from zdo
-	motionMsgChan      chan clhandler.MotionMsg // chanel for get message from motion sensors
-	lastMotion         time.Time                // last motion any motion sensor
-	smartPlugTS        time.Time                // timestamp for smart plug timer
-	switchOffTS        bool                     // flag for switch off timer
+	msgChan            chan zdo.Command        // chanel for receive incoming message command from zdo
+	joinChan           chan []byte             // chanel for receive command join device from zdo
+	motionMsgChan      chan clusters.MotionMsg // chanel for get message from motion sensors
+	lastMotion         time.Time               // last motion any motion sensor
+	smartPlugTS        time.Time               // timestamp for smart plug timer
+	switchOffTS        bool                    // flag for switch off timer
 	mapFileMutex       sync.Mutex
 }
 
@@ -37,7 +37,7 @@ func init() {
 func controllerCreate(Ports map[string]string, Os string, mode string) (*Controller, error) {
 	chn1 := make(chan zdo.Command, 16)
 	chn2 := make(chan []byte, 12) // chan for join command shortAddr + macAddrj
-	chn3 := make(chan clhandler.MotionMsg, 16)
+	chn3 := make(chan clusters.MotionMsg, 16)
 	ts := time.Now()
 
 	zdoo, err := zdo.ZdoCreate(Ports[Os], Os, chn1, chn2)
@@ -456,7 +456,7 @@ func (c *Controller) message_handler(command zdo.Command) {
 			// this cluster includes motion sensors from Sonoff and door sensors from Sonoff
 			// split by device type
 			if ed.Get_device_type() == 2 { // motion sensors from Sonoff
-				msg := clhandler.MotionMsg{Ed: ed, Cmd: message.ZclFrame.Payload[0]}
+				msg := clusters.MotionMsg{Ed: ed, Cmd: message.ZclFrame.Payload[0]}
 				c.motionMsgChan <- msg
 				c.get_power(ed)
 			} else if ed.Get_device_type() == 3 { // door sensors from Sonoff
@@ -492,57 +492,57 @@ func (c *Controller) on_attribute_report(ed *zdo.EndDevice, ep zcl.Endpoint, clu
 	switch cluster {
 	case zcl.BASIC:
 
-		c := clhandler.BasicCluster{Ed: ed}
+		c := clusters.BasicCluster{Ed: ed}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.POWER_CONFIGURATION:
 
-		c := clhandler.PowerConfigurationCluster{Ed: ed}
+		c := clusters.PowerConfigurationCluster{Ed: ed}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.IDENTIFY:
 
-		c := clhandler.IdentifyCluster{Ed: ed}
+		c := clusters.IdentifyCluster{Ed: ed}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.ON_OFF:
 
-		c := clhandler.OnOffCluster{Ed: ed, MsgChan: c.motionMsgChan}
+		c := clusters.OnOffCluster{Ed: ed, MsgChan: c.motionMsgChan}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.ANALOG_INPUT:
 
-		c := clhandler.AnalogInputCluster{Ed: ed}
+		c := clusters.AnalogInputCluster{Ed: ed}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.MULTISTATE_INPUT:
 
-		c := clhandler.MultistateInputCluster{}
+		c := clusters.MultistateInputCluster{}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.XIAOMI_SWITCH:
 
-		c := clhandler.XiaomiCluster{Ed: ed}
+		c := clusters.XiaomiCluster{Ed: ed}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.SIMPLE_METERING:
 
-		c := clhandler.SimpleMeteringCluster{}
+		c := clusters.SimpleMeteringCluster{}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.ELECTRICAL_MEASUREMENTS:
 
-		c := clhandler.ElectricalMeasurementCluster{Ed: ed}
+		c := clusters.ElectricalMeasurementCluster{Ed: ed}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.TUYA_ELECTRICIAN_PRIVATE_CLUSTER:
 
-		c := clhandler.TuyaCluster{}
+		c := clusters.TuyaCluster{}
 		c.Handler_attributes1(ep, attributes)
 
 	case zcl.TUYA_SWITCH_MODE_0:
 
-		c := clhandler.TuyaCluster{}
+		c := clusters.TuyaCluster{}
 		c.Handler_attributes2(ep, attributes)
 
 	default: // unattended clusters
