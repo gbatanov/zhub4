@@ -1,15 +1,16 @@
-package zigbee
+package clhandler
 
 import (
 	"log"
+	"zhub4/zigbee/zdo"
 	"zhub4/zigbee/zdo/zcl"
 )
 
 type IdentifyCluster struct {
-	ed *EndDevice
+	Ed *zdo.EndDevice
 }
 
-func (i IdentifyCluster) handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
+func (i IdentifyCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
 	log.Printf("IdentifyCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
 
 	for _, attribute := range attributes {

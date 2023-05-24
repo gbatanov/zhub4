@@ -2,18 +2,19 @@
 GSB, 2023
 gbatanov@yandex.ru
 */
-package zigbee
+package clhandler
 
 import (
 	"log"
+	"zhub4/zigbee/zdo"
 	"zhub4/zigbee/zdo/zcl"
 )
 
 type XiaomiCluster struct {
-	ed *EndDevice
+	Ed *zdo.EndDevice
 }
 
-func (x XiaomiCluster) handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
+func (x XiaomiCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
 	log.Printf("XiaomiCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
 	for _, attribute := range attributes {
 		log.Printf("XiaomiCluster::attribute id =0x%04x \n", attribute.Id)
@@ -42,7 +43,7 @@ func (x XiaomiCluster) handler_attributes(endpoint zcl.Endpoint, attributes []zc
 				case 0x03: // temperature
 					i = i + 2
 					log.Printf("Xiaomi temperature: %d \n", int8(attribute.Value[i]))
-					x.ed.set_temperature(int8(attribute.Value[i]))
+					x.Ed.Set_temperature(int8(attribute.Value[i]))
 
 				case 0x05: // Power outages
 					i = i + 3
@@ -60,7 +61,7 @@ func (x XiaomiCluster) handler_attributes(endpoint zcl.Endpoint, attributes []zc
 					if attribute.Value[i] == 1 {
 						state = "On"
 					}
-					x.ed.set_current_state(state, 1)
+					x.Ed.Set_current_state(state, 1)
 					log.Printf("State %s\n", state)
 
 				case 0x65: // status2
@@ -69,32 +70,32 @@ func (x XiaomiCluster) handler_attributes(endpoint zcl.Endpoint, attributes []zc
 					if attribute.Value[i] == 1 {
 						state = "On"
 					}
-					x.ed.set_current_state(state, 2)
+					x.Ed.Set_current_state(state, 2)
 					log.Printf("State2 %s\n", state)
 
 				case 0x95: // energy
 					i = i + 5
 
 				case 0x96: // voltage
-					value, err := x.ed.bytesToFloat32(attribute.Value[i+2 : i+6])
+					value, err := x.Ed.BytesToFloat32(attribute.Value[i+2 : i+6])
 					if err == nil {
-						x.ed.set_power_source(0x01)
-						x.ed.set_mains_voltage(value / 10)
+						x.Ed.Set_power_source(0x01)
+						x.Ed.Set_mains_voltage(value / 10)
 						log.Printf("Voltage %0.2fV\n", value/10)
 					}
 					i = i + 5
 
 				case 0x97: // current
-					value, err := x.ed.bytesToFloat32(attribute.Value[i+2 : i+6])
+					value, err := x.Ed.BytesToFloat32(attribute.Value[i+2 : i+6])
 					if err == nil {
 						val := value / 1000
-						x.ed.set_current(val)
+						x.Ed.Set_current(val)
 						log.Printf("Current %0.3fA\n\n", val)
 					}
 					i = i + 5
 
 				case 0x98: // instant power
-					value, err := x.ed.bytesToFloat32(attribute.Value[i+2 : i+6])
+					value, err := x.Ed.BytesToFloat32(attribute.Value[i+2 : i+6])
 					if err == nil {
 						log.Printf("Текущая потребляемая мощность(0x98) %0.6f\n", value)
 					}

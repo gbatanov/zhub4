@@ -19,7 +19,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.2.9"
+const Version string = "v0.2.10"
 
 var Os string = ""
 var Flag bool = true

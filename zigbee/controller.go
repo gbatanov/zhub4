@@ -11,6 +11,7 @@ import (
 	"os"
 	"sync"
 	"time"
+	"zhub4/zigbee/clhandler"
 	"zhub4/zigbee/zdo"
 	"zhub4/zigbee/zdo/zcl"
 )
@@ -18,15 +19,15 @@ import (
 type Controller struct {
 	zdobj              *zdo.Zdo
 	mode               string
-	devices            map[uint64]*EndDevice
+	devices            map[uint64]*zdo.EndDevice
 	devicessAddressMap map[uint16]uint64
 	flag               bool
-	msgChan            chan zdo.Command // chanel for receive incoming message command from zdo
-	joinChan           chan []byte      // chanel for receive command join device from zdo
-	motionMsgChan      chan MotionMsg   // chanel for get message from motion sensors
-	lastMotion         time.Time        // last motion any motion sensor
-	smartPlugTS        time.Time        // timestamp for smart plug timer
-	switchOffTS        bool             // flag for switch off timer
+	msgChan            chan zdo.Command         // chanel for receive incoming message command from zdo
+	joinChan           chan []byte              // chanel for receive command join device from zdo
+	motionMsgChan      chan clhandler.MotionMsg // chanel for get message from motion sensors
+	lastMotion         time.Time                // last motion any motion sensor
+	smartPlugTS        time.Time                // timestamp for smart plug timer
+	switchOffTS        bool                     // flag for switch off timer
 	mapFileMutex       sync.Mutex
 }
 
@@ -36,7 +37,7 @@ func init() {
 func controllerCreate(Ports map[string]string, Os string, mode string) (*Controller, error) {
 	chn1 := make(chan zdo.Command, 16)
 	chn2 := make(chan []byte, 12) // chan for join command shortAddr + macAddrj
-	chn3 := make(chan MotionMsg, 16)
+	chn3 := make(chan clhandler.MotionMsg, 16)
 	ts := time.Now()
 
 	zdoo, err := zdo.ZdoCreate(Ports[Os], Os, chn1, chn2)
@@ -50,7 +51,7 @@ func controllerCreate(Ports map[string]string, Os string, mode string) (*Control
 	controller := Controller{
 		zdobj:              zdoo,
 		mode:               mode,
-		devices:            map[uint64]*EndDevice{},
+		devices:            map[uint64]*zdo.EndDevice{},
 		devicessAddressMap: map[uint16]uint64{},
 		flag:               true,
 		msgChan:            chn1,
@@ -90,7 +91,7 @@ func (c *Controller) startNetwork(defconf zdo.NetworkConfiguration) error {
 	go func() {
 		for c.flag {
 			msg := <-c.motionMsgChan
-			c.handle_motion(msg.ed, msg.cmd)
+			c.handle_motion(msg.Ed, msg.Cmd)
 		}
 	}()
 
@@ -227,7 +228,7 @@ func (c *Controller) create_devices_by_map() {
 	err := c.read_map_from_file()
 	if err == nil {
 		for shortAddress, macAddress := range c.devicessAddressMap {
-			ed := EndDeviceCreate(macAddress, shortAddress)
+			ed := zdo.EndDeviceCreate(macAddress, shortAddress)
 			c.devices[macAddress] = ed
 		}
 	}
@@ -265,13 +266,13 @@ func (c *Controller) join_device() {
 					c.devicessAddressMap[shortAddress] = macAddress
 					c.write_map_to_file()
 					ed := c.get_device_by_mac(macAddress)
-					ed.shortAddress = shortAddress
+					ed.ShortAddress = shortAddress
 					c.on_join(shortAddress, macAddress)
 				}
 
 			} else {
 				log.Printf("Controller::join_device: create device\n")
-				ed := EndDeviceCreate(macAddress, shortAddress)
+				ed := zdo.EndDeviceCreate(macAddress, shortAddress)
 				c.devices[macAddress] = ed
 				c.devicessAddressMap[shortAddress] = macAddress
 				c.write_map_to_file()
@@ -283,33 +284,33 @@ func (c *Controller) join_device() {
 
 func (c *Controller) on_join(shortAddress uint16, macAddress uint64) {
 	ed := c.get_device_by_mac(macAddress)
-	if ed.shortAddress == 0 || ed.shortAddress != shortAddress {
-		log.Printf("Controller:: on_join: device 0x%016x doesn't exist, ed.shortAddress 0x%04x != shortAddres 0x%04x  \n", macAddress, ed.shortAddress, shortAddress)
+	if ed.ShortAddress == 0 || ed.ShortAddress != shortAddress {
+		log.Printf("Controller:: on_join: device 0x%016x doesn't exist, ed.shortAddress 0x%04x != shortAddres 0x%04x  \n", macAddress, ed.ShortAddress, shortAddress)
 		return
 	}
 	c.Get_zdo().Bind(shortAddress, macAddress, 1, zcl.ON_OFF)
-	if ed.get_device_type() != 4 {
+	if ed.Get_device_type() != 4 {
 		// for customs no report adjusting in ON_OFF cluster
 		c.configureReporting(shortAddress, zcl.ON_OFF, uint16(0), zcl.DataType_UINT8, uint16(0))
 	}
 	// SmartPlug, WaterValves - no binding and no report adjusting in ON_OFF cluster
 	//
 	// motion sensors and door sensors Sonoff
-	if ed.get_device_type() == 2 || ed.get_device_type() == 3 {
+	if ed.Get_device_type() == 2 || ed.Get_device_type() == 3 {
 		c.Get_zdo().Bind(shortAddress, macAddress, 1, zcl.IAS_ZONE)
 		c.configureReporting(shortAddress, zcl.IAS_ZONE, uint16(0), zcl.DataType_UINT8, uint16(0))
 	}
 	// IKEA motion sensors
-	if ed.get_device_type() == 8 {
+	if ed.Get_device_type() == 8 {
 		c.Get_zdo().Bind(shortAddress, macAddress, 1, zcl.IAS_ZONE)
 		c.configureReporting(shortAddress, zcl.IAS_ZONE, uint16(0), zcl.DataType_UINT8, uint16(0))
 	}
 	// IKEA devices
-	if ed.get_device_type() == 7 || ed.get_device_type() == 8 {
+	if ed.Get_device_type() == 7 || ed.Get_device_type() == 8 {
 		c.get_power(ed)
 	}
 	c.Get_zdo().Bind(shortAddress, macAddress, 1, zcl.POWER_CONFIGURATION)
-	if ed.get_device_type() != 4 {
+	if ed.Get_device_type() != 4 {
 		c.configureReporting(shortAddress, zcl.POWER_CONFIGURATION, uint16(0), zcl.DataType_UINT8, uint16(0))
 	}
 
@@ -359,7 +360,7 @@ func (c *Controller) get_identifier(address uint16) {
 	c.Get_zdo().Send_message(endpoint, cl, frame, 3*time.Second)
 }
 
-func (c *Controller) get_device_by_short_addr(shortAddres uint16) *EndDevice {
+func (c *Controller) get_device_by_short_addr(shortAddres uint16) *zdo.EndDevice {
 	// get macAddress
 	_, keyExists := c.devicessAddressMap[shortAddres]
 	if keyExists {
@@ -367,15 +368,15 @@ func (c *Controller) get_device_by_short_addr(shortAddres uint16) *EndDevice {
 		ed := c.get_device_by_mac(macAddress)
 		return ed
 	}
-	return &EndDevice{macAddress: 0, shortAddress: 0}
+	return &zdo.EndDevice{MacAddress: 0, ShortAddress: 0}
 }
 
-func (c *Controller) get_device_by_mac(macAddress uint64) *EndDevice {
+func (c *Controller) get_device_by_mac(macAddress uint64) *zdo.EndDevice {
 	_, keyExists := c.devices[macAddress]
 	if keyExists {
 		return c.devices[macAddress]
 	} else {
-		return &EndDevice{macAddress: 0, shortAddress: 0}
+		return &zdo.EndDevice{MacAddress: 0, ShortAddress: 0}
 	}
 }
 
@@ -392,7 +393,7 @@ func (c *Controller) message_handler(command zdo.Command) {
 	message.ZclFrame = c.Get_zdo().Parse_zcl_data(command.Payload[17 : 17+length])
 
 	ed := c.get_device_by_short_addr(message.Source.Address)
-	if ed.macAddress == 0 {
+	if ed.MacAddress == 0 {
 		log.Printf("message handler: device not found\n")
 		return
 	}
@@ -417,10 +418,10 @@ func (c *Controller) message_handler(command zdo.Command) {
 		fmt.Print("\n\n")
 	}
 	if message.LinkQuality > 0 {
-		ed.set_linkQuality(message.LinkQuality)
+		ed.Set_linkQuality(message.LinkQuality)
 	}
 	now := time.Now()
-	ed.set_last_seen(now)
+	ed.Set_last_seen(now)
 
 	withStatus := message.Cluster != zcl.ANALOG_INPUT &&
 		message.Cluster != zcl.XIAOMI_SWITCH &&
@@ -454,24 +455,24 @@ func (c *Controller) message_handler(command zdo.Command) {
 		case zcl.IAS_ZONE:
 			// this cluster includes motion sensors from Sonoff and door sensors from Sonoff
 			// split by device type
-			if ed.get_device_type() == 2 { // motion sensors from Sonoff
-				msg := MotionMsg{ed: ed, cmd: message.ZclFrame.Payload[0]}
+			if ed.Get_device_type() == 2 { // motion sensors from Sonoff
+				msg := clhandler.MotionMsg{Ed: ed, Cmd: message.ZclFrame.Payload[0]}
 				c.motionMsgChan <- msg
 				c.get_power(ed)
-			} else if ed.get_device_type() == 3 { // door sensors from Sonoff
+			} else if ed.Get_device_type() == 3 { // door sensors from Sonoff
 				c.handle_sonoff_door(ed, message.ZclFrame.Payload[0])
 				c.get_power(ed)
-			} else if ed.get_device_type() == 5 { // water leak sensor from Aqara
+			} else if ed.Get_device_type() == 5 { // water leak sensor from Aqara
 				var state string = "NORMAL"
 				if message.ZclFrame.Payload[0] == 1 {
 					state = "ALARM"
 				}
-				ed.set_current_state(state, 1)
+				ed.Set_current_state(state, 1)
 
 				if state == "ALARM" {
 					c.ias_zone_command(uint8(0), uint16(0)) // close valves, switch off wash machine
 					ts := time.Now()                        // get time now
-					ed.set_last_action(ts)
+					ed.Set_last_action(ts)
 					// alarm_msg := "Сработал датчик протечки: "
 					// alarm_msg = alarm_msg + ed.get_human_name()
 					// tlg32->send_message(alarm_msg)
@@ -485,64 +486,64 @@ func (c *Controller) message_handler(command zdo.Command) {
 	}
 	c.after_message_action(ed)
 }
-func (c *Controller) on_attribute_report(ed *EndDevice, ep zcl.Endpoint, cluster zcl.Cluster, attributes []zcl.Attribute) {
+func (c *Controller) on_attribute_report(ed *zdo.EndDevice, ep zcl.Endpoint, cluster zcl.Cluster, attributes []zcl.Attribute) {
 	//	zcl.Handler_attributes(cluster, ep, attributes)
 
 	switch cluster {
 	case zcl.BASIC:
 
-		c := BasicCluster{ed: ed}
-		c.handler_attributes(ep, attributes)
+		c := clhandler.BasicCluster{Ed: ed}
+		c.Handler_attributes(ep, attributes)
 
 	case zcl.POWER_CONFIGURATION:
 
-		c := PowerConfigurationCluster{ed: ed}
-		c.handler_attributes(ep, attributes)
+		c := clhandler.PowerConfigurationCluster{Ed: ed}
+		c.Handler_attributes(ep, attributes)
 
 	case zcl.IDENTIFY:
 
-		c := IdentifyCluster{ed: ed}
-		c.handler_attributes(ep, attributes)
+		c := clhandler.IdentifyCluster{Ed: ed}
+		c.Handler_attributes(ep, attributes)
 
 	case zcl.ON_OFF:
 
-		c := OnOffCluster{ed: ed, msgChan: c.motionMsgChan}
-		c.handler_attributes(ep, attributes)
+		c := clhandler.OnOffCluster{Ed: ed, MsgChan: c.motionMsgChan}
+		c.Handler_attributes(ep, attributes)
 
 	case zcl.ANALOG_INPUT:
 
-		c := AnalogInputCluster{ed: ed}
-		c.handler_attributes(ep, attributes)
+		c := clhandler.AnalogInputCluster{Ed: ed}
+		c.Handler_attributes(ep, attributes)
 
 	case zcl.MULTISTATE_INPUT:
 
-		c := MultistateInputCluster{}
-		c.handler_attributes(ep, attributes)
+		c := clhandler.MultistateInputCluster{}
+		c.Handler_attributes(ep, attributes)
 
 	case zcl.XIAOMI_SWITCH:
 
-		c := XiaomiCluster{ed: ed}
-		c.handler_attributes(ep, attributes)
+		c := clhandler.XiaomiCluster{Ed: ed}
+		c.Handler_attributes(ep, attributes)
 
 	case zcl.SIMPLE_METERING:
 
-		c := SimpleMeteringCluster{}
-		c.handler_attributes(ep, attributes)
+		c := clhandler.SimpleMeteringCluster{}
+		c.Handler_attributes(ep, attributes)
 
 	case zcl.ELECTRICAL_MEASUREMENTS:
 
-		c := ElectricalMeasurementCluster{ed: ed}
-		c.handler_attributes(ep, attributes)
+		c := clhandler.ElectricalMeasurementCluster{Ed: ed}
+		c.Handler_attributes(ep, attributes)
 
 	case zcl.TUYA_ELECTRICIAN_PRIVATE_CLUSTER:
 
-		c := TuyaCluster{}
-		c.handler_attributes1(ep, attributes)
+		c := clhandler.TuyaCluster{}
+		c.Handler_attributes1(ep, attributes)
 
 	case zcl.TUYA_SWITCH_MODE_0:
 
-		c := TuyaCluster{}
-		c.handler_attributes2(ep, attributes)
+		c := clhandler.TuyaCluster{}
+		c.Handler_attributes2(ep, attributes)
 
 	default: // unattended clusters
 
@@ -554,19 +555,19 @@ func (c *Controller) on_attribute_report(ed *EndDevice, ep zcl.Endpoint, cluster
 	}
 
 }
-func (c *Controller) after_message_action(ed *EndDevice) {
-	if ed.get_device_type() == 10 { // SmartPlug
+func (c *Controller) after_message_action(ed *zdo.EndDevice) {
+	if ed.Get_device_type() == 10 { // SmartPlug
 		// request current and voltage for every 5 minutes
 		diff := time.Since(c.smartPlugTS)
 		if diff.Seconds() > 300 {
 			c.smartPlugTS = time.Now()
 			var idsAV []uint16 = []uint16{0x0505, 0x508}
 
-			c.read_attribute(ed.shortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
+			c.read_attribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
 
-			if ed.get_current_state(1) != "On" && ed.get_current_state(1) != "Off" {
+			if ed.Get_current_state(1) != "On" && ed.Get_current_state(1) != "Off" {
 				var idsAV []uint16 = []uint16{0x0000}
-				c.read_attribute(ed.shortAddress, zcl.ON_OFF, idsAV)
+				c.read_attribute(ed.ShortAddress, zcl.ON_OFF, idsAV)
 			}
 		}
 	}
@@ -599,10 +600,10 @@ func (c *Controller) read_attribute(address uint16, cl zcl.Cluster, ids []uint16
 	}
 	return c.Get_zdo().Send_message(endpoint, cl, frame, 3*time.Second)
 }
-func (c *Controller) get_power(ed *EndDevice) {
+func (c *Controller) get_power(ed *zdo.EndDevice) {
 	// var cluster zcl.Cluster = zcl.POWER_CONFIGURATION
 	cluster := zcl.POWER_CONFIGURATION
-	endpoint := zcl.Endpoint{Address: ed.shortAddress, Number: 1}
+	endpoint := zcl.Endpoint{Address: ed.ShortAddress, Number: 1}
 
 	frame := zcl.Frame{}
 	frame.Frame_control.Ftype = zcl.FrameType_GLOBAL
@@ -626,7 +627,7 @@ func (c *Controller) get_power(ed *EndDevice) {
 // Turn off the relay according to the list with a long press on the buttons Sonoff1 Sonoff2
 func (c *Controller) switch_off_with_list() {
 
-	for _, macAddr := range OFF_LIST {
+	for _, macAddr := range zdo.OFF_LIST {
 		c.switch_relay(macAddr, 0, 1)
 		if macAddr == 0x00158d0009414d7e { // the relay in the kitchen has two channel
 			c.switch_relay(macAddr, 0, 2)
@@ -636,10 +637,10 @@ func (c *Controller) switch_off_with_list() {
 }
 func (c *Controller) switch_relay(macAddress uint64, cmd uint8, channel uint8) {
 	ed := c.get_device_by_mac(macAddress)
-	if ed.shortAddress > 0 && ed.di.available == 1 {
-		c.send_command_to_onoff_device(ed.shortAddress, cmd, channel)
+	if ed.ShortAddress > 0 && ed.Di.Available == 1 {
+		c.send_command_to_onoff_device(ed.ShortAddress, cmd, channel)
 		ts := time.Now() // get time now
-		ed.set_last_action(ts)
+		ed.Set_last_action(ts)
 	} else {
 		log.Printf("Relay 0x%016x not found\n", macAddress)
 	}

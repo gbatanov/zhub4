@@ -2,7 +2,7 @@
 GSB, 2023
 gbatanov@yandex.ru
 */
-package zigbee
+package zdo
 
 import (
 	"bytes"
@@ -19,7 +19,7 @@ type DeviceInfo struct {
 	engName      string // name for Grafana
 	humanName    string
 	powerSource  zcl.PowerSource
-	available    uint8 // include in prod configuration
+	Available    uint8 // include in prod configuration
 	test         uint8 //include in test configuration
 }
 
@@ -117,9 +117,9 @@ type BatteryParams struct {
 	voltage float32
 }
 type EndDevice struct {
-	macAddress      uint64
-	shortAddress    uint16
-	di              DeviceInfo
+	MacAddress      uint64
+	ShortAddress    uint16
+	Di              DeviceInfo
 	modelIdentifier string
 	linkQuality     uint8
 	lastSeen        time.Time
@@ -137,8 +137,8 @@ type EndDevice struct {
 }
 
 func EndDeviceCreate(macAddress uint64, shortAddress uint16) *EndDevice {
-	ed := EndDevice{macAddress: macAddress, shortAddress: shortAddress}
-	ed.di = KNOWN_DEVICES[macAddress]
+	ed := EndDevice{MacAddress: macAddress, ShortAddress: shortAddress}
+	ed.Di = KNOWN_DEVICES[macAddress]
 	ed.modelIdentifier = ""
 	ed.linkQuality = 0
 	ed.lastSeen = time.Time{} // time.isZero - time is not initialized
@@ -157,45 +157,45 @@ func EndDeviceCreate(macAddress uint64, shortAddress uint16) *EndDevice {
 	return &ed
 }
 
-func (ed EndDevice) get_mac_address() uint64 {
-	return ed.macAddress
+func (ed EndDevice) Get_mac_address() uint64 {
+	return ed.MacAddress
 }
-func (ed *EndDevice) set_linkQuality(quality uint8) {
+func (ed *EndDevice) Set_linkQuality(quality uint8) {
 	ed.linkQuality = quality
 }
-func (ed *EndDevice) set_last_seen(tm time.Time) {
+func (ed *EndDevice) Set_last_seen(tm time.Time) {
 	ed.lastSeen = tm
 }
-func (ed *EndDevice) set_last_action(tm time.Time) {
+func (ed *EndDevice) Set_last_action(tm time.Time) {
 	ed.lastAction = tm
 }
-func (ed *EndDevice) set_manufacturer(value string) {
-	ed.di.manufacturer = value
+func (ed *EndDevice) Set_manufacturer(value string) {
+	ed.Di.manufacturer = value
 }
-func (ed *EndDevice) set_model_identifier(value string) {
+func (ed *EndDevice) Set_model_identifier(value string) {
 	ed.modelIdentifier = value
 }
-func (ed *EndDevice) set_product_code(value string) {
-	ed.di.productCode = value
+func (ed *EndDevice) Set_product_code(value string) {
+	ed.Di.productCode = value
 }
-func (ed *EndDevice) set_power_source(value uint8) {
-	ed.di.powerSource = zcl.PowerSource(value)
+func (ed *EndDevice) Set_power_source(value uint8) {
+	ed.Di.powerSource = zcl.PowerSource(value)
 }
-func (ed *EndDevice) set_mains_voltage(value float32) {
+func (ed *EndDevice) Set_mains_voltage(value float32) {
 	ed.mainVoltage = value
 }
-func (ed *EndDevice) get_mains_voltage() float32 {
+func (ed *EndDevice) Get_mains_voltage() float32 {
 	return ed.mainVoltage
 }
-func (ed *EndDevice) set_current(value float32) {
+func (ed *EndDevice) Set_current(value float32) {
 	ed.current = value
 }
-func (ed *EndDevice) get_current() float32 {
+func (ed *EndDevice) Get_current() float32 {
 	return ed.current
 }
 
 // charge level, battery voltage
-func (ed *EndDevice) set_battery_params(value1 uint8, value2 float32) {
+func (ed *EndDevice) Set_battery_params(value1 uint8, value2 float32) {
 	if value1 > 0 {
 		ed.battery.level = value1
 	}
@@ -203,38 +203,38 @@ func (ed *EndDevice) set_battery_params(value1 uint8, value2 float32) {
 		ed.battery.voltage = value2
 	}
 }
-func (ed *EndDevice) set_temperature(value int8) {
+func (ed *EndDevice) Set_temperature(value int8) {
 	ed.temperature = value
 }
-func (ed *EndDevice) set_luminocity(value int8) {
+func (ed *EndDevice) Set_luminocity(value int8) {
 	ed.luminocity = value
 }
-func (ed *EndDevice) get_luminocity() int8 {
+func (ed *EndDevice) Get_luminocity() int8 {
 	return ed.luminocity
 }
-func (ed *EndDevice) set_humidity(value int8) {
+func (ed *EndDevice) Set_humidity(value int8) {
 	ed.humidity = value
 }
-func (ed *EndDevice) set_pressure(value float32) {
+func (ed *EndDevice) Set_pressure(value float32) {
 	ed.pressure = value
 }
 
-func (ed EndDevice) get_human_name() string {
-	return ed.di.humanName
+func (ed EndDevice) Get_human_name() string {
+	return ed.Di.humanName
 }
 
-func (ed EndDevice) get_device_type() uint8 {
-	return ed.di.deviceType
+func (ed EndDevice) Get_device_type() uint8 {
+	return ed.Di.deviceType
 }
 
-func (ed *EndDevice) set_current_state(state string, channel uint8) {
+func (ed *EndDevice) Set_current_state(state string, channel uint8) {
 	if channel == 1 {
 		ed.state = state
 	} else if channel == 2 {
 		ed.state2 = state
 	}
 }
-func (ed EndDevice) get_current_state(channel uint8) string {
+func (ed EndDevice) Get_current_state(channel uint8) string {
 	if channel == 1 {
 		return ed.state
 	} else if channel == 2 {
@@ -242,16 +242,16 @@ func (ed EndDevice) get_current_state(channel uint8) string {
 	}
 	return "Unknown"
 }
-func (ed EndDevice) get_motion_state() int8 {
+func (ed EndDevice) Get_motion_state() int8 {
 	return ed.motionState
 }
-func (ed EndDevice) set_motion_state(state uint8) {
+func (ed EndDevice) Set_motion_state(state uint8) {
 	if state == 0 || state == 1 {
 		ed.motionState = int8(state)
 	}
 }
 
-func (ed *EndDevice) bytesToFloat32(src []byte) (float32, error) {
+func (ed *EndDevice) BytesToFloat32(src []byte) (float32, error) {
 
 	if len(src) != 4 {
 		return 0.0, errors.New("bad source slice")
