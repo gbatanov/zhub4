@@ -1,6 +1,7 @@
 package clusters
 
 import (
+	"fmt"
 	"log"
 	"zhub4/zigbee/zdo"
 	"zhub4/zigbee/zdo/zcl"
@@ -11,35 +12,32 @@ type BasicCluster struct {
 }
 
 func (b BasicCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	log.Printf("BasicCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
+	log.Printf("BasicCluster:: %s, endpoint address: 0x%04x number = %d \n", b.Ed.Get_human_name(), endpoint.Address, endpoint.Number)
 
 	for _, attribute := range attributes {
-		log.Printf("BasicCluster::attribute id =0x%04x \n", attribute.Id)
-		log.Printf("BasicCluster::attribute value = %q \n", attribute.Value)
-		log.Printf("BasicCluster::attribute size = %d \n", attribute.Size)
 
 		switch zcl.BasicAttribute(attribute.Id) {
 		case zcl.Basic_MANUFACTURER_NAME: //0x0004
 			if attribute.Size > 0 {
 				identifier := string(attribute.Value)
 				b.Ed.Set_manufacturer(identifier)
-				log.Printf("MANUFACTURER_NAME: 0x%02x %s \n\n", endpoint.Address, identifier)
+				fmt.Printf("MANUFACTURER_NAME: 0x%02x %s \n\n", endpoint.Address, identifier)
 			}
 
 		case zcl.Basic_MODEL_IDENTIFIER: //0x0005
 			if attribute.Size > 0 {
 				identifier := string(attribute.Value)
 				b.Ed.Set_model_identifier(identifier)
-				log.Printf("MODEL_IDENTIFIER: 0x%02x %s \n\n", endpoint.Address, identifier)
+				fmt.Printf("MODEL_IDENTIFIER: 0x%02x %s \n\n", endpoint.Address, identifier)
 			}
 		case zcl.Basic_PRODUCT_CODE: //0x000a
 			if attribute.Size > 0 {
 				identifier := string(attribute.Value)
 				b.Ed.Set_product_code(identifier)
-				log.Printf("PRODUCT_CODE: 0x%02x %s \n\n", endpoint.Address, identifier)
+				fmt.Printf("PRODUCT_CODE: 0x%02x %s \n\n", endpoint.Address, identifier)
 			}
 		case zcl.Basic_APPLICATION_VERSION: //0x0001
-			log.Printf("Basic_APPLICATION_VERSION: value: %d \n\n", attribute.Value[0])
+			fmt.Printf("Basic_APPLICATION_VERSION: value: %d \n\n", attribute.Value[0])
 		case zcl.Basic_PRODUCT_LABEL,
 			zcl.Basic_ZCL_VERSION,
 			zcl.Basic_GENERIC_DEVICE_TYPE,
@@ -49,13 +47,13 @@ func (b BasicCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 			{
 				if attribute.Size > 0 {
 					identifier := string(attribute.Value)
-					log.Printf("Basic attribute: 0x%04x, ep: 0x%02x value: %s \n\n", attribute.Id, endpoint.Address, identifier)
+					fmt.Printf("attribute: 0x%04x, ep: 0x%02x value: %s \n\n", attribute.Id, endpoint.Address, identifier)
 				}
 			}
 		case zcl.Basic_POWER_SOURCE: // uint8
 
 			val := attribute.Value[0]
-			log.Printf("Device 0x%04x POWER_SOURCE: %d \n", endpoint.Address, val)
+			fmt.Printf("Device 0x%04x POWER_SOURCE: %d \n", endpoint.Address, val)
 			if val > 0 && val < 0x8f {
 				b.Ed.Set_power_source(val)
 			}
@@ -107,7 +105,7 @@ func (b BasicCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 
 				case 0x05: // RSSI  val - 90
 					rssi := int16(zcl.UINT16_(attribute.Value[i+2], attribute.Value[i+3]) - 90)
-					log.Printf("device 0x%04x RSSI:  %d dBm \n", endpoint.Address, rssi)
+					fmt.Printf("device 0x%04x RSSI:  %d dBm \n", endpoint.Address, rssi)
 					i = i + 3
 
 				case 0x06: // ?
@@ -150,13 +148,13 @@ func (b BasicCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 					value := float32(uint32(attribute.Value[i+2]) + uint32(attribute.Value[i+3])<<8 + uint32(attribute.Value[i+4])<<16 + uint32(attribute.Value[i+5])<<24)
 					b.Ed.Set_power_source(0x01)
 					b.Ed.Set_mains_voltage(value / 10)
-					log.Printf("Напряжение:  %0.2f\n", value/10)
+					fmt.Printf("Voltage:  %0.2fV\n", value/10)
 					i = i + 5
 
 				case 0x97: // current
 					value := float32(uint32(attribute.Value[i+2]) + uint32(attribute.Value[i+3])<<8 + uint32(attribute.Value[i+4])<<16 + uint32(attribute.Value[i+5])<<24)
 					b.Ed.Set_current(value)
-					log.Printf("Ток: %0.3f\n", value)
+					fmt.Printf("Current: %0.3fA\n", value)
 					i = i + 5
 
 				case 0x9b:
@@ -168,7 +166,10 @@ func (b BasicCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 				if i >= len(attributes) {
 					break
 				}
-			} // for
+			} //
+		default:
+			fmt.Printf("attribute id =0x%04x value = %q \n", attribute.Id, attribute.Value)
+
 		}
 	}
 }

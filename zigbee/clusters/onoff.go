@@ -6,6 +6,7 @@ package clusters
 
 import (
 	"encoding/binary"
+	"fmt"
 	"log"
 	"time"
 	"zhub4/zigbee/zdo"
@@ -23,9 +24,8 @@ type MotionMsg struct {
 }
 
 func (o OnOffCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	log.Printf("OnOffCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
+	log.Printf("OnOffCluster:: %s, endpoint address: 0x%04x number = %d \n", o.Ed.Get_human_name(), endpoint.Address, endpoint.Number)
 	for _, attribute := range attributes {
-		// log.Printf("OnOff attribute id =0x%04x \n", attribute.Id)
 		switch zcl.OnOffAttribute(attribute.Id) {
 		case zcl.OnOff_ON_OFF: // 0x0000
 			b_val := false
@@ -33,29 +33,28 @@ func (o OnOffCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 			if attribute.Value[0] == 1 {
 				b_val = true
 			}
-			log.Printf("OnOffCluster::Handler_attributes: Device 0x%04x %s endpoint %d value[0]= %d \n", endpoint.Address, o.Ed.Get_human_name(), endpoint.Number, u_val)
 			macAddress := o.Ed.Get_mac_address()
 			if macAddress == 0x00124b0014db2724 {
 				// custom2 coridor
 				if endpoint.Number == 2 { // loght sensor
-					log.Printf("OnOffCluster::Handler_attributes: Освещенность %d \n", u_val)
+					fmt.Printf("Освещенность %d \n", u_val)
 					o.Ed.Set_luminocity(int8(u_val))
 				}
 				if endpoint.Number == 6 { // motion sensor (1 - no motion, 0 - motion)
-					log.Printf("Прихожая: Движение %d \n", 1-u_val)
+					fmt.Printf("Прихожая: Движение %d \n", 1-u_val)
 					msg := MotionMsg{Ed: o.Ed, Cmd: 1 - u_val}
 					o.MsgChan <- msg
 				}
 			} else if macAddress == 0x00124b0009451438 {
 				// custom3 - kitchen
 				if endpoint.Number == 2 { // presence sensor - kitchen
-					log.Printf("Кухня: Присутствие %d \n", 1-u_val)
+					fmt.Printf("Кухня: Присутствие %d \n", 1-u_val)
 					msg := MotionMsg{Ed: o.Ed, Cmd: 1 - u_val}
 					o.MsgChan <- msg
 				}
 			} else if macAddress == 0x0c4314fffe17d8a8 {
 				// motion sensor IKEA
-				log.Printf("датчик движения IKEA %d \n", u_val)
+				fmt.Printf("Датчик движения IKEA %d \n", u_val)
 				msg := MotionMsg{Ed: o.Ed, Cmd: u_val}
 				o.MsgChan <- msg
 			} else if macAddress == 0x00124b0007246963 {
@@ -76,6 +75,7 @@ func (o OnOffCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 				if b_val {
 					newState = "On"
 				}
+				log.Printf("SmartPlug %s \n", newState)
 				if newState != currentState {
 					ts := time.Now() // get time now
 					o.Ed.Set_last_action(ts)
@@ -87,9 +87,11 @@ func (o OnOffCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 				if b_val {
 					newState = "On"
 				}
+				log.Printf("Duochannel relay %s \n", newState)
 				o.Ed.Set_last_action(ts)
 				o.Ed.Set_current_state(newState, endpoint.Number)
 			} else {
+				log.Printf("OnOffCluster::Handler_attributes: Device 0x%04x %s endpoint %d value[0]= %d \n", endpoint.Address, o.Ed.Get_human_name(), endpoint.Number, u_val)
 				ts := time.Now() // get time now
 				newState := "Off"
 				if b_val {

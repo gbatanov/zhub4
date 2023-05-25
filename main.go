@@ -19,7 +19,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.2.16"
+const Version string = "v0.2.17"
 
 var Os string = ""
 var Flag bool = true
@@ -30,7 +30,7 @@ func init() {
 
 func main() {
 	sysLog, err := syslog.New(syslog.LOG_INFO|syslog.LOG_SYSLOG, "zhub4")
-	sysLog.Info("Start zhub4")
+	sysLog.Info("Start zhub4, version " + Version)
 
 	if err != nil {
 		log.Fatal(err)

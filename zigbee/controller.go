@@ -587,6 +587,7 @@ func (c *Controller) after_message_action(ed *zdo.EndDevice) {
 	if diffOff.Minutes() > 30 && !c.switchOffTS {
 		c.switchOffTS = true
 		c.switch_off_with_list()
+		log.Printf("There is no one at home\n")
 	}
 }
 func (c *Controller) read_attribute(address uint16, cl zcl.Cluster, ids []uint16) error {
