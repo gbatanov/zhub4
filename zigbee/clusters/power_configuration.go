@@ -11,7 +11,7 @@ type PowerConfigurationCluster struct {
 }
 
 func (p PowerConfigurationCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	log.Printf("PowerConfigurationCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
+	log.Printf("PowerConfigurationCluster:: %s, endpoint address: 0x%04x number = %d \n", p.Ed.Get_human_name(), endpoint.Address, endpoint.Number)
 	for _, attribute := range attributes {
 		log.Printf("attribute id =0x%04x \n", attribute.Id)
 		switch zcl.PowerConfigurationAttribute(attribute.Id) {

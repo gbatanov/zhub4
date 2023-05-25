@@ -15,7 +15,7 @@ type XiaomiCluster struct {
 }
 
 func (x XiaomiCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	log.Printf("XiaomiCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
+	log.Printf("XiaomiCluster:: %s, endpoint address: 0x%04x number = %d \n", x.Ed.Get_human_name(), endpoint.Address, endpoint.Number)
 	for _, attribute := range attributes {
 		log.Printf("XiaomiCluster::attribute id =0x%04x \n", attribute.Id)
 		switch zcl.XiaomiAttribute(attribute.Id) {

@@ -388,7 +388,7 @@ func (c *Controller) message_handler(command zdo.Command) {
 	}
 
 	//	var ts uint32 = uint32(command.Payload[11]) + uint32(command.Payload[12])<<8 + uint32(command.Payload[13])<<16 + uint32(command.Payload[14])<<24
-	log.Printf("Cluster %s (0x%04X) \n", zcl.Cluster_to_string(message.Cluster), message.Cluster)
+	log.Printf("Cluster %s (0x%04X) device: %s \n", zcl.Cluster_to_string(message.Cluster), message.Cluster, ed.Get_human_name())
 	if message.Cluster != zcl.TIME { // too often
 		fmt.Printf("source endpoint shortAddr: 0x%04x ", message.Source.Address)
 		fmt.Printf("number: 0x%02x \n", message.Source.Number)
@@ -471,6 +471,11 @@ func (c *Controller) message_handler(command zdo.Command) {
 			}
 		case zcl.IDENTIFY:
 			log.Printf("Cluster IDENTIFY:: command 0x%02x \n", message.ZclFrame.Command)
+		case zcl.ALARMS:
+			log.Printf("Cluster ALARMS:: command 0x%02x payload %q \n", message.ZclFrame.Command, message.ZclFrame.Payload)
+		case zcl.TIME:
+			// Approximately 30 seconds pass with the Aqara relay, no useful information
+			//log.Printf("Cluster TIME:: command 0x%02x \n", message.ZclFrame.Command)
 		} //switch
 	}
 	c.after_message_action(ed)

@@ -13,7 +13,7 @@ type ElectricalMeasurementCluster struct {
 
 // SmartPlug
 func (e ElectricalMeasurementCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	log.Printf("ElectricalMeasurementCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
+	log.Printf("ElectricalMeasurementCluster:: %s, endpoint address: 0x%04x number = %d \n", e.Ed.Get_human_name(), endpoint.Address, endpoint.Number)
 
 	for _, attribute := range attributes {
 		log.Printf("ElectricalMeasurementCluster::  attribute id =0x%04x \n", attribute.Id)
