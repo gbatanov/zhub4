@@ -25,17 +25,18 @@ type DeviceInfo struct {
 
 // MAC Address,Type, Vendor,Model, GrafanaName, Human name, Power source,available,test
 var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
+	// Датчики протечки воды
 	0x00158d0006e469a4: {5, "Aqara", "SJCGQ11LM", "Протечка1", "Датчик протечки 1 (туалет)", zcl.PowerSource_BATTERY, 1, 0},
 	0x00158d0006f8fc61: {5, "Aqara", "SJCGQ11LM", "Протечка2", "Датчик протечки 2 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
 	0x00158d0006b86b79: {5, "Aqara", "SJCGQ11LM", "Протечка3", "Датчик протечки 3 (ванна)", zcl.PowerSource_BATTERY, 1, 0},
 	0x00158d0006ea99db: {5, "Aqara", "SJCGQ11LM", "Протечка4", "Датчик протечки 4 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
 	// реле
-	0x54ef44100019335b: {9, "Aqara", "SSM-U01", "Реле1", "Реле 1", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef441000193352: {9, "Aqara", "SSM-U01", "Стиралка", "Реле 2(Стиральная машина)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef4410001933d3: {9, "Aqara", "SSM-U01", "КоридорСвет", "Реле 4(Свет в коридоре)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef44100018b523: {9, "Aqara", "SSM-U01", "ШкафСвет", "Реле 3(Шкаф, подсветка)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef4410005b2639: {9, "Aqara", "SSM-U01", "ТулетЗанят", "Реле 5(Туалет занят)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef441000609dcc: {9, "Aqara", "SSM-U01", "Реле6", "Реле 6", zcl.PowerSource_SINGLE_PHASE, 1, 1},
+	0x54ef44100019335b: {9, "Aqara", "SSM-U01", "Реле1", "Реле1", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef441000193352: {9, "Aqara", "SSM-U01", "Стиралка", "Реле2(Стиральная машина)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef44100018b523: {9, "Aqara", "SSM-U01", "ШкафСвет", "Реле3(Шкаф, подсветка)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef4410001933d3: {9, "Aqara", "SSM-U01", "КоридорСвет", "Реле4(Свет в коридоре)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef4410005b2639: {9, "Aqara", "SSM-U01", "ТулетЗанят", "Реле5(Туалет занят)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef441000609dcc: {9, "Aqara", "SSM-U01", "Реле6", "Реле6", zcl.PowerSource_SINGLE_PHASE, 1, 1},
 	0x00158d0009414d7e: {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// Умные розетки
 	0x70b3d52b6001b4a4: {10, "Girier", "TS011F", "Розетка1", "Розетка 1", zcl.PowerSource_SINGLE_PHASE, 1, 0},
@@ -43,13 +44,13 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	0x70b3d52b60022ac9: {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Лампы в десткой)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	0x70b3d52b60022cfd: {10, "Girier", "TS011F", "Розетка3", "Розетка 4(Паяльник)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// краны
-	0xa4c138d9758e1dcd: {6, "TUYA", "Valve", "КранГВ", "Кран 1 ГВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0xa4c138373e89d731: {6, "TUYA", "Valve", "КранХВ", "Кран 2 ХВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0xa4c138d9758e1dcd: {6, "TUYA", "Valve", "КранГВ", "Кран1 ГВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0xa4c138373e89d731: {6, "TUYA", "Valve", "КранХВ", "Кран2 ХВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// датчики движения и/или освещения
 	0x00124b0025137475: {2, "Sonoff", "SNZB-03", "КоридорДвижение", "Датчик движения 1 (коридор)", zcl.PowerSource_BATTERY, 1, 0},
 	0x00124b0024455048: {2, "Sonoff", "SNZB-03", "КомнатаДвижение", "Датчик движения 2 (комната)", zcl.PowerSource_BATTERY, 1, 0},
 	0x00124b002444d159: {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3 ", zcl.PowerSource_BATTERY, 1, 0},
-	0x00124b0009451438: {4, "Custom", "CC2530", "КухняДвижение", "Датчик присутствия1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x00124b0009451438: {4, "Custom", "CC2530", "КухняДвижение", "Датчик присутствия 1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	0x00124b0014db2724: {4, "Custom", "CC2530", "ПрихожаяДвижение", "Датчик движение + освещение (прихожая)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	0x0c4314fffe17d8a8: {8, "IKEA", "E1745", "ИкеаДвижение", "Датчик движения IKEA", zcl.PowerSource_BATTERY, 0, 1},
 	0x00124b0007246963: {4, "Custom", "CC2530", "ДетскаяДвижение", "Датчик движение + освещение (детская)", zcl.PowerSource_SINGLE_PHASE, 1, 0},

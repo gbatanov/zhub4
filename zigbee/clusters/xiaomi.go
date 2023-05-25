@@ -97,7 +97,7 @@ func (x XiaomiCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zc
 				case 0x98: // instant power
 					value, err := x.Ed.Bytes_to_float32(attribute.Value[i+2 : i+6])
 					if err == nil {
-						log.Printf("Текущая потребляемая мощность(0x98) %0.6f\n", value)
+						log.Printf("Instant power %0.6f\n", value)
 					}
 					i = i + 5
 
@@ -108,7 +108,7 @@ func (x XiaomiCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zc
 					i = i + 2
 
 				default:
-					log.Printf("Необработанный тэг 0x%02x type 0x%02x \n ", attId, attribute.Value[i+1])
+					log.Printf("Unknown tag 0x%02x type 0x%02x \n ", attId, attribute.Value[i+1])
 					i = 1000 // big value for break
 				} // switch
 				if i >= len(attribute.Value) {

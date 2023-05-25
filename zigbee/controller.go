@@ -31,9 +31,6 @@ type Controller struct {
 	mapFileMutex       sync.Mutex
 }
 
-func init() {
-	fmt.Println("Init in zigbee: controller")
-}
 func controller_create(Ports map[string]string, Os string, mode string) (*Controller, error) {
 	chn1 := make(chan zdo.Command, 16)
 	chn2 := make(chan []byte, 12) // chan for join command shortAddr + macAddrj
