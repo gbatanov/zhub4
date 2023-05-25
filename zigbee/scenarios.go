@@ -19,7 +19,7 @@ func (c *Controller) handle_motion(ed *zdo.EndDevice, cmd uint8) {
 	state := "No motion"
 	cur_motion := ed.Get_motion_state()
 	// Fix the last activity of the motion sensor
-	// We fix in the activity only the activation of the sensor
+	// I fix in the activity only the activation of the sensor
 	// Since the motion sensor is also in custom, which send messages periodically,
 	// need to check the current state and commit the change
 	// turn on something for movement and set a sign that there is someone in the house for the water shutdown algorithm in case of power failure

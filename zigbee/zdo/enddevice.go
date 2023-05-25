@@ -84,7 +84,7 @@ var DEVICE_TYPES map[uint8]string = map[uint8]string{
 } //            2 -?
 
 // List of devices that are turned off by long pressing the Sonoff1 button
-// We use the same list for forced shutdown in the mode No one is at home
+// I use the same list for forced shutdown in the mode "No one is at home"
 var OFF_LIST []uint64 = []uint64{
 	0x54ef4410001933d3, // light in coridor
 	0x00158d0009414d7e, // light and ventilation in kitchen
@@ -95,23 +95,29 @@ var OFF_LIST []uint64 = []uint64{
 	0x70b3d52b60022cfd, // SmartPlug 4
 }
 
-// List of devices to display in Grafana
-var PROM_MOTION_LIST []uint64 = []uint64{
-	0x00124b0025137475, // coridor
-	0x00124b0014db2724, // hallway
-	0x00124b0009451438, // kitchen
-	0x00124b0024455048, // room
-	0x00124b002444d159, // children's room
-	0x00124b0007246963, // balconen
-}
-var PROM_DOOR_LIST []uint64 = []uint64{
-	0x00124b0025485ee6, // toilet
-}
-var PROM_RELAY_LIST []uint64 = []uint64{
-	0x00158d0009414d7e, // light/ventilation in kitchen
-	0x54ef4410001933d3, // light in coridor
-	0x54ef4410005b2639} // toilet is busy
+/*
+	doesn't use in this version
 
+// List of devices to display in Grafana
+
+	var PROM_MOTION_LIST []uint64 = []uint64{
+		0x00124b0025137475, // coridor
+		0x00124b0014db2724, // hallway
+		0x00124b0009451438, // kitchen
+		0x00124b0024455048, // room
+		0x00124b002444d159, // children's room
+		0x00124b0007246963, // balconen
+	}
+
+	var PROM_DOOR_LIST []uint64 = []uint64{
+		0x00124b0025485ee6, // toilet
+	}
+
+	var PROM_RELAY_LIST []uint64 = []uint64{
+		0x00158d0009414d7e, // light/ventilation in kitchen
+		0x54ef4410001933d3, // light in coridor
+		0x54ef4410005b2639} // toilet is busy
+*/
 type BatteryParams struct {
 	level   uint8
 	voltage float32
@@ -136,7 +142,7 @@ type EndDevice struct {
 	motionState     int8
 }
 
-func EndDeviceCreate(macAddress uint64, shortAddress uint16) *EndDevice {
+func End_device_create(macAddress uint64, shortAddress uint16) *EndDevice {
 	ed := EndDevice{MacAddress: macAddress, ShortAddress: shortAddress}
 	ed.Di = KNOWN_DEVICES[macAddress]
 	ed.modelIdentifier = ""
@@ -160,7 +166,7 @@ func EndDeviceCreate(macAddress uint64, shortAddress uint16) *EndDevice {
 func (ed EndDevice) Get_mac_address() uint64 {
 	return ed.MacAddress
 }
-func (ed *EndDevice) Set_linkQuality(quality uint8) {
+func (ed *EndDevice) Set_linkquality(quality uint8) {
 	ed.linkQuality = quality
 }
 func (ed *EndDevice) Set_last_seen(tm time.Time) {
@@ -251,7 +257,7 @@ func (ed EndDevice) Set_motion_state(state uint8) {
 	}
 }
 
-func (ed *EndDevice) BytesToFloat32(src []byte) (float32, error) {
+func (ed *EndDevice) Bytes_to_float32(src []byte) (float32, error) {
 
 	if len(src) != 4 {
 		return 0.0, errors.New("bad source slice")

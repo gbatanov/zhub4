@@ -19,7 +19,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.2.13"
+const Version string = "v0.2.14"
 
 var Os string = ""
 var Flag bool = true
@@ -49,14 +49,14 @@ func main() {
 		//		intrpt = true
 	}()
 
-	getOsParams()
+	get_os_params()
 	var Ports map[string]string = map[string]string{
 		"darwin":  "/dev/cu.usbmodem148201",
 		"darwin2": "/dev/cu.usbserial-0001",
 		"linux":   "/dev/ttyACM0",
 		"linux2":  "/dev/ttyACM1"}
 
-	zhub, err := zigbee.ZhubCreate(Ports, Os, "test")
+	zhub, err := zigbee.Zhub_create(Ports, Os, "test")
 	if err != nil {
 		sysLog.Emerg(err.Error())
 		log.Println(err)
@@ -88,7 +88,7 @@ func main() {
 	}
 }
 
-func getOsParams() {
+func get_os_params() {
 	gi, _ := goInfo.GetInfo()
 	//	gi.VarDump()
 	Os = gi.GoOS

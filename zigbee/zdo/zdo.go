@@ -15,7 +15,7 @@ import (
 	"zhub4/zigbee/zdo/zcl"
 )
 
-type SimpleDescriptor struct {
+type Simple_descriptor struct {
 	endpointNumber uint16
 	profileId      uint16
 	deviceId       uint16
@@ -24,7 +24,7 @@ type SimpleDescriptor struct {
 	outputClusters []uint16
 }
 
-var Default_endpoint SimpleDescriptor = SimpleDescriptor{1, // Enpoint number.
+var Default_endpoint Simple_descriptor = Simple_descriptor{1, // Enpoint number.
 	0x0104,     // Profile ID.
 	0x05,       // Device ID.
 	0,          // Device version.
@@ -60,8 +60,8 @@ func init() {
 	fmt.Println("Init in zigbee: zdo")
 }
 
-func ZdoCreate(port string, Os string, chn chan Command, jchn chan []byte) (*Zdo, error) {
-	eh := CreateEventHandler()
+func Zdo_create(port string, Os string, chn chan Command, jchn chan []byte) (*Zdo, error) {
+	eh := Create_event_handler()
 	uart := serial3.UartCreate(port, Os)
 	cmdinput := make(chan []byte, 256)
 	err := uart.Open()
@@ -206,10 +206,10 @@ func (zdo *Zdo) parse_command(BufRead []byte) ([]Command, bool) {
 func (zdo *Zdo) Reset() error {
 	var cmd Command = *NewCommand(0)
 	//	zdo.eh.clear(SYS_RESET_IND)
-	// writeNv call sync request
+	// write_nvram call sync request
 	startup_options := make([]byte, 1)
 	startup_options[0] = 0
-	err := zdo.writeNv(zcl.STARTUP_OPTION, startup_options) // STARTUP_OPTION = 0x0003
+	err := zdo.write_nvram(zcl.STARTUP_OPTION, startup_options) // STARTUP_OPTION = 0x0003
 	if err != nil {
 		return err
 	}
@@ -236,7 +236,7 @@ func (zdo *Zdo) Reset() error {
 	}
 
 	if cmd.Payload_size() > 5 {
-		log.Printf("Version: %d.%d.%d \n", cmd.Payload[3], cmd.Payload[4], cmd.Payload[5])
+		log.Printf("Coordinator version: %d.%d.%d \n", cmd.Payload[3], cmd.Payload[4], cmd.Payload[5])
 	} else {
 		log.Printf("reset answer: %q \n", cmd)
 	}
@@ -244,7 +244,7 @@ func (zdo *Zdo) Reset() error {
 }
 
 // write into NVRAM of zhub
-func (zdo *Zdo) writeNv(item zcl.NvItems, item_data []byte) error {
+func (zdo *Zdo) write_nvram(item zcl.NvItems, item_data []byte) error {
 	write_nv_request := New2(SYS_OSAL_NV_WRITE, uint8(len(item_data)+4))
 	data := make([]byte, len(item_data)+4)
 	data[0] = zcl.LOWBYTE(uint16(item))
@@ -260,12 +260,12 @@ func (zdo *Zdo) writeNv(item zcl.NvItems, item_data []byte) error {
 	if response.Id != 0x0000 && response.Payload[0] == byte(zcl.SUCCESS) {
 		return nil
 	} else {
-		return errors.New("writeNv: bad answer")
+		return errors.New("write_nvram: bad answer")
 	}
 }
 
 // read from zhub NVRAM
-func (zdo *Zdo) readNv(item zcl.NvItems) []byte {
+func (zdo *Zdo) read_nvram(item zcl.NvItems) []byte {
 	//	log.Println("read from NVRAM")
 	read_nv_request := New2(SYS_OSAL_NV_READ, 3)
 	read_nv_request.Payload[0] = zcl.LOWBYTE(uint16(item))
@@ -282,70 +282,27 @@ func (zdo *Zdo) readNv(item zcl.NvItems) []byte {
 
 }
 
-// read network configuration from zhub
-func (zdo *Zdo) ReadNetworkConfiguration() (NetworkConfiguration, error) {
-	nc := NetworkConfiguration{
-		pan_id:            0,
-		extended_pan_id:   0,
-		logical_type:      zcl.LogicalType_COORDINATOR,
-		channels:          []uint8{},
-		precfg_key:        [16]uint8{},
-		precfg_key_enable: false,
-	}
-	item_data := zdo.readNv(zcl.PAN_ID) //PAN_ID = 0x0083, идентификатор сети
-	if len(item_data) == 2 {
-		nc.pan_id = zcl.UINT16_(item_data[0], item_data[1])
-		log.Printf("nc.pan_id: 0x%04x\n", nc.pan_id)
-	}
-	item_data = zdo.readNv(zcl.EXTENDED_PAN_ID) // EXTENDED_PAN_ID = 0x002D MAC address
-	if len(item_data) == 8 {
-		nc.extended_pan_id = binary.LittleEndian.Uint64(item_data)
-		log.Printf("nc.extended_pan_id: 0x%016x\n", nc.extended_pan_id)
-	}
-	item_data = zdo.readNv(zcl.LOGICAL_TYPE) // LOGICAL_TYPE = 0x0087 zhub|router|endpoint
-	if len(item_data) == 1 {
-		nc.logical_type = zcl.LogicalType(item_data[0])
-		log.Printf("nc.logical_type: 0x%02x\n", nc.logical_type)
-	}
-	item_data = zdo.readNv(zcl.PRECFG_KEYS_ENABLE) //PRECFG_KEYS_ENABLE = 0x0063
-	if len(item_data) == 1 {
-		nc.precfg_key_enable = (item_data[0] == 1)
-		log.Printf("nc.precfg_key_enable: %d\n", item_data[0])
-	}
-	if nc.precfg_key_enable {
-		item_data = zdo.readNv(zcl.PRECFG_KEY) // PRECFG_KEY = 0x0062
-		if len(item_data) == 16 {
-			log.Println("nc.precfg_key:")
-			for i := 0; i < 16; i++ {
-				nc.precfg_key[i] = item_data[i]
-				log.Printf("0x%02x ", nc.precfg_key[i])
-			}
-			log.Println("")
-		}
-	}
-	item_data = zdo.readNv(zcl.CHANNEL_LIST) // CHANNEL_LIST = 0x00000084 //channel bit mask. Little endian. Default is 0x00000800 for CH11;  Ex: value: [ 0x00, 0x00, 0x00, 0x04 ] for CH26, [ 0x00, 0x00, 0x20, 0x00 ] for CH15.
-	if len(item_data) == 4 {                 //CHANNEL_LIST = 0x00000800 CH11 0x00008000 CH15
+// read channels list from coordinator
+func (zdo *Zdo) Read_rf_channels() RF_Channels {
+	rf := RF_Channels{}
+	item_data := zdo.read_nvram(zcl.CHANNEL_LIST) // CHANNEL_LIST = 0x00000084 //channel bit mask. Little endian. Default is 0x00000800 for CH11;  Ex: value: [ 0x00, 0x00, 0x00, 0x04 ] for CH26, [ 0x00, 0x00, 0x20, 0x00 ] for CH15.
+	if len(item_data) == 4 {                      //CHANNEL_LIST = 0x00000800 CH11 0x00008000 CH15
 		var channelBitMask uint32 = binary.LittleEndian.Uint32(item_data)
-		log.Printf("nc.channels bitMask: 0x%08x \n", channelBitMask)
+		log.Printf("rf.channels bitMask: 0x%08x \n", channelBitMask)
 		for i := 0; i < 32; i++ {
 			if (channelBitMask & uint32(1<<i)) != 0 {
-				nc.channels = append(nc.channels, uint8(i))
+				rf.channels = append(rf.channels, uint8(i))
 				log.Printf("channel %d\n", i)
 			}
 		}
 	}
-	return nc, nil
+	return rf
 }
 
-// write new configuration into zhub
-func (zdo *Zdo) WriteNetworkConfiguration(configuration NetworkConfiguration) error {
-
-	err := zdo.writeNv(zcl.LOGICAL_TYPE, []byte{byte(configuration.logical_type)})
-	if err != nil {
-		return err
-	}
+// write channels list into coordinator
+func (zdo *Zdo) Write_rf_channels(new RF_Channels) error {
 	channelBitMask := uint32(0)
-	for _, channel := range configuration.channels {
+	for _, channel := range new.channels {
 		channelBitMask |= (1 << channel)
 	}
 	//	log.Printf("write bitMask: 0x%08x \n", channelBitMask)
@@ -357,37 +314,19 @@ func (zdo *Zdo) WriteNetworkConfiguration(configuration NetworkConfiguration) er
 	}
 	//	log.Printf("write channels: %q\n", chann)
 
-	err = zdo.writeNv(zcl.CHANNEL_LIST, chann) // старший байт последний
-	if err != nil {
-		return err
-	}
+	return zdo.write_nvram(zcl.CHANNEL_LIST, chann) // старший байт последний
 
-	var v byte = 0
-	if configuration.precfg_key_enable {
-		v = 1
-
-		err = zdo.writeNv(zcl.PRECFG_KEYS_ENABLE, []byte{v})
-		if err != nil {
-			return err
-		}
-		var temp_v []byte = make([]byte, 16)
-		for i := 0; i < 16; i++ {
-			temp_v[i] = configuration.precfg_key[i]
-		}
-		err = zdo.writeNv(zcl.PRECFG_KEY, temp_v)
-		if err != nil {
-			return err
-		}
-	}
-	err = zdo.writeNv(zcl.ZDO_DIRECT_CB, []byte{1})
+}
+func (zdo *Zdo) Finish_configuration() error {
+	err := zdo.write_nvram(zcl.ZDO_DIRECT_CB, []byte{1})
 	if err != nil {
 		return err
 	}
-	err = zdo.initNv(zcl.ZNP_HAS_CONFIGURED, 1, []byte{0})
+	err = zdo.init_nvram(zcl.ZNP_HAS_CONFIGURED, 1, []byte{0})
 	if err != nil {
 		return err
 	}
-	err = zdo.writeNv(zcl.ZNP_HAS_CONFIGURED, []byte{0x55})
+	err = zdo.write_nvram(zcl.ZNP_HAS_CONFIGURED, []byte{0x55})
 	if err != nil {
 		return err
 	}
@@ -395,7 +334,7 @@ func (zdo *Zdo) WriteNetworkConfiguration(configuration NetworkConfiguration) er
 }
 
 // init element in zhub NVRAM
-func (zdo *Zdo) initNv(item zcl.NvItems, length uint16, item_data []byte) error {
+func (zdo *Zdo) init_nvram(item zcl.NvItems, length uint16, item_data []byte) error {
 
 	init_nv_request := New2(SYS_OSAL_NV_ITEM_INIT, uint8(len(item_data)+5))
 	init_nv_request.Payload[0] = zcl.LOWBYTE(uint16(item))    // The Id of the NV item.
@@ -450,7 +389,7 @@ func (zdo *Zdo) Startup(delay time.Duration) error {
 	}
 	return nil
 }
-func (zdo *Zdo) RegisterEndpointDescriptor(endpoint_descriptor SimpleDescriptor) error {
+func (zdo *Zdo) Register_endpoint_descriptor(endpoint_descriptor Simple_descriptor) error {
 
 	register_ep_request := New2(AF_REGISTER, 9)
 	register_ep_request.Payload[0] = 1 //uint8(endpoint_descriptor.endpoint_number)
@@ -516,7 +455,7 @@ func (zdo *Zdo) Send_message(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame, t
 	message.Destination = ep
 	message.ZclFrame = frame
 	message.LinkQuality = 0
-	transactionNumber := zdo.GenerateTransactionNumber()
+	transactionNumber := zdo.Generate_transaction_number()
 
 	afDataRequest := New2(AF_DATA_REQUEST, 255)
 	afDataRequest.Payload[0] = zcl.LOWBYTE(message.Destination.Address)
@@ -556,7 +495,7 @@ func (zdo *Zdo) Send_message(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame, t
 }
 
 // get endpoint list from device
-func (zdo *Zdo) ActiveEndpoints(address uint16) error {
+func (zdo *Zdo) Active_endpoints(address uint16) error {
 	activeEndpointsRequest := New2(ZDO_ACTIVE_EP_REQ, 4)
 	activeEndpointsRequest.Payload[0] = zcl.LOWBYTE(address)
 	activeEndpointsRequest.Payload[1] = zcl.HIGHBYTE(address)
@@ -566,7 +505,7 @@ func (zdo *Zdo) ActiveEndpoints(address uint16) error {
 }
 
 // get endpoint descriptor from device
-func (zdo *Zdo) SimpleDescriptor(address uint16, endpointNumber uint8) error {
+func (zdo *Zdo) Simple_descriptor(address uint16, endpointNumber uint8) error {
 	activeEndpointsRequest := New2(ZDO_SIMPLE_DESC_REQ, 5)
 	activeEndpointsRequest.Payload[0] = zcl.LOWBYTE(address)
 	activeEndpointsRequest.Payload[1] = zcl.HIGHBYTE(address)
@@ -649,7 +588,7 @@ func (zdo *Zdo) handle_command(command Command) {
 			for i := 0; i < int(ep_count); i++ { // Number of active endpoint in the list
 				endpoints[i] = command.Payload[6+i]
 				log.Printf("Query descriptor for endpoint %d \n", endpoints[i])
-				zdo.SimpleDescriptor(shortAddr, endpoints[i])
+				zdo.Simple_descriptor(shortAddr, endpoints[i])
 
 			}
 			log.Println("")
@@ -671,7 +610,7 @@ func (zdo *Zdo) handle_command(command Command) {
 
 				// descriptorLen := command.Payload[5] // длина дескриптора, начинается с номера эндпойнта
 
-				descriptor := SimpleDescriptor{}
+				descriptor := Simple_descriptor{}
 				descriptor.endpointNumber = uint16(command.Payload[6])                     // номер эндпойнта, для которого пришел дескриптор
 				descriptor.profileId = zcl.UINT16_(command.Payload[7], command.Payload[8]) // профиль эндпойнта
 				descriptor.deviceId = zcl.UINT16_(command.Payload[9], command.Payload[10]) // ID устройства
@@ -732,7 +671,7 @@ func (zdo *Zdo) handle_command(command Command) {
 }
 
 // in payload
-func (zdo *Zdo) GenerateTransactionNumber() uint8 {
+func (zdo *Zdo) Generate_transaction_number() uint8 {
 
 	ret := zdo.transactionNumber
 	zdo.transactionNumber++
@@ -740,7 +679,7 @@ func (zdo *Zdo) GenerateTransactionNumber() uint8 {
 }
 
 // in zcl.Frame
-func (zdo *Zdo) GenerateTransactionSequenceNumber() uint8 {
+func (zdo *Zdo) Generate_transaction_sequence_number() uint8 {
 	zdo.tsnMutex.Lock()
 	defer zdo.tsnMutex.Unlock()
 	zdo.transactionSecuenseNumber++

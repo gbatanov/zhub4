@@ -77,7 +77,7 @@ func (x XiaomiCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zc
 					i = i + 5
 
 				case 0x96: // voltage
-					value, err := x.Ed.BytesToFloat32(attribute.Value[i+2 : i+6])
+					value, err := x.Ed.Bytes_to_float32(attribute.Value[i+2 : i+6])
 					if err == nil {
 						x.Ed.Set_power_source(0x01)
 						x.Ed.Set_mains_voltage(value / 10)
@@ -86,7 +86,7 @@ func (x XiaomiCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zc
 					i = i + 5
 
 				case 0x97: // current
-					value, err := x.Ed.BytesToFloat32(attribute.Value[i+2 : i+6])
+					value, err := x.Ed.Bytes_to_float32(attribute.Value[i+2 : i+6])
 					if err == nil {
 						val := value / 1000
 						x.Ed.Set_current(val)
@@ -95,7 +95,7 @@ func (x XiaomiCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zc
 					i = i + 5
 
 				case 0x98: // instant power
-					value, err := x.Ed.BytesToFloat32(attribute.Value[i+2 : i+6])
+					value, err := x.Ed.Bytes_to_float32(attribute.Value[i+2 : i+6])
 					if err == nil {
 						log.Printf("Текущая потребляемая мощность(0x98) %0.6f\n", value)
 					}
