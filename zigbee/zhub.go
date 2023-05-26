@@ -16,8 +16,8 @@ func init() {
 	fmt.Println("Init in zigbee: zhub")
 }
 
-func ZhubCreate(Ports map[string]string, Os string, mode string) (*Zhub, error) {
-	controller, err := controllerCreate(Ports, Os, mode)
+func Zhub_create(Ports map[string]string, Os string, mode string) (*Zhub, error) {
+	controller, err := controller_create(Ports, Os, mode)
 	if err != nil {
 		return &Zhub{}, err
 	}
@@ -29,9 +29,9 @@ func (zhub *Zhub) Start() error {
 	zhub.Flag = true
 	var err error
 	if zhub.mode == "prod" {
-		err = zhub.controller.startNetwork(zdo.DefaultConfiguration)
+		err = zhub.controller.start_network(zdo.DefaultRFChannels)
 	} else {
-		err = zhub.controller.startNetwork(zdo.TestConfiguration)
+		err = zhub.controller.start_network(zdo.TestRFChannels)
 	}
 	if err != nil {
 		log.Fatal(err)

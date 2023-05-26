@@ -25,31 +25,32 @@ type DeviceInfo struct {
 
 // MAC Address,Type, Vendor,Model, GrafanaName, Human name, Power source,available,test
 var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
+	// Датчики протечки воды
 	0x00158d0006e469a4: {5, "Aqara", "SJCGQ11LM", "Протечка1", "Датчик протечки 1 (туалет)", zcl.PowerSource_BATTERY, 1, 0},
 	0x00158d0006f8fc61: {5, "Aqara", "SJCGQ11LM", "Протечка2", "Датчик протечки 2 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
 	0x00158d0006b86b79: {5, "Aqara", "SJCGQ11LM", "Протечка3", "Датчик протечки 3 (ванна)", zcl.PowerSource_BATTERY, 1, 0},
 	0x00158d0006ea99db: {5, "Aqara", "SJCGQ11LM", "Протечка4", "Датчик протечки 4 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
 	// реле
-	0x54ef44100019335b: {9, "Aqara", "SSM-U01", "Реле1", "Реле 1", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef441000193352: {9, "Aqara", "SSM-U01", "Стиралка", "Реле 2(Стиральная машина)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef4410001933d3: {9, "Aqara", "SSM-U01", "КоридорСвет", "Реле 4(Свет в коридоре)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef44100018b523: {9, "Aqara", "SSM-U01", "ШкафСвет", "Реле 3(Шкаф, подсветка)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef4410005b2639: {9, "Aqara", "SSM-U01", "ТулетЗанят", "Реле 5(Туалет занят)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef441000609dcc: {9, "Aqara", "SSM-U01", "Реле6", "Реле 6", zcl.PowerSource_SINGLE_PHASE, 1, 1},
+	0x54ef44100019335b: {9, "Aqara", "SSM-U01", "Реле1", "Реле1", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef441000193352: {9, "Aqara", "SSM-U01", "Стиралка", "Реле2(Стиральная машина)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef44100018b523: {9, "Aqara", "SSM-U01", "ШкафСвет", "Реле3(Шкаф, подсветка)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef4410001933d3: {9, "Aqara", "SSM-U01", "КоридорСвет", "Реле4(Свет в коридоре)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef4410005b2639: {9, "Aqara", "SSM-U01", "ТулетЗанят", "Реле5(Туалет занят)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x54ef441000609dcc: {9, "Aqara", "SSM-U01", "Реле6", "Реле6", zcl.PowerSource_SINGLE_PHASE, 1, 1},
 	0x00158d0009414d7e: {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// Умные розетки
-	0x70b3d52b6001b4a4: {10, "Girier", "TS011F", "Розетка1", "Розетка 1", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x70b3d52b6001b4a4: {10, "Girier", "TS011F", "Розетка1", "Розетка 1", zcl.PowerSource_SINGLE_PHASE, 1, 1},
 	0x70b3d52b6001b5d9: {10, "Girier", "TS011F", "Розетка2", "Розетка 2(Зарядники)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	0x70b3d52b60022ac9: {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Лампы в десткой)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	0x70b3d52b60022cfd: {10, "Girier", "TS011F", "Розетка3", "Розетка 4(Паяльник)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// краны
-	0xa4c138d9758e1dcd: {6, "TUYA", "Valve", "КранГВ", "Кран 1 ГВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0xa4c138373e89d731: {6, "TUYA", "Valve", "КранХВ", "Кран 2 ХВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0xa4c138d9758e1dcd: {6, "TUYA", "Valve", "КранГВ", "Кран1 ГВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0xa4c138373e89d731: {6, "TUYA", "Valve", "КранХВ", "Кран2 ХВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// датчики движения и/или освещения
 	0x00124b0025137475: {2, "Sonoff", "SNZB-03", "КоридорДвижение", "Датчик движения 1 (коридор)", zcl.PowerSource_BATTERY, 1, 0},
 	0x00124b0024455048: {2, "Sonoff", "SNZB-03", "КомнатаДвижение", "Датчик движения 2 (комната)", zcl.PowerSource_BATTERY, 1, 0},
 	0x00124b002444d159: {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3 ", zcl.PowerSource_BATTERY, 1, 0},
-	0x00124b0009451438: {4, "Custom", "CC2530", "КухняДвижение", "Датчик присутствия1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x00124b0009451438: {4, "Custom", "CC2530", "КухняДвижение", "Датчик присутствия 1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	0x00124b0014db2724: {4, "Custom", "CC2530", "ПрихожаяДвижение", "Датчик движение + освещение (прихожая)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	0x0c4314fffe17d8a8: {8, "IKEA", "E1745", "ИкеаДвижение", "Датчик движения IKEA", zcl.PowerSource_BATTERY, 0, 1},
 	0x00124b0007246963: {4, "Custom", "CC2530", "ДетскаяДвижение", "Датчик движение + освещение (детская)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
@@ -84,7 +85,7 @@ var DEVICE_TYPES map[uint8]string = map[uint8]string{
 } //            2 -?
 
 // List of devices that are turned off by long pressing the Sonoff1 button
-// We use the same list for forced shutdown in the mode No one is at home
+// I use the same list for forced shutdown in the mode "No one is at home"
 var OFF_LIST []uint64 = []uint64{
 	0x54ef4410001933d3, // light in coridor
 	0x00158d0009414d7e, // light and ventilation in kitchen
@@ -95,27 +96,40 @@ var OFF_LIST []uint64 = []uint64{
 	0x70b3d52b60022cfd, // SmartPlug 4
 }
 
-// List of devices to display in Grafana
-var PROM_MOTION_LIST []uint64 = []uint64{
-	0x00124b0025137475, // coridor
-	0x00124b0014db2724, // hallway
-	0x00124b0009451438, // kitchen
-	0x00124b0024455048, // room
-	0x00124b002444d159, // children's room
-	0x00124b0007246963, // balconen
-}
-var PROM_DOOR_LIST []uint64 = []uint64{
-	0x00124b0025485ee6, // toilet
-}
-var PROM_RELAY_LIST []uint64 = []uint64{
-	0x00158d0009414d7e, // light/ventilation in kitchen
-	0x54ef4410001933d3, // light in coridor
-	0x54ef4410005b2639} // toilet is busy
+/*
+	doesn't use in this version
 
+// List of devices to display in Grafana
+
+	var PROM_MOTION_LIST []uint64 = []uint64{
+		0x00124b0025137475, // coridor
+		0x00124b0014db2724, // hallway
+		0x00124b0009451438, // kitchen
+		0x00124b0024455048, // room
+		0x00124b002444d159, // children's room
+		0x00124b0007246963, // balconen
+	}
+
+	var PROM_DOOR_LIST []uint64 = []uint64{
+		0x00124b0025485ee6, // toilet
+	}
+
+	var PROM_RELAY_LIST []uint64 = []uint64{
+		0x00158d0009414d7e, // light/ventilation in kitchen
+		0x54ef4410001933d3, // light in coridor
+		0x54ef4410005b2639} // toilet is busy
+*/
 type BatteryParams struct {
 	level   uint8
 	voltage float32
 }
+type ElectricParams struct {
+	mainVoltage float32 // high voltage instant|RMS value
+	current     float32 //
+	power       float32 // instant power
+	energy      float32 // energy
+}
+
 type EndDevice struct {
 	MacAddress      uint64
 	ShortAddress    uint16
@@ -124,11 +138,10 @@ type EndDevice struct {
 	linkQuality     uint8
 	lastSeen        time.Time
 	lastAction      time.Time
-	state           string  // status string value, dependent on device type
-	state2          string  // channel2 status string value, dependent on device type
-	mainVoltage     float32 // high voltage instant|RMS value
-	current         float32 //
+	state           string // status string value, dependent on device type
+	state2          string // channel2 status string value, dependent on device type
 	battery         BatteryParams
+	electric        ElectricParams
 	temperature     int8
 	humidity        int8
 	luminocity      int8 // high/low 1/0
@@ -136,7 +149,7 @@ type EndDevice struct {
 	motionState     int8
 }
 
-func EndDeviceCreate(macAddress uint64, shortAddress uint16) *EndDevice {
+func End_device_create(macAddress uint64, shortAddress uint16) *EndDevice {
 	ed := EndDevice{MacAddress: macAddress, ShortAddress: shortAddress}
 	ed.Di = KNOWN_DEVICES[macAddress]
 	ed.modelIdentifier = ""
@@ -145,8 +158,11 @@ func EndDeviceCreate(macAddress uint64, shortAddress uint16) *EndDevice {
 	ed.lastAction = time.Time{}
 	ed.state = "Unknown"
 	ed.state2 = "Unknown"
-	ed.mainVoltage = -100.0
-	ed.current = -100.0
+	ed.electric = ElectricParams{
+		mainVoltage: -100.0,
+		current:     -100.0,
+		power:       -100.0,
+		energy:      -100.0}
 	ed.battery = BatteryParams{level: 0, voltage: -100.0}
 	ed.temperature = -100
 	ed.humidity = -100
@@ -160,7 +176,7 @@ func EndDeviceCreate(macAddress uint64, shortAddress uint16) *EndDevice {
 func (ed EndDevice) Get_mac_address() uint64 {
 	return ed.MacAddress
 }
-func (ed *EndDevice) Set_linkQuality(quality uint8) {
+func (ed *EndDevice) Set_linkquality(quality uint8) {
 	ed.linkQuality = quality
 }
 func (ed *EndDevice) Set_last_seen(tm time.Time) {
@@ -182,16 +198,30 @@ func (ed *EndDevice) Set_power_source(value uint8) {
 	ed.Di.powerSource = zcl.PowerSource(value)
 }
 func (ed *EndDevice) Set_mains_voltage(value float32) {
-	ed.mainVoltage = value
+	ed.electric.mainVoltage = value
 }
 func (ed *EndDevice) Get_mains_voltage() float32 {
-	return ed.mainVoltage
+	return ed.electric.mainVoltage
 }
 func (ed *EndDevice) Set_current(value float32) {
-	ed.current = value
+	ed.electric.current = value
 }
 func (ed *EndDevice) Get_current() float32 {
-	return ed.current
+	return ed.electric.current
+}
+
+func (ed *EndDevice) Set_power(value float32) {
+	ed.electric.power = value
+}
+func (ed *EndDevice) Get_power() float32 {
+	return ed.electric.power
+}
+
+func (ed *EndDevice) Set_energy(value float32) {
+	ed.electric.energy = value
+}
+func (ed *EndDevice) Get_energy() float32 {
+	return ed.electric.energy
 }
 
 // charge level, battery voltage
@@ -251,7 +281,7 @@ func (ed EndDevice) Set_motion_state(state uint8) {
 	}
 }
 
-func (ed *EndDevice) BytesToFloat32(src []byte) (float32, error) {
+func (ed *EndDevice) Bytes_to_float32(src []byte) (float32, error) {
 
 	if len(src) != 4 {
 		return 0.0, errors.New("bad source slice")

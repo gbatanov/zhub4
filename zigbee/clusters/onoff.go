@@ -6,6 +6,7 @@ package clusters
 
 import (
 	"encoding/binary"
+	"fmt"
 	"log"
 	"time"
 	"zhub4/zigbee/zdo"
@@ -23,49 +24,53 @@ type MotionMsg struct {
 }
 
 func (o OnOffCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	log.Printf("OnOffCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
+	log.Printf("OnOffCluster:: %s, endpoint address: 0x%04x number = %d \n", o.Ed.Get_human_name(), endpoint.Address, endpoint.Number)
+	a0000 := false
 	for _, attribute := range attributes {
-		// log.Printf("OnOff attribute id =0x%04x \n", attribute.Id)
+
 		switch zcl.OnOffAttribute(attribute.Id) {
-		case zcl.OnOff_ON_OFF: // 0x0000
+		case zcl.OnOff_ON_OFF: // 0x0000 multiple repetition
+			if a0000 {
+				break
+			}
+			a0000 = true
 			b_val := false
 			u_val := attribute.Value[0]
 			if attribute.Value[0] == 1 {
 				b_val = true
 			}
-			log.Printf("OnOffCluster::Handler_attributes: Device 0x%04x %s endpoint %d value[0]= %d \n", endpoint.Address, o.Ed.Get_human_name(), endpoint.Number, u_val)
 			macAddress := o.Ed.Get_mac_address()
 			if macAddress == 0x00124b0014db2724 {
 				// custom2 coridor
 				if endpoint.Number == 2 { // loght sensor
-					log.Printf("OnOffCluster::Handler_attributes: Освещенность %d \n", u_val)
+					fmt.Printf("Освещенность %d \n", u_val)
 					o.Ed.Set_luminocity(int8(u_val))
 				}
 				if endpoint.Number == 6 { // motion sensor (1 - no motion, 0 - motion)
-					log.Printf("Прихожая: Движение %d \n", 1-u_val)
+					fmt.Printf("Прихожая: Движение %d \n", 1-u_val)
 					msg := MotionMsg{Ed: o.Ed, Cmd: 1 - u_val}
 					o.MsgChan <- msg
 				}
 			} else if macAddress == 0x00124b0009451438 {
 				// custom3 - kitchen
 				if endpoint.Number == 2 { // presence sensor - kitchen
-					log.Printf("Кухня: Присутствие %d \n", 1-u_val)
+					fmt.Printf("Кухня: Присутствие %d \n", 1-u_val)
 					msg := MotionMsg{Ed: o.Ed, Cmd: 1 - u_val}
 					o.MsgChan <- msg
 				}
 			} else if macAddress == 0x0c4314fffe17d8a8 {
 				// motion sensor IKEA
-				log.Printf("датчик движения IKEA %d \n", u_val)
+				fmt.Printf("Датчик движения IKEA %d \n", u_val)
 				msg := MotionMsg{Ed: o.Ed, Cmd: u_val}
 				o.MsgChan <- msg
 			} else if macAddress == 0x00124b0007246963 {
 				// Custom3
 				if endpoint.Number == 2 { // light sensor(1 - high, 0 - low)
-					log.Printf("Custom3: Освещенность %d \n", u_val)
+					fmt.Printf("Custom3: Освещенность %d \n", u_val)
 					o.Ed.Set_luminocity(int8(u_val))
 				}
 				if endpoint.Number == 4 { // motion sensor (1 - no motion, 0 - motion)
-					log.Printf("Custom3: Движение %d \n", 1-u_val)
+					fmt.Printf("Custom3: Движение %d \n", 1-u_val)
 					msg := MotionMsg{Ed: o.Ed, Cmd: 1 - u_val}
 					o.MsgChan <- msg
 
@@ -76,6 +81,7 @@ func (o OnOffCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 				if b_val {
 					newState = "On"
 				}
+				fmt.Printf("SmartPlug %s \n", newState)
 				if newState != currentState {
 					ts := time.Now() // get time now
 					o.Ed.Set_last_action(ts)
@@ -87,6 +93,7 @@ func (o OnOffCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 				if b_val {
 					newState = "On"
 				}
+				fmt.Printf("Duochannel relay %s \n", newState)
 				o.Ed.Set_last_action(ts)
 				o.Ed.Set_current_state(newState, endpoint.Number)
 			} else {
@@ -97,41 +104,42 @@ func (o OnOffCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 				}
 				o.Ed.Set_last_action(ts)
 				o.Ed.Set_current_state(newState, 1)
+				fmt.Printf("Device 0x%04x %s endpoint %d state = %s \n", endpoint.Address, o.Ed.Get_human_name(), endpoint.Number, newState)
 			}
 
 		case zcl.OnOff_ON_TIME:
 			val := zcl.UINT16_(attribute.Value[0], attribute.Value[1])
-			log.Printf("Device 0x%04x endpoint %d ON_TIME =  %d s \n", endpoint.Address, endpoint.Number, val)
+			fmt.Printf("Device 0x%04x endpoint %d ON_TIME =  %d s \n", endpoint.Address, endpoint.Number, val)
 
 		case zcl.OnOff_OFF_WAIT_TIME:
 			val := zcl.UINT16_(attribute.Value[0], attribute.Value[1])
-			log.Printf("Device 0x%04x endpoint %d OFF_WAIT_TIME =  %d s \n", endpoint.Address, endpoint.Number, val)
+			fmt.Printf("Device 0x%04x endpoint %d OFF_WAIT_TIME =  %d s \n", endpoint.Address, endpoint.Number, val)
 
 		case zcl.OnOff_00F5: //from relay aqara T1
 			//  every 30 second approximately
 			//  0x03<short_addr>mm, by switch on or off
 			val := binary.LittleEndian.Uint32(attribute.Value)
-			log.Printf("OnOffCluster::Handler_attributes: attribute Id 0x%04x in cluster ON_OFF Device 0x%04x val 0x%08x\n", attribute.Id, endpoint.Address, val)
+			fmt.Printf("Attribute Id 0x%04x in cluster ON_OFF Device 0x%04x val 0x%08x\n", attribute.Id, endpoint.Address, val)
 
 		case zcl.OnOff_F000, // dualchannel relay, like relay in cluster 00F5
 			zcl.OnOff_F500, // from relay aqara T1
 			zcl.OnOff_F501: // from relay aqara T1
 			val := binary.LittleEndian.Uint32(attribute.Value)
-			log.Printf("OnOffCluster::Handler_attributes: attribute Id 0x%04x in cluster ON_OFF Device 0x%04x val 0x%08x\n", attribute.Id, endpoint.Address, val)
+			fmt.Printf("Attribute Id 0x%04x in cluster ON_OFF Device 0x%04x val 0x%08x\n", attribute.Id, endpoint.Address, val)
 
 		case zcl.OnOff_00F7: // ???
 			val := string(attribute.Value)
-			log.Printf("OnOffCluster::Handler_attributes: attribute Id 0x%04x in cluster ON_OFF Device 0x%04x value: %s \n", attribute.Id, endpoint.Address, val)
+			fmt.Printf("Attribute Id 0x%04x in cluster ON_OFF Device 0x%04x value: %s \n", attribute.Id, endpoint.Address, val)
 
 		case zcl.OnOff_5000,
 			zcl.OnOff_8000,
 			zcl.OnOff_8001,
 			zcl.OnOff_8002:
 			// Valves
-			log.Printf("OnOffCluster::Handler_attributes: attribute Id 0x%04x in cluster ON_OFF device: 0x%04x\n", attribute.Id, endpoint.Address)
+			fmt.Printf("Attribute Id 0x%04x in cluster ON_OFF device: 0x%04x\n", attribute.Id, endpoint.Address)
 		default:
-			log.Printf("OnOffCluster::Handler_attributes: unused attribute Id 0x%04x in cluster ON_OFF device: 0x%04x\n", attribute.Id, endpoint.Address)
+			fmt.Printf("Unused attribute Id 0x%04x in cluster ON_OFF device: 0x%04x\n", attribute.Id, endpoint.Address)
 		} //switch
 	} //for
-
+	fmt.Println("")
 }

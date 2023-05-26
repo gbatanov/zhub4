@@ -31,18 +31,15 @@ type Controller struct {
 	mapFileMutex       sync.Mutex
 }
 
-func init() {
-	fmt.Println("Init in zigbee: controller")
-}
-func controllerCreate(Ports map[string]string, Os string, mode string) (*Controller, error) {
+func controller_create(Ports map[string]string, Os string, mode string) (*Controller, error) {
 	chn1 := make(chan zdo.Command, 16)
 	chn2 := make(chan []byte, 12) // chan for join command shortAddr + macAddrj
 	chn3 := make(chan clusters.MotionMsg, 16)
 	ts := time.Now()
 
-	zdoo, err := zdo.ZdoCreate(Ports[Os], Os, chn1, chn2)
+	zdoo, err := zdo.Zdo_create(Ports[Os], Os, chn1, chn2)
 	if err != nil {
-		zdoo, err = zdo.ZdoCreate(Ports[Os+"2"], Os, chn1, chn2)
+		zdoo, err = zdo.Zdo_create(Ports[Os+"2"], Os, chn1, chn2)
 	}
 	if err != nil {
 		return &Controller{}, err
@@ -67,7 +64,7 @@ func controllerCreate(Ports map[string]string, Os string, mode string) (*Control
 func (c *Controller) Get_zdo() *zdo.Zdo {
 	return c.zdobj
 }
-func (c *Controller) startNetwork(defconf zdo.NetworkConfiguration) error {
+func (c *Controller) start_network(defconf zdo.RF_Channels) error {
 
 	log.Println("Controller start network")
 	// thread for commands handle
@@ -102,25 +99,17 @@ func (c *Controller) startNetwork(defconf zdo.NetworkConfiguration) error {
 		return err
 	}
 
-	// we have hard reset, check network configuration
-	log.Println("Controller read NetworkConfiguration")
-	nc, err := c.Get_zdo().ReadNetworkConfiguration()
+	// set up desired RF-channels
+	rf := c.Get_zdo().Read_rf_channels()
+	if !rf.Compare(defconf) {
+		err = c.Get_zdo().Write_rf_channels(defconf)
+		if err != nil {
+			return err
+		}
+	}
+	err = c.Get_zdo().Finish_configuration()
 	if err != nil {
 		return err
-	}
-	if !nc.Compare(defconf) {
-		// rewrite configuration in zhub
-		log.Println("Controller write NetworkConfiguration")
-		err = c.Get_zdo().WriteNetworkConfiguration(defconf)
-		if err != nil {
-			return err
-		}
-		// soft reset of zhub after reconfiguration
-		log.Println("Controller soft reset zhub")
-		err := c.Get_zdo().Reset()
-		if err != nil {
-			return err
-		}
 	}
 
 	// startup
@@ -130,13 +119,19 @@ func (c *Controller) startNetwork(defconf zdo.NetworkConfiguration) error {
 		return err
 	}
 	log.Println("Controller register endpoint")
-	err = c.Get_zdo().RegisterEndpointDescriptor(zdo.Default_endpoint)
+	err = c.Get_zdo().Register_endpoint_descriptor(zdo.Default_endpoint)
 	if err != nil {
 		return err
 	}
 
 	c.create_devices_by_map()
 	c.Get_zdo().Permit_join(60 * time.Second)
+	go func() {
+		for c.flag {
+			time.Sleep(30 * time.Second)
+			c.get_smart_plug_params()
+		}
+	}()
 
 	log.Println("Controller start network success")
 	return nil
@@ -168,6 +163,7 @@ func (c *Controller) write_map_to_file() error {
 	m.Lock()
 	defer m.Unlock()
 
+	// TODO: to config
 	prefix := "/usr/local"
 	filename := prefix + "/etc/zhub4/map_addr_test.cfg"
 
@@ -192,6 +188,7 @@ func (c *Controller) read_map_from_file() error {
 	defer m.Unlock()
 	c.devicessAddressMap = map[uint16]uint64{}
 
+	// TODO: to config
 	prefix := "/usr/local"
 	filename := prefix + "/etc/zhub4/map_addr_test.cfg"
 
@@ -221,14 +218,14 @@ func (c *Controller) read_map_from_file() error {
 	return nil
 }
 
-// Вызываем сразу после старта конфигуратора
-// создаем устройства по c.devicessAddressMap
+// Called immediately after the start of the configurator
+// create devices by c.devicesAddressMap
 func (c *Controller) create_devices_by_map() {
 
 	err := c.read_map_from_file()
 	if err == nil {
 		for shortAddress, macAddress := range c.devicessAddressMap {
-			ed := zdo.EndDeviceCreate(macAddress, shortAddress)
+			ed := zdo.End_device_create(macAddress, shortAddress)
 			c.devices[macAddress] = ed
 		}
 	}
@@ -272,7 +269,7 @@ func (c *Controller) join_device() {
 
 			} else {
 				log.Printf("Controller::join_device: create device\n")
-				ed := zdo.EndDeviceCreate(macAddress, shortAddress)
+				ed := zdo.End_device_create(macAddress, shortAddress)
 				c.devices[macAddress] = ed
 				c.devicessAddressMap[shortAddress] = macAddress
 				c.write_map_to_file()
@@ -291,19 +288,19 @@ func (c *Controller) on_join(shortAddress uint16, macAddress uint64) {
 	c.Get_zdo().Bind(shortAddress, macAddress, 1, zcl.ON_OFF)
 	if ed.Get_device_type() != 4 {
 		// for customs no report adjusting in ON_OFF cluster
-		c.configureReporting(shortAddress, zcl.ON_OFF, uint16(0), zcl.DataType_UINT8, uint16(0))
+		c.configure_reporting(shortAddress, zcl.ON_OFF, uint16(0), zcl.DataType_UINT8, uint16(0))
 	}
 	// SmartPlug, WaterValves - no binding and no report adjusting in ON_OFF cluster
 	//
 	// motion sensors and door sensors Sonoff
 	if ed.Get_device_type() == 2 || ed.Get_device_type() == 3 {
 		c.Get_zdo().Bind(shortAddress, macAddress, 1, zcl.IAS_ZONE)
-		c.configureReporting(shortAddress, zcl.IAS_ZONE, uint16(0), zcl.DataType_UINT8, uint16(0))
+		c.configure_reporting(shortAddress, zcl.IAS_ZONE, uint16(0), zcl.DataType_UINT8, uint16(0))
 	}
 	// IKEA motion sensors
 	if ed.Get_device_type() == 8 {
 		c.Get_zdo().Bind(shortAddress, macAddress, 1, zcl.IAS_ZONE)
-		c.configureReporting(shortAddress, zcl.IAS_ZONE, uint16(0), zcl.DataType_UINT8, uint16(0))
+		c.configure_reporting(shortAddress, zcl.IAS_ZONE, uint16(0), zcl.DataType_UINT8, uint16(0))
 	}
 	// IKEA devices
 	if ed.Get_device_type() == 7 || ed.Get_device_type() == 8 {
@@ -311,12 +308,12 @@ func (c *Controller) on_join(shortAddress uint16, macAddress uint64) {
 	}
 	c.Get_zdo().Bind(shortAddress, macAddress, 1, zcl.POWER_CONFIGURATION)
 	if ed.Get_device_type() != 4 {
-		c.configureReporting(shortAddress, zcl.POWER_CONFIGURATION, uint16(0), zcl.DataType_UINT8, uint16(0))
+		c.configure_reporting(shortAddress, zcl.POWER_CONFIGURATION, uint16(0), zcl.DataType_UINT8, uint16(0))
 	}
 
 	//
-	c.Get_zdo().ActiveEndpoints(shortAddress)
-	c.Get_zdo().SimpleDescriptor(shortAddress, 1) // TODO: получить со всех эндпойнотов, полученных на предыдущем этапе
+	c.Get_zdo().Active_endpoints(shortAddress)
+	c.Get_zdo().Simple_descriptor(shortAddress, 1) // TODO: получить со всех эндпойнотов, полученных на предыдущем этапе
 
 	c.get_identifier(shortAddress) // Для многих устройств этот запрос обязателен!!!! Без него не работатет устройство, только регистрация в сети
 
@@ -340,7 +337,7 @@ func (c *Controller) get_identifier(address uint16) {
 	frame.Frame_control.DisableDefaultResponse = 1
 	frame.Frame_control.ManufacturerSpecific = 0
 	frame.Command = uint8(zcl.READ_ATTRIBUTES) // 0x00
-	frame.TransactionSequenceNumber = c.Get_zdo().GenerateTransactionSequenceNumber()
+	frame.TransactionSequenceNumber = c.Get_zdo().Generate_transaction_sequence_number()
 	// end ZCL Header
 
 	frame.Payload = make([]byte, 0)
@@ -399,7 +396,7 @@ func (c *Controller) message_handler(command zdo.Command) {
 	}
 
 	//	var ts uint32 = uint32(command.Payload[11]) + uint32(command.Payload[12])<<8 + uint32(command.Payload[13])<<16 + uint32(command.Payload[14])<<24
-	log.Printf("Cluster %s (0x%04X) \n", zcl.Cluster_to_string(message.Cluster), message.Cluster)
+	log.Printf("Cluster %s (0x%04X) device: %s \n", zcl.Cluster_to_string(message.Cluster), message.Cluster, ed.Get_human_name())
 	if message.Cluster != zcl.TIME { // too often
 		fmt.Printf("source endpoint shortAddr: 0x%04x ", message.Source.Address)
 		fmt.Printf("number: 0x%02x \n", message.Source.Number)
@@ -418,7 +415,7 @@ func (c *Controller) message_handler(command zdo.Command) {
 		fmt.Print("\n\n")
 	}
 	if message.LinkQuality > 0 {
-		ed.Set_linkQuality(message.LinkQuality)
+		ed.Set_linkquality(message.LinkQuality)
 	}
 	now := time.Now()
 	ed.Set_last_seen(now)
@@ -482,6 +479,12 @@ func (c *Controller) message_handler(command zdo.Command) {
 			}
 		case zcl.IDENTIFY:
 			log.Printf("Cluster IDENTIFY:: command 0x%02x \n", message.ZclFrame.Command)
+		case zcl.ALARMS:
+			log.Printf("Cluster ALARMS:: command 0x%02x payload %q \n", message.ZclFrame.Command, message.ZclFrame.Payload)
+		case zcl.TIME:
+			fmt.Println("")
+			// Approximately 30 seconds pass with the Aqara relay, no useful information
+			//log.Printf("Cluster TIME:: command 0x%02x \n", message.ZclFrame.Command)
 		} //switch
 	}
 	c.after_message_action(ed)
@@ -519,7 +522,7 @@ func (c *Controller) on_attribute_report(ed *zdo.EndDevice, ep zcl.Endpoint, clu
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.SIMPLE_METERING:
-		c := clusters.SimpleMeteringCluster{}
+		c := clusters.SimpleMeteringCluster{Ed: ed}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.ELECTRICAL_MEASUREMENTS:
@@ -572,27 +575,38 @@ func (c *Controller) on_attribute_report(ed *zdo.EndDevice, ep zcl.Endpoint, clu
 	}
 
 }
-func (c *Controller) after_message_action(ed *zdo.EndDevice) {
-	if ed.Get_device_type() == 10 { // SmartPlug
-		// request current and voltage for every 5 minutes
-		diff := time.Since(c.smartPlugTS)
-		if diff.Seconds() > 300 {
-			c.smartPlugTS = time.Now()
-			var idsAV []uint16 = []uint16{0x0505, 0x508}
+func (c *Controller) get_smart_plug_params() {
+	ed := c.get_device_by_mac(0x70b3d52b6001b4a4)
 
-			c.read_attribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
+	// request current,voltage and instant power for every 5 minutes
+	interval := float64(300)
+	if c.mode == "test" {
+		interval = 30.0
+	}
+	diff := time.Since(c.smartPlugTS)
+	if diff.Seconds() > interval {
+		c.smartPlugTS = time.Now()
+		var idsAV []uint16 = []uint16{0x0505, 0x508, 0x050B}
+		c.read_attribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
 
-			if ed.Get_current_state(1) != "On" && ed.Get_current_state(1) != "Off" {
-				var idsAV []uint16 = []uint16{0x0000}
-				c.read_attribute(ed.ShortAddress, zcl.ON_OFF, idsAV)
-			}
+		var idsAVSM []uint16 = []uint16{0x0000}
+		c.read_attribute(ed.ShortAddress, zcl.SIMPLE_METERING, idsAVSM)
+
+		if ed.Get_current_state(1) != "On" && ed.Get_current_state(1) != "Off" {
+			var idsAV []uint16 = []uint16{0x0000}
+			c.read_attribute(ed.ShortAddress, zcl.ON_OFF, idsAV)
 		}
 	}
+
+}
+func (c *Controller) after_message_action(ed *zdo.EndDevice) {
+
 	lastMotion := c.get_last_motion_sensor_activity()
 	diffOff := time.Since(lastMotion)
 	if diffOff.Minutes() > 30 && !c.switchOffTS {
 		c.switchOffTS = true
 		c.switch_off_with_list()
+		log.Printf("There is no one at home\n")
 	}
 }
 func (c *Controller) read_attribute(address uint16, cl zcl.Cluster, ids []uint16) error {
@@ -606,7 +620,7 @@ func (c *Controller) read_attribute(address uint16, cl zcl.Cluster, ids []uint16
 	frame.Frame_control.DisableDefaultResponse = 1
 	frame.Frame_control.ManufacturerSpecific = 0
 	frame.Command = uint8(zcl.READ_ATTRIBUTES) // 0x00
-	frame.TransactionSequenceNumber = c.Get_zdo().GenerateTransactionSequenceNumber()
+	frame.TransactionSequenceNumber = c.Get_zdo().Generate_transaction_sequence_number()
 	frame.ManufacturerCode = 0
 	// end ZCL Header
 	frame.Payload = make([]byte, 2*len(ids))
@@ -628,7 +642,7 @@ func (c *Controller) get_power(ed *zdo.EndDevice) {
 	frame.Frame_control.DisableDefaultResponse = 0
 	frame.Frame_control.ManufacturerSpecific = 0
 	frame.ManufacturerCode = 0
-	frame.TransactionSequenceNumber = c.Get_zdo().GenerateTransactionSequenceNumber()
+	frame.TransactionSequenceNumber = c.Get_zdo().Generate_transaction_sequence_number()
 	frame.Command = uint8(zcl.READ_ATTRIBUTES) // 0x00
 	// in payload set of required attributes
 	frame.Payload = append(frame.Payload, zcl.LOWBYTE(uint16(zcl.PowerConfiguration_MAINS_VOLTAGE)))    // 0x0000 Напряжение основного питания в 0,1 В UINT16
@@ -678,13 +692,13 @@ func (c *Controller) send_command_to_onoff_device(address uint16, cmd uint8, ep 
 	frame.Frame_control.Direction = zcl.FROM_CLIENT_TO_SERVER
 	frame.Frame_control.DisableDefaultResponse = 0
 	frame.ManufacturerCode = 0
-	frame.TransactionSequenceNumber = c.Get_zdo().GenerateTransactionSequenceNumber()
+	frame.TransactionSequenceNumber = c.Get_zdo().Generate_transaction_sequence_number()
 	frame.Command = cmd
 
 	c.Get_zdo().Send_message(endpoint, cluster, frame, 3*time.Second)
 }
 
-func (c *Controller) configureReporting(address uint16,
+func (c *Controller) configure_reporting(address uint16,
 	cluster zcl.Cluster,
 	attributeId uint16,
 	attributeDataType zcl.DataType,
@@ -698,7 +712,7 @@ func (c *Controller) configureReporting(address uint16,
 	frame.Frame_control.Direction = zcl.FROM_CLIENT_TO_SERVER
 	frame.Frame_control.DisableDefaultResponse = 0
 	frame.ManufacturerCode = 0
-	frame.TransactionSequenceNumber = c.Get_zdo().GenerateTransactionSequenceNumber()
+	frame.TransactionSequenceNumber = c.Get_zdo().Generate_transaction_sequence_number()
 	frame.Command = byte(zcl.CONFIGURE_REPORTING) // 0x06
 	// end ZCL Header
 

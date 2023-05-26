@@ -11,6 +11,7 @@ import (
 	"log/syslog"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -19,7 +20,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.2.13"
+const Version string = "v0.2.18"
 
 var Os string = ""
 var Flag bool = true
@@ -30,7 +31,7 @@ func init() {
 
 func main() {
 	sysLog, err := syslog.New(syslog.LOG_INFO|syslog.LOG_SYSLOG, "zhub4")
-	sysLog.Info("Start zhub4")
+	sysLog.Info("Start zhub4, version " + Version)
 
 	if err != nil {
 		log.Fatal(err)
@@ -49,14 +50,14 @@ func main() {
 		//		intrpt = true
 	}()
 
-	getOsParams()
+	get_os_params()
 	var Ports map[string]string = map[string]string{
 		"darwin":  "/dev/cu.usbmodem148201",
 		"darwin2": "/dev/cu.usbserial-0001",
 		"linux":   "/dev/ttyACM0",
 		"linux2":  "/dev/ttyACM1"}
 
-	zhub, err := zigbee.ZhubCreate(Ports, Os, "test")
+	zhub, err := zigbee.Zhub_create(Ports, Os, strings.ToLower("test"))
 	if err != nil {
 		sysLog.Emerg(err.Error())
 		log.Println(err)
@@ -88,7 +89,7 @@ func main() {
 	}
 }
 
-func getOsParams() {
+func get_os_params() {
 	gi, _ := goInfo.GetInfo()
 	//	gi.VarDump()
 	Os = gi.GoOS

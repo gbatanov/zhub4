@@ -49,7 +49,7 @@ func (eh *EventHandler) wait(id CommandId, timeout time.Duration) Command {
 	}
 }
 
-func CreateEventHandler() *EventHandler {
+func Create_event_handler() *EventHandler {
 	var eh EventHandler
 	eh.Events = make(map[CommandId]Event)
 	return &eh

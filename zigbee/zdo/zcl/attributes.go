@@ -155,6 +155,8 @@ type ElectricalMeasurementAttribute uint16
 const (
 	ElectricalMeasurement_0505 ElectricalMeasurementAttribute = 0x0505 // RMS Voltage V
 	ElectricalMeasurement_0508 ElectricalMeasurementAttribute = 0x0508 // RMS Current mA
+	ElectricalMeasurement_050B ElectricalMeasurementAttribute = 0x050B // Active Power
+	ElectricalMeasurement_050F ElectricalMeasurementAttribute = 0x050F // Apparent Power, not supported by coordinator
 )
 
 // ------------------------------------------
