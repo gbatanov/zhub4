@@ -39,7 +39,7 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	0x54ef441000609dcc: {9, "Aqara", "SSM-U01", "Реле6", "Реле6", zcl.PowerSource_SINGLE_PHASE, 1, 1},
 	0x00158d0009414d7e: {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// Умные розетки
-	0x70b3d52b6001b4a4: {10, "Girier", "TS011F", "Розетка1", "Розетка 1", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x70b3d52b6001b4a4: {10, "Girier", "TS011F", "Розетка1", "Розетка 1", zcl.PowerSource_SINGLE_PHASE, 1, 1},
 	0x70b3d52b6001b5d9: {10, "Girier", "TS011F", "Розетка2", "Розетка 2(Зарядники)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	0x70b3d52b60022ac9: {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Лампы в десткой)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	0x70b3d52b60022cfd: {10, "Girier", "TS011F", "Розетка3", "Розетка 4(Паяльник)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
@@ -123,6 +123,13 @@ type BatteryParams struct {
 	level   uint8
 	voltage float32
 }
+type ElectricParams struct {
+	mainVoltage float32 // high voltage instant|RMS value
+	current     float32 //
+	power       float32 // instant power
+	energy      float32 // energy
+}
+
 type EndDevice struct {
 	MacAddress      uint64
 	ShortAddress    uint16
@@ -131,11 +138,10 @@ type EndDevice struct {
 	linkQuality     uint8
 	lastSeen        time.Time
 	lastAction      time.Time
-	state           string  // status string value, dependent on device type
-	state2          string  // channel2 status string value, dependent on device type
-	mainVoltage     float32 // high voltage instant|RMS value
-	current         float32 //
+	state           string // status string value, dependent on device type
+	state2          string // channel2 status string value, dependent on device type
 	battery         BatteryParams
+	electric        ElectricParams
 	temperature     int8
 	humidity        int8
 	luminocity      int8 // high/low 1/0
@@ -152,8 +158,11 @@ func End_device_create(macAddress uint64, shortAddress uint16) *EndDevice {
 	ed.lastAction = time.Time{}
 	ed.state = "Unknown"
 	ed.state2 = "Unknown"
-	ed.mainVoltage = -100.0
-	ed.current = -100.0
+	ed.electric = ElectricParams{
+		mainVoltage: -100.0,
+		current:     -100.0,
+		power:       -100.0,
+		energy:      -100.0}
 	ed.battery = BatteryParams{level: 0, voltage: -100.0}
 	ed.temperature = -100
 	ed.humidity = -100
@@ -189,16 +198,30 @@ func (ed *EndDevice) Set_power_source(value uint8) {
 	ed.Di.powerSource = zcl.PowerSource(value)
 }
 func (ed *EndDevice) Set_mains_voltage(value float32) {
-	ed.mainVoltage = value
+	ed.electric.mainVoltage = value
 }
 func (ed *EndDevice) Get_mains_voltage() float32 {
-	return ed.mainVoltage
+	return ed.electric.mainVoltage
 }
 func (ed *EndDevice) Set_current(value float32) {
-	ed.current = value
+	ed.electric.current = value
 }
 func (ed *EndDevice) Get_current() float32 {
-	return ed.current
+	return ed.electric.current
+}
+
+func (ed *EndDevice) Set_power(value float32) {
+	ed.electric.power = value
+}
+func (ed *EndDevice) Get_power() float32 {
+	return ed.electric.power
+}
+
+func (ed *EndDevice) Set_energy(value float32) {
+	ed.electric.energy = value
+}
+func (ed *EndDevice) Get_energy() float32 {
+	return ed.electric.energy
 }
 
 // charge level, battery voltage

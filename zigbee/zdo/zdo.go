@@ -188,7 +188,7 @@ func (zdo *Zdo) parse_command(BufRead []byte) ([]Command, bool) {
 			var cmd CommandId = CommandId(zcl.UINT16_(cmd1, cmd0))
 			var command *Command = NewCommand(cmd)
 
-			for j := 0; j < int(payload_length); j++ {
+			for j := 0; j < int(payload_length) && i < len(BufRead); j++ {
 				command.Payload = append(command.Payload, BufRead[i])
 				i++
 			}
@@ -205,7 +205,10 @@ func (zdo *Zdo) parse_command(BufRead []byte) ([]Command, bool) {
 // reset zigbee-adapter
 func (zdo *Zdo) Reset() error {
 	var cmd Command = *NewCommand(0)
-	//	zdo.eh.clear(SYS_RESET_IND)
+
+	// wait initial hard reset
+	cmd = zdo.eh.wait(SYS_RESET_IND, 60*time.Second)
+
 	// write_nvram call sync request
 	startup_options := make([]byte, 1)
 	startup_options[0] = 0

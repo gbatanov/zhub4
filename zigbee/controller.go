@@ -126,6 +126,12 @@ func (c *Controller) start_network(defconf zdo.RF_Channels) error {
 
 	c.create_devices_by_map()
 	c.Get_zdo().Permit_join(60 * time.Second)
+	go func() {
+		for c.flag {
+			time.Sleep(30 * time.Second)
+			c.get_smart_plug_params()
+		}
+	}()
 
 	log.Println("Controller start network success")
 	return nil
@@ -157,6 +163,7 @@ func (c *Controller) write_map_to_file() error {
 	m.Lock()
 	defer m.Unlock()
 
+	// TODO: to config
 	prefix := "/usr/local"
 	filename := prefix + "/etc/zhub4/map_addr_test.cfg"
 
@@ -181,6 +188,7 @@ func (c *Controller) read_map_from_file() error {
 	defer m.Unlock()
 	c.devicessAddressMap = map[uint16]uint64{}
 
+	// TODO: to config
 	prefix := "/usr/local"
 	filename := prefix + "/etc/zhub4/map_addr_test.cfg"
 
@@ -210,8 +218,8 @@ func (c *Controller) read_map_from_file() error {
 	return nil
 }
 
-// Вызываем сразу после старта конфигуратора
-// создаем устройства по c.devicessAddressMap
+// Called immediately after the start of the configurator
+// create devices by c.devicesAddressMap
 func (c *Controller) create_devices_by_map() {
 
 	err := c.read_map_from_file()
@@ -474,6 +482,7 @@ func (c *Controller) message_handler(command zdo.Command) {
 		case zcl.ALARMS:
 			log.Printf("Cluster ALARMS:: command 0x%02x payload %q \n", message.ZclFrame.Command, message.ZclFrame.Payload)
 		case zcl.TIME:
+			fmt.Println("")
 			// Approximately 30 seconds pass with the Aqara relay, no useful information
 			//log.Printf("Cluster TIME:: command 0x%02x \n", message.ZclFrame.Command)
 		} //switch
@@ -513,7 +522,7 @@ func (c *Controller) on_attribute_report(ed *zdo.EndDevice, ep zcl.Endpoint, clu
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.SIMPLE_METERING:
-		c := clusters.SimpleMeteringCluster{}
+		c := clusters.SimpleMeteringCluster{Ed: ed}
 		c.Handler_attributes(ep, attributes)
 
 	case zcl.ELECTRICAL_MEASUREMENTS:
@@ -566,22 +575,32 @@ func (c *Controller) on_attribute_report(ed *zdo.EndDevice, ep zcl.Endpoint, clu
 	}
 
 }
-func (c *Controller) after_message_action(ed *zdo.EndDevice) {
-	if ed.Get_device_type() == 10 { // SmartPlug
-		// request current and voltage for every 5 minutes
-		diff := time.Since(c.smartPlugTS)
-		if diff.Seconds() > 300 {
-			c.smartPlugTS = time.Now()
-			var idsAV []uint16 = []uint16{0x0505, 0x508}
+func (c *Controller) get_smart_plug_params() {
+	ed := c.get_device_by_mac(0x70b3d52b6001b4a4)
 
-			c.read_attribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
+	// request current,voltage and instant power for every 5 minutes
+	interval := float64(300)
+	if c.mode == "test" {
+		interval = 30.0
+	}
+	diff := time.Since(c.smartPlugTS)
+	if diff.Seconds() > interval {
+		c.smartPlugTS = time.Now()
+		var idsAV []uint16 = []uint16{0x0505, 0x508, 0x050B}
+		c.read_attribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
 
-			if ed.Get_current_state(1) != "On" && ed.Get_current_state(1) != "Off" {
-				var idsAV []uint16 = []uint16{0x0000}
-				c.read_attribute(ed.ShortAddress, zcl.ON_OFF, idsAV)
-			}
+		var idsAVSM []uint16 = []uint16{0x0000}
+		c.read_attribute(ed.ShortAddress, zcl.SIMPLE_METERING, idsAVSM)
+
+		if ed.Get_current_state(1) != "On" && ed.Get_current_state(1) != "Off" {
+			var idsAV []uint16 = []uint16{0x0000}
+			c.read_attribute(ed.ShortAddress, zcl.ON_OFF, idsAV)
 		}
 	}
+
+}
+func (c *Controller) after_message_action(ed *zdo.EndDevice) {
+
 	lastMotion := c.get_last_motion_sensor_activity()
 	diffOff := time.Since(lastMotion)
 	if diffOff.Minutes() > 30 && !c.switchOffTS {

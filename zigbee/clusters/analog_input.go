@@ -1,6 +1,11 @@
+/*
+GSB, 2023
+gbatanov@yandex.ru
+*/
 package clusters
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"zhub4/zigbee/zdo"
@@ -14,16 +19,20 @@ type AnalogInputCluster struct {
 func (a AnalogInputCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
 	var value float32 = -100.0
 	var unit string
-	log.Printf("AnalogInputCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
+	log.Printf("AnalogInputCluster::%s, endpoint address: 0x%04x number = %d \n", a.Ed.Get_human_name(), endpoint.Address, endpoint.Number)
 
 	for _, attribute := range attributes {
-		log.Printf("attribute id =0x%04x \n", attribute.Id)
+
 		switch zcl.AnalogInputAttribute(attribute.Id) {
 		case zcl.AnalogInput_0055: // value
 			//  на реле показывает суммарный ток в 0,1 А (потребляемый нагрузкой и самим реле)
 			// показывает сразу после изменения нагрузки в отличие от получаемого в репортинге
 			value = float32(attribute.Value[0])
-			log.Printf("Device 0x%04x endpoint %d Analog Input Value =  %f \n", endpoint.Address, endpoint.Number, value)
+			if a.Ed.Get_device_type() == 9 { // relay
+				fmt.Printf("Summary current =  %0.3fA \n", value/100)
+			} else {
+				fmt.Printf("Analog Input Value =  %f \n", value)
+			}
 
 		case zcl.AnalogInput_006f:
 			{
@@ -59,4 +68,5 @@ func (a AnalogInputCluster) Handler_attributes(endpoint zcl.Endpoint, attributes
 	} else if (a.Ed.Get_device_type() == 11 || a.Ed.Get_device_type() == 9 || a.Ed.Get_device_type() == 10) && (value > -100.0) {
 		a.Ed.Set_current(value / 100)
 	}
+	fmt.Println("")
 }

@@ -11,6 +11,7 @@ import (
 	"log/syslog"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -19,7 +20,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.2.17"
+const Version string = "v0.2.18"
 
 var Os string = ""
 var Flag bool = true
@@ -56,7 +57,7 @@ func main() {
 		"linux":   "/dev/ttyACM0",
 		"linux2":  "/dev/ttyACM1"}
 
-	zhub, err := zigbee.Zhub_create(Ports, Os, "test")
+	zhub, err := zigbee.Zhub_create(Ports, Os, strings.ToLower("test"))
 	if err != nil {
 		sysLog.Emerg(err.Error())
 		log.Println(err)

@@ -1,3 +1,7 @@
+/*
+GSB, 2023
+gbatanov@yandex.ru
+*/
 package clusters
 
 import (
@@ -18,17 +22,34 @@ func (p PowerConfigurationCluster) Handler_attributes(endpoint zcl.Endpoint, att
 		switch zcl.PowerConfigurationAttribute(attribute.Id) {
 		case zcl.PowerConfiguration_MAINS_VOLTAGE:
 			val := float32(attribute.Value[0])
-			fmt.Printf("Mains voltage: %2.3f \n", val/10)
+			fmt.Printf("Mains voltage: %2.2fV \n", val/10)
 			p.Ed.Set_mains_voltage(val)
 
 		case zcl.PowerConfiguration_BATTERY_VOLTAGE:
 			val := float32(attribute.Value[0])
-			fmt.Printf("Battery voltage: %2.3f \n", val/10)
+			fmt.Printf("Battery voltage: %2.1fV ", val/10)
 			p.Ed.Set_battery_params(0, val/10)
 
 		case zcl.PowerConfiguration_BATTERY_REMAIN:
 			val := attribute.Value[0] // 0x00-0x30 0x30-0x60 0x60-0x90 0x90-0xc8
-			fmt.Printf("Battery remain: 0x%02x \n\n", val)
+			if val > 0xc8 {
+				val = 0xc8
+			}
+			value := val / 2
+			/*
+				valStr := ""
+
+				if val < 0x30 {
+					valStr = "<1/4"
+				} else if val >= 0x30 && val < 0x60 {
+					valStr = "<1/2"
+				} else if val >= 0x60 && val < 0x90 {
+					valStr = "<3/4"
+				} else if val >= 0x90 {
+					valStr = ">3/4"
+				}
+			*/
+			fmt.Printf(" remain: %d%% (0x%02x) \n\n", value, val)
 			p.Ed.Set_battery_params(val, 0.0)
 
 		default:
