@@ -188,7 +188,7 @@ func (zdo *Zdo) parse_command(BufRead []byte) ([]Command, bool) {
 			var cmd CommandId = CommandId(zcl.UINT16_(cmd1, cmd0))
 			var command *Command = NewCommand(cmd)
 
-			for j := 0; j < int(payload_length) && i < len(BufRead); j++ {
+			for j := 0; j < int(payload_length) && i < len(BufRead)-1; j++ {
 				command.Payload = append(command.Payload, BufRead[i])
 				i++
 			}
