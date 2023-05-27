@@ -1,12 +1,12 @@
-.PHONY: all  prepare-bin build-nix
+.PHONY: all  prepare-bin 
 
-all: prepare-bin build-nix 
+all: prepare-bin zhub4 
 
 prepare-bin:
 	rm -rf ./bin || true
 	mkdir -p ./bin || true
 
-build-nix:
+zhub4:
 	go build  -o ./bin/zhub4 
 
 install:
