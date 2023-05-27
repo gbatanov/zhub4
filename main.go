@@ -20,7 +20,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.2.19"
+const Version string = "v0.3.20"
 
 var Os string = ""
 var Flag bool = true
@@ -65,26 +65,29 @@ func main() {
 	}
 
 	if Flag {
-		zhub.Start()
-		defer zhub.Stop()
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go func() {
-			for Flag {
-				reader := bufio.NewReader(os.Stdin)
-				text, _ := reader.ReadString('\n')
-				if len(text) > 0 {
-					switch []byte(text)[0] {
-					case 'q':
-						Flag = false
-					case 'j':
-						zhub.Get_controller().Get_zdo().Permit_join(60 * time.Second)
-					} //switch
-				}
-			} //for
-			wg.Done()
-		}()
-		wg.Wait()
+		err = zhub.Start()
+		if err == nil {
+			defer zhub.Stop()
+			var wg sync.WaitGroup
+
+			wg.Add(1)
+			go func() {
+				for Flag {
+					reader := bufio.NewReader(os.Stdin)
+					text, _ := reader.ReadString('\n')
+					if len(text) > 0 {
+						switch []byte(text)[0] {
+						case 'q':
+							Flag = false
+						case 'j':
+							zhub.Get_controller().Get_zdo().Permit_join(60 * time.Second)
+						} //switch
+					}
+				} //for
+				wg.Done()
+			}()
+			wg.Wait()
+		}
 		Flag = false
 	}
 }

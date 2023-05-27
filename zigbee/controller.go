@@ -11,6 +11,7 @@ import (
 	"os"
 	"sync"
 	"time"
+	"zhub4/telega32"
 	"zhub4/zigbee/clusters"
 	"zhub4/zigbee/zdo"
 	"zhub4/zigbee/zdo/zcl"
@@ -29,6 +30,9 @@ type Controller struct {
 	smartPlugTS        time.Time               // timestamp for smart plug timer
 	switchOffTS        bool                    // flag for switch off timer
 	mapFileMutex       sync.Mutex
+	tlg32              *telega32.Tlg32
+	withTlg            bool
+	tlgMsgChan         chan telega32.Message
 }
 
 func controller_create(Ports map[string]string, Os string, mode string) (*Controller, error) {
@@ -45,6 +49,8 @@ func controller_create(Ports map[string]string, Os string, mode string) (*Contro
 		return &Controller{}, err
 	}
 
+	tlgMsgChan := make(chan telega32.Message, 16)
+	tlg32 := telega32.Tlg32Create("TestGsbBot", mode, tlgMsgChan) //your bot name
 	controller := Controller{
 		zdobj:              zdoo,
 		mode:               mode,
@@ -57,7 +63,10 @@ func controller_create(Ports map[string]string, Os string, mode string) (*Contro
 		lastMotion:         time.Now(),
 		smartPlugTS:        ts,
 		switchOffTS:        false,
-		mapFileMutex:       sync.Mutex{}}
+		mapFileMutex:       sync.Mutex{},
+		tlg32:              tlg32,
+		withTlg:            false,
+		tlgMsgChan:         tlgMsgChan}
 	return &controller, nil
 
 }
@@ -124,6 +133,13 @@ func (c *Controller) start_network(defconf zdo.RF_Channels) error {
 		return err
 	}
 
+	err = c.tlg32.Run()
+	if err != nil {
+		c.withTlg = false
+	} else {
+		c.withTlg = true
+	}
+
 	c.create_devices_by_map()
 	c.Get_zdo().Permit_join(60 * time.Second)
 	go func() {
@@ -132,7 +148,10 @@ func (c *Controller) start_network(defconf zdo.RF_Channels) error {
 			c.get_smart_plug_params()
 		}
 	}()
-
+	if c.withTlg {
+		outMsg := telega32.Message{ChatId: telega32.MyId, Msg: "Zhub4 start"}
+		c.tlgMsgChan <- outMsg
+	}
 	log.Println("Controller start network success")
 	return nil
 }
@@ -140,6 +159,7 @@ func (c *Controller) start_network(defconf zdo.RF_Channels) error {
 func (c *Controller) Stop() {
 	log.Println("Controller stop")
 	c.flag = false
+	c.tlg32.Stop()
 	c.Get_zdo().Stop()
 	// release channels
 	c.msgChan <- *zdo.NewCommand(0)
@@ -470,9 +490,10 @@ func (c *Controller) message_handler(command zdo.Command) {
 					c.ias_zone_command(uint8(0), uint16(0)) // close valves, switch off wash machine
 					ts := time.Now()                        // get time now
 					ed.Set_last_action(ts)
-					// alarm_msg := "Сработал датчик протечки: "
-					// alarm_msg = alarm_msg + ed.get_human_name()
-					// tlg32->send_message(alarm_msg)
+					if c.withTlg {
+						alarmMsg := "Сработал датчик протечки: " + ed.Get_human_name()
+						c.tlgMsgChan <- telega32.Message{ChatId: telega32.MyId, Msg: alarmMsg}
+					}
 					// gsmmodem->master_call()
 				}
 
