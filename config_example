@@ -1,0 +1,9 @@
+// telegram bot
+BotName ExampleBot
+MyId 000000000
+TokenPath /usr/local/etc/telebot32/.tokenExampleBot/.token
+// map short address to mac address
+MapPathTest /usr/local/etc/zhub4/map_addr_test.cfg
+MapPathProd /usr/local/etc/zhub4/map_addr.cfg
+// working mode (test, prod)
+Mode test

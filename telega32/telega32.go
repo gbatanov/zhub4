@@ -14,8 +14,6 @@ func init() {
 	fmt.Println("init in telega 32")
 }
 
-const MyId int64 = 836487770 // TODO: to config
-
 type Message struct {
 	ChatId int64
 	Msg    string
@@ -25,6 +23,7 @@ type Message struct {
 type Tlg32 struct {
 	botApi  *tgbotapi.BotAPI
 	mode    string
+	MyId    int64
 	botName string
 	chatIds []int64
 	Flag    bool
@@ -32,11 +31,12 @@ type Tlg32 struct {
 	MsgChan chan Message
 }
 
-func Tlg32Create(botName string, mode string, msgChan chan Message) *Tlg32 {
+func Tlg32Create(botName string, mode string, tokenPath string, myId int64, msgChan chan Message) *Tlg32 {
 	bot := Tlg32{}
 	bot.mode = mode
 	bot.botName = botName //your bot name
-	bot.chatIds = append(bot.chatIds, MyId)
+	bot.MyId = myId
+	bot.chatIds = append(bot.chatIds, myId)
 	bot.Flag = true
 	bot.MsgChan = msgChan
 	return &bot

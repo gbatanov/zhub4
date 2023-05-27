@@ -19,7 +19,7 @@ import (
 
 type Controller struct {
 	zdobj              *zdo.Zdo
-	mode               string
+	config             GlobalConfig
 	devices            map[uint64]*zdo.EndDevice
 	devicessAddressMap map[uint16]uint64
 	flag               bool
@@ -35,7 +35,7 @@ type Controller struct {
 	tlgMsgChan         chan telega32.Message
 }
 
-func controller_create(Ports map[string]string, Os string, mode string) (*Controller, error) {
+func controller_create(Ports map[string]string, Os string, config GlobalConfig) (*Controller, error) {
 	chn1 := make(chan zdo.Command, 16)
 	chn2 := make(chan []byte, 12) // chan for join command shortAddr + macAddrj
 	chn3 := make(chan clusters.MotionMsg, 16)
@@ -50,10 +50,11 @@ func controller_create(Ports map[string]string, Os string, mode string) (*Contro
 	}
 
 	tlgMsgChan := make(chan telega32.Message, 16)
-	tlg32 := telega32.Tlg32Create("TestGsbBot", mode, tlgMsgChan) //your bot name
+	//func Tlg32Create(botName string, mode string, tokenPath string, myId int64, msgChan chan Message) *Tlg32 {
+	tlg32 := telega32.Tlg32Create(config.BotName, config.Mode, config.TokenPath, config.MyId, tlgMsgChan) //your bot name
 	controller := Controller{
 		zdobj:              zdoo,
-		mode:               mode,
+		config:             config,
 		devices:            map[uint64]*zdo.EndDevice{},
 		devicessAddressMap: map[uint16]uint64{},
 		flag:               true,
@@ -149,7 +150,7 @@ func (c *Controller) start_network(defconf zdo.RF_Channels) error {
 		}
 	}()
 	if c.withTlg {
-		outMsg := telega32.Message{ChatId: telega32.MyId, Msg: "Zhub4 start"}
+		outMsg := telega32.Message{ChatId: c.config.MyId, Msg: "Zhub4 start"}
 		c.tlgMsgChan <- outMsg
 	}
 	log.Println("Controller start network success")
@@ -492,7 +493,7 @@ func (c *Controller) message_handler(command zdo.Command) {
 					ed.Set_last_action(ts)
 					if c.withTlg {
 						alarmMsg := "Сработал датчик протечки: " + ed.Get_human_name()
-						c.tlgMsgChan <- telega32.Message{ChatId: telega32.MyId, Msg: alarmMsg}
+						c.tlgMsgChan <- telega32.Message{ChatId: c.config.MyId, Msg: alarmMsg}
 					}
 					// gsmmodem->master_call()
 				}
@@ -601,7 +602,7 @@ func (c *Controller) get_smart_plug_params() {
 
 	// request current,voltage and instant power for every 5 minutes
 	interval := float64(300)
-	if c.mode == "test" {
+	if c.config.Mode == "test" {
 		interval = 30.0
 	}
 	diff := time.Since(c.smartPlugTS)
@@ -628,6 +629,11 @@ func (c *Controller) after_message_action(ed *zdo.EndDevice) {
 		c.switchOffTS = true
 		c.switch_off_with_list()
 		log.Printf("There is no one at home\n")
+		if c.withTlg {
+			alarmMsg := "There is no one at home "
+			c.tlgMsgChan <- telega32.Message{ChatId: c.config.MyId, Msg: alarmMsg}
+		}
+
 	}
 }
 func (c *Controller) read_attribute(address uint16, cl zcl.Cluster, ids []uint16) error {

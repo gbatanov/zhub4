@@ -6,11 +6,13 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
 	"log/syslog"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -20,7 +22,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.3.20"
+const Version string = "v0.3.21"
 
 var Os string = ""
 var Flag bool = true
@@ -57,7 +59,14 @@ func main() {
 		"linux":   "/dev/ttyACM0",
 		"linux2":  "/dev/ttyACM1"}
 
-	zhub, err := zigbee.Zhub_create(Ports, Os, strings.ToLower("test"))
+	config, err := get_global_config()
+	if err != nil {
+		sysLog.Emerg(err.Error())
+		log.Println(err)
+		Flag = false
+	}
+
+	zhub, err := zigbee.Zhub_create(Ports, Os, config)
 	if err != nil {
 		sysLog.Emerg(err.Error())
 		log.Println(err)
@@ -96,4 +105,53 @@ func get_os_params() {
 	gi, _ := goInfo.GetInfo()
 	//	gi.VarDump()
 	Os = gi.GoOS
+}
+
+func get_global_config() (zigbee.GlobalConfig, error) {
+	config := zigbee.GlobalConfig{}
+
+	filename := "/usr/local/etc/zhub4/config"
+	fd, err := os.OpenFile(filename, os.O_RDONLY, 0755)
+	if err != nil {
+		return zigbee.GlobalConfig{}, errors.New("incorrect file with configuration")
+	} else {
+		scan := bufio.NewScanner(fd)
+		// read line by line
+		for scan.Scan() {
+
+			line := scan.Text()
+			if strings.HasPrefix(line, "//") {
+				continue
+			}
+			values := strings.Split(line, " ")
+			if len(values) != 2 {
+				return zigbee.GlobalConfig{}, errors.New("incorrect line")
+			}
+
+			switch values[0] {
+			case "BotName":
+				config.BotName = values[1]
+			case "MyId":
+				valInt, err := strconv.Atoi(values[1])
+				if err != nil {
+					return zigbee.GlobalConfig{}, errors.New("incorrect MyId")
+				} else {
+					config.MyId = int64(valInt)
+				}
+			case "TokenPath":
+				config.TokenPath = values[1]
+			case "MapPathTest":
+				config.MapPathTest = values[1]
+			case "MapPathProd":
+				config.MapPathProd = values[1]
+			case "Mode":
+				config.Mode = strings.ToLower(values[1])
+			default:
+				return zigbee.GlobalConfig{}, errors.New("unknown parametr")
+			}
+
+		}
+		fd.Close()
+	}
+	return config, nil
 }
