@@ -11,4 +11,4 @@ build-nix:
 
 install:
 	go install
-	
+	cp config /usr/local/etc/zhub4/
