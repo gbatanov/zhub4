@@ -52,7 +52,6 @@ type Zdo struct {
 	macAddress                uint64
 	ShortAddress              uint16
 	isReady                   bool
-	os                        string
 	msgChan                   chan Command // chanel for send command to controller
 	joinChan                  chan []byte  // chanel for send command join device to controller
 	tmpBuff                   []byte
@@ -62,9 +61,9 @@ func init() {
 	fmt.Println("Init in zigbee: zdo")
 }
 
-func Zdo_create(port string, Os string, chn chan Command, jchn chan []byte) (*Zdo, error) {
+func Zdo_create(port string, os string, chn chan Command, jchn chan []byte) (*Zdo, error) {
 	eh := Create_event_handler()
-	uart := serial3.UartCreate(port, Os)
+	uart := serial3.UartCreate(port, os)
 	cmdinput := make(chan []byte, 256)
 	err := uart.Open()
 	if err != nil {
@@ -80,7 +79,6 @@ func Zdo_create(port string, Os string, chn chan Command, jchn chan []byte) (*Zd
 		macAddress:                0x0000000000000000,
 		ShortAddress:              0x0000,
 		isReady:                   false,
-		os:                        Os,
 		msgChan:                   chn,
 		joinChan:                  jchn,
 		tmpBuff:                   []byte{}}

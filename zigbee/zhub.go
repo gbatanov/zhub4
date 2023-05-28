@@ -5,19 +5,6 @@ import (
 	"log"
 )
 
-type GlobalConfig struct {
-	// telegram bot
-	BotName   string
-	MyId      int64
-	TokenPath string
-	// map short address to mac address
-	MapPath string
-	// working mode
-	Mode string
-	// channels
-	Channels []uint8
-}
-
 type Zhub struct {
 	controller *Controller
 	Flag       bool
@@ -28,8 +15,8 @@ func init() {
 	fmt.Println("Init in zigbee: zhub")
 }
 
-func Zhub_create(Ports map[string]string, Os string, config GlobalConfig) (*Zhub, error) {
-	controller, err := controller_create(Ports, Os, config)
+func Zhub_create(config GlobalConfig) (*Zhub, error) {
+	controller, err := controller_create(config)
 	if err != nil {
 		return &Zhub{}, err
 	}

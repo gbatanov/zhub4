@@ -17,6 +17,22 @@ import (
 	"zhub4/zigbee/zdo/zcl"
 )
 
+type GlobalConfig struct {
+	// telegram bot
+	BotName   string
+	MyId      int64
+	TokenPath string
+	// map short address to mac address
+	MapPath string
+	// working mode
+	Mode string
+	// channels
+	Channels []uint8
+	// serial port
+	Port string
+	// operating system
+	Os string
+}
 type Controller struct {
 	zdobj              *zdo.Zdo
 	config             GlobalConfig
@@ -35,16 +51,13 @@ type Controller struct {
 	tlgMsgChan         chan telega32.Message
 }
 
-func controller_create(Ports map[string]string, Os string, config GlobalConfig) (*Controller, error) {
+func controller_create(config GlobalConfig) (*Controller, error) {
 	chn1 := make(chan zdo.Command, 16)
 	chn2 := make(chan []byte, 12) // chan for join command shortAddr + macAddrj
 	chn3 := make(chan clusters.MotionMsg, 16)
 	ts := time.Now()
 
-	zdoo, err := zdo.Zdo_create(Ports[Os], Os, chn1, chn2)
-	if err != nil {
-		zdoo, err = zdo.Zdo_create(Ports[Os+"2"], Os, chn1, chn2)
-	}
+	zdoo, err := zdo.Zdo_create(config.Port, config.Os, chn1, chn2)
 	if err != nil {
 		return &Controller{}, err
 	}

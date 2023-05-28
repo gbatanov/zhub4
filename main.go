@@ -22,9 +22,8 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.3.24"
+const Version string = "v0.3.25"
 
-var Os string = ""
 var Flag bool = true
 
 func init() {
@@ -52,13 +51,6 @@ func main() {
 		//		intrpt = true
 	}()
 
-	get_os_params()
-	var Ports map[string]string = map[string]string{
-		"darwin":  "/dev/cu.usbmodem148201",
-		"darwin2": "/dev/cu.usbserial-0001",
-		"linux":   "/dev/ttyACM0",
-		"linux2":  "/dev/ttyACM1"}
-
 	config, err := get_global_config()
 	if err != nil {
 		sysLog.Emerg(err.Error())
@@ -66,7 +58,7 @@ func main() {
 		Flag = false
 	}
 
-	zhub, err := zigbee.Zhub_create(Ports, Os, config)
+	zhub, err := zigbee.Zhub_create(config)
 	if err != nil {
 		sysLog.Emerg(err.Error())
 		log.Println(err)
@@ -101,14 +93,10 @@ func main() {
 	}
 }
 
-func get_os_params() {
-	gi, _ := goInfo.GetInfo()
-	//	gi.VarDump()
-	Os = gi.GoOS
-}
-
 func get_global_config() (zigbee.GlobalConfig, error) {
 	config := zigbee.GlobalConfig{}
+	gi, _ := goInfo.GetInfo()
+	config.Os = gi.GoOS
 
 	filename := "/usr/local/etc/zhub4/config"
 	fd, err := os.OpenFile(filename, os.O_RDONLY, 0755)
@@ -168,6 +156,8 @@ func get_global_config() (zigbee.GlobalConfig, error) {
 				config.TokenPath = values[1]
 			case "MapPath":
 				config.MapPath = values[1]
+			case "Port":
+				config.Port = values[1]
 			case "Channels":
 				config.Channels = make([]uint8, 0)
 				channels := strings.Split(values[1], ",")
