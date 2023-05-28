@@ -4,6 +4,8 @@ gbatanov@yandex.ru
 */
 package zdo
 
+// low lewel functions
+
 import (
 	"encoding/binary"
 	"errors"
@@ -50,7 +52,6 @@ type Zdo struct {
 	macAddress                uint64
 	ShortAddress              uint16
 	isReady                   bool
-	os                        string
 	msgChan                   chan Command // chanel for send command to controller
 	joinChan                  chan []byte  // chanel for send command join device to controller
 	tmpBuff                   []byte
@@ -60,9 +61,9 @@ func init() {
 	fmt.Println("Init in zigbee: zdo")
 }
 
-func Zdo_create(port string, Os string, chn chan Command, jchn chan []byte) (*Zdo, error) {
+func Zdo_create(port string, os string, chn chan Command, jchn chan []byte) (*Zdo, error) {
 	eh := Create_event_handler()
-	uart := serial3.UartCreate(port, Os)
+	uart := serial3.UartCreate(port, os)
 	cmdinput := make(chan []byte, 256)
 	err := uart.Open()
 	if err != nil {
@@ -78,7 +79,6 @@ func Zdo_create(port string, Os string, chn chan Command, jchn chan []byte) (*Zd
 		macAddress:                0x0000000000000000,
 		ShortAddress:              0x0000,
 		isReady:                   false,
-		os:                        Os,
 		msgChan:                   chn,
 		joinChan:                  jchn,
 		tmpBuff:                   []byte{}}
@@ -188,7 +188,7 @@ func (zdo *Zdo) parse_command(BufRead []byte) ([]Command, bool) {
 			var cmd CommandId = CommandId(zcl.UINT16_(cmd1, cmd0))
 			var command *Command = NewCommand(cmd)
 
-			for j := 0; j < int(payload_length) && i < len(BufRead); j++ {
+			for j := 0; j < int(payload_length) && i < len(BufRead)-1; j++ {
 				command.Payload = append(command.Payload, BufRead[i])
 				i++
 			}
@@ -294,7 +294,7 @@ func (zdo *Zdo) Read_rf_channels() RF_Channels {
 		log.Printf("rf.channels bitMask: 0x%08x \n", channelBitMask)
 		for i := 0; i < 32; i++ {
 			if (channelBitMask & uint32(1<<i)) != 0 {
-				rf.channels = append(rf.channels, uint8(i))
+				rf.Channels = append(rf.Channels, uint8(i))
 				log.Printf("channel %d\n", i)
 			}
 		}
@@ -305,7 +305,7 @@ func (zdo *Zdo) Read_rf_channels() RF_Channels {
 // write channels list into coordinator
 func (zdo *Zdo) Write_rf_channels(new RF_Channels) error {
 	channelBitMask := uint32(0)
-	for _, channel := range new.channels {
+	for _, channel := range new.Channels {
 		channelBitMask |= (1 << channel)
 	}
 	//	log.Printf("write bitMask: 0x%08x \n", channelBitMask)

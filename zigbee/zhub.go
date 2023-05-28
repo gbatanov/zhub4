@@ -1,38 +1,37 @@
+/*
+GSB, 2023
+gbatanov@yandex.ru
+*/
 package zigbee
 
 import (
 	"fmt"
 	"log"
-	"zhub4/zigbee/zdo"
 )
 
 type Zhub struct {
 	controller *Controller
-	mode       string
 	Flag       bool
+	config     GlobalConfig
 }
 
 func init() {
 	fmt.Println("Init in zigbee: zhub")
 }
 
-func Zhub_create(Ports map[string]string, Os string, mode string) (*Zhub, error) {
-	controller, err := controller_create(Ports, Os, mode)
+func Zhub_create(config GlobalConfig) (*Zhub, error) {
+	controller, err := controller_create(config)
 	if err != nil {
 		return &Zhub{}, err
 	}
-	zhub := Zhub{controller: controller, Flag: false, mode: mode}
+	zhub := Zhub{controller: controller, Flag: false, config: config}
 	return &zhub, nil
 }
 
 func (zhub *Zhub) Start() error {
 	zhub.Flag = true
-	var err error
-	if zhub.mode == "prod" {
-		err = zhub.controller.start_network(zdo.DefaultRFChannels)
-	} else {
-		err = zhub.controller.start_network(zdo.TestRFChannels)
-	}
+
+	err := zhub.controller.start_network()
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -6,11 +6,13 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
 	"log/syslog"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -20,9 +22,8 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.2.18"
+const Version string = "v0.3.25"
 
-var Os string = ""
 var Flag bool = true
 
 func init() {
@@ -50,14 +51,14 @@ func main() {
 		//		intrpt = true
 	}()
 
-	get_os_params()
-	var Ports map[string]string = map[string]string{
-		"darwin":  "/dev/cu.usbmodem148201",
-		"darwin2": "/dev/cu.usbserial-0001",
-		"linux":   "/dev/ttyACM0",
-		"linux2":  "/dev/ttyACM1"}
+	config, err := get_global_config()
+	if err != nil {
+		sysLog.Emerg(err.Error())
+		log.Println(err)
+		Flag = false
+	}
 
-	zhub, err := zigbee.Zhub_create(Ports, Os, strings.ToLower("test"))
+	zhub, err := zigbee.Zhub_create(config)
 	if err != nil {
 		sysLog.Emerg(err.Error())
 		log.Println(err)
@@ -65,32 +66,113 @@ func main() {
 	}
 
 	if Flag {
-		zhub.Start()
-		defer zhub.Stop()
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go func() {
-			for Flag {
-				reader := bufio.NewReader(os.Stdin)
-				text, _ := reader.ReadString('\n')
-				if len(text) > 0 {
-					switch []byte(text)[0] {
-					case 'q':
-						Flag = false
-					case 'j':
-						zhub.Get_controller().Get_zdo().Permit_join(60 * time.Second)
-					} //switch
-				}
-			} //for
-			wg.Done()
-		}()
-		wg.Wait()
+		err = zhub.Start()
+		if err == nil {
+			defer zhub.Stop()
+			var wg sync.WaitGroup
+
+			wg.Add(1)
+			go func() {
+				for Flag {
+					reader := bufio.NewReader(os.Stdin)
+					text, _ := reader.ReadString('\n')
+					if len(text) > 0 {
+						switch []byte(text)[0] {
+						case 'q':
+							Flag = false
+						case 'j':
+							zhub.Get_controller().Get_zdo().Permit_join(60 * time.Second)
+						} //switch
+					}
+				} //for
+				wg.Done()
+			}()
+			wg.Wait()
+		}
 		Flag = false
 	}
 }
 
-func get_os_params() {
+func get_global_config() (zigbee.GlobalConfig, error) {
+	config := zigbee.GlobalConfig{}
 	gi, _ := goInfo.GetInfo()
-	//	gi.VarDump()
-	Os = gi.GoOS
+	config.Os = gi.GoOS
+
+	filename := "/usr/local/etc/zhub4/config"
+	fd, err := os.OpenFile(filename, os.O_RDONLY, 0755)
+	if err != nil {
+		return zigbee.GlobalConfig{}, errors.New("incorrect file with configuration")
+	} else {
+		scan := bufio.NewScanner(fd)
+		var mode string = ""
+		var sectionMode bool = true
+		var values []string = []string{}
+		// read line by line
+		for scan.Scan() {
+
+			line := scan.Text()
+			line = strings.Trim(line, " \t")
+
+			if strings.HasPrefix(line, "//") { //comment
+				continue
+			}
+			if len(line) < 3 { //empty string
+				continue
+			}
+			if len(mode) == 0 {
+				values = strings.Split(line, " ")
+				if values[0] != "Mode" {
+					continue
+				}
+				mode = strings.Trim(line[len(values[0]):], " \t")
+				mode = strings.ToLower(strings.Split(mode, " ")[0])
+				config.Mode = mode
+				continue
+			}
+
+			if strings.HasPrefix(line, "[") {
+				section := line[1 : len(line)-1]
+				sectionMode = section == mode
+				continue
+			}
+			if !sectionMode { //pass section
+				continue
+			}
+			values := strings.Split(line, " ")
+			values1 := strings.Trim(line[len(values[0]):], " \t")
+			values[1] = strings.Split(values1, " ")[0]
+
+			switch values[0] {
+			case "BotName":
+				config.BotName = values[1]
+			case "MyId":
+				valInt, err := strconv.Atoi(values[1])
+				if err != nil {
+					return zigbee.GlobalConfig{}, errors.New("incorrect MyId")
+				} else {
+					config.MyId = int64(valInt)
+				}
+			case "TokenPath":
+				config.TokenPath = values[1]
+			case "MapPath":
+				config.MapPath = values[1]
+			case "Port":
+				config.Port = values[1]
+			case "Channels":
+				config.Channels = make([]uint8, 0)
+				channels := strings.Split(values[1], ",")
+				for i := 0; i < len(channels); i++ {
+					val, err := strconv.Atoi(channels[i])
+					if err == nil {
+						config.Channels = append(config.Channels, uint8(val))
+					}
+				}
+				//			default: // pass
+				//				return zigbee.GlobalConfig{}, errors.New("unknown parametr")
+			}
+		}
+		fd.Close()
+	}
+
+	return config, nil
 }
