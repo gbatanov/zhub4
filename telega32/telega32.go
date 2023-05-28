@@ -21,19 +21,21 @@ type Message struct {
 
 // We inherit the bot to rewrite the function for receiving updates
 type Tlg32 struct {
-	botApi  *tgbotapi.BotAPI
-	mode    string
-	MyId    int64
-	botName string
-	chatIds []int64
-	Flag    bool
-	token   string
-	MsgChan chan Message
+	botApi    *tgbotapi.BotAPI
+	mode      string
+	MyId      int64
+	botName   string
+	chatIds   []int64
+	Flag      bool
+	tokenPath string
+	token     string
+	MsgChan   chan Message
 }
 
 func Tlg32Create(botName string, mode string, tokenPath string, myId int64, msgChan chan Message) *Tlg32 {
 	bot := Tlg32{}
 	bot.mode = mode
+	bot.tokenPath = tokenPath
 	bot.botName = botName //your bot name
 	bot.MyId = myId
 	bot.chatIds = append(bot.chatIds, myId)

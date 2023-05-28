@@ -74,9 +74,12 @@ func controller_create(Ports map[string]string, Os string, config GlobalConfig) 
 func (c *Controller) Get_zdo() *zdo.Zdo {
 	return c.zdobj
 }
-func (c *Controller) start_network(defconf zdo.RF_Channels) error {
+func (c *Controller) start_network() error {
 
 	log.Println("Controller start network")
+	var defconf zdo.RF_Channels
+	defconf.Channels = c.config.Channels
+
 	// thread for commands handle
 	go func() {
 		c.Get_zdo().Input_command()
@@ -184,9 +187,7 @@ func (c *Controller) write_map_to_file() error {
 	m.Lock()
 	defer m.Unlock()
 
-	// TODO: to config
-	prefix := "/usr/local"
-	filename := prefix + "/etc/zhub4/map_addr_test.cfg"
+	filename := c.config.MapPath
 
 	fd, err := os.Create(filename)
 	if err != nil {
@@ -209,13 +210,11 @@ func (c *Controller) read_map_from_file() error {
 	defer m.Unlock()
 	c.devicessAddressMap = map[uint16]uint64{}
 
-	// TODO: to config
-	prefix := "/usr/local"
-	filename := prefix + "/etc/zhub4/map_addr_test.cfg"
-
+	filename := c.config.MapPath
+	fmt.Println(filename)
 	fd, err := os.OpenFile(filename, os.O_RDONLY, 0755)
 	if err != nil {
-		fmt.Println("OpenFile error: ", err)
+		fmt.Println("ReadMap:: OpenFile error: ", err)
 	} else {
 
 		var shortAddr uint16
@@ -333,10 +332,8 @@ func (c *Controller) on_join(shortAddress uint16, macAddress uint64) {
 	}
 
 	//
-	c.Get_zdo().Active_endpoints(shortAddress)
-	c.Get_zdo().Simple_descriptor(shortAddress, 1) // TODO: получить со всех эндпойнотов, полученных на предыдущем этапе
-
-	c.get_identifier(shortAddress) // Для многих устройств этот запрос обязателен!!!! Без него не работатет устройство, только регистрация в сети
+	c.Get_zdo().Active_endpoints(shortAddress) // descriptors will be obtained later for each endpoint
+	c.get_identifier(shortAddress)             // For many devices this request is required!!!! Without it, the device does not work, only registration on the network
 
 }
 func (c *Controller) get_identifier(address uint16) {

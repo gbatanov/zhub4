@@ -22,7 +22,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.3.23"
+const Version string = "v0.3.24"
 
 var Os string = ""
 var Flag bool = true
@@ -116,17 +116,43 @@ func get_global_config() (zigbee.GlobalConfig, error) {
 		return zigbee.GlobalConfig{}, errors.New("incorrect file with configuration")
 	} else {
 		scan := bufio.NewScanner(fd)
+		var mode string = ""
+		var sectionMode bool = true
+		var values []string = []string{}
 		// read line by line
 		for scan.Scan() {
 
 			line := scan.Text()
-			if strings.HasPrefix(line, "//") {
+			line = strings.Trim(line, " \t")
+
+			if strings.HasPrefix(line, "//") { //comment
+				continue
+			}
+			if len(line) < 3 { //empty string
+				continue
+			}
+			if len(mode) == 0 {
+				values = strings.Split(line, " ")
+				if values[0] != "Mode" {
+					continue
+				}
+				mode = strings.Trim(line[len(values[0]):], " \t")
+				mode = strings.ToLower(strings.Split(mode, " ")[0])
+				config.Mode = mode
+				continue
+			}
+
+			if strings.HasPrefix(line, "[") {
+				section := line[1 : len(line)-1]
+				sectionMode = section == mode
+				continue
+			}
+			if !sectionMode { //pass section
 				continue
 			}
 			values := strings.Split(line, " ")
-			if len(values) != 2 {
-				return zigbee.GlobalConfig{}, errors.New("incorrect line")
-			}
+			values1 := strings.Trim(line[len(values[0]):], " \t")
+			values[1] = strings.Split(values1, " ")[0]
 
 			switch values[0] {
 			case "BotName":
@@ -140,18 +166,23 @@ func get_global_config() (zigbee.GlobalConfig, error) {
 				}
 			case "TokenPath":
 				config.TokenPath = values[1]
-			case "MapPathTest":
-				config.MapPathTest = values[1]
-			case "MapPathProd":
-				config.MapPathProd = values[1]
-			case "Mode":
-				config.Mode = strings.ToLower(values[1])
-			default:
-				return zigbee.GlobalConfig{}, errors.New("unknown parametr")
+			case "MapPath":
+				config.MapPath = values[1]
+			case "Channels":
+				config.Channels = make([]uint8, 0)
+				channels := strings.Split(values[1], ",")
+				for i := 0; i < len(channels); i++ {
+					val, err := strconv.Atoi(channels[i])
+					if err == nil {
+						config.Channels = append(config.Channels, uint8(val))
+					}
+				}
+				//			default: // pass
+				//				return zigbee.GlobalConfig{}, errors.New("unknown parametr")
 			}
-
 		}
 		fd.Close()
 	}
+
 	return config, nil
 }

@@ -3,7 +3,6 @@ package zigbee
 import (
 	"fmt"
 	"log"
-	"zhub4/zigbee/zdo"
 )
 
 type GlobalConfig struct {
@@ -12,15 +11,15 @@ type GlobalConfig struct {
 	MyId      int64
 	TokenPath string
 	// map short address to mac address
-	MapPathTest string
-	MapPathProd string
+	MapPath string
 	// working mode
 	Mode string
+	// channels
+	Channels []uint8
 }
 
 type Zhub struct {
 	controller *Controller
-	mode       string
 	Flag       bool
 	config     GlobalConfig
 }
@@ -34,18 +33,14 @@ func Zhub_create(Ports map[string]string, Os string, config GlobalConfig) (*Zhub
 	if err != nil {
 		return &Zhub{}, err
 	}
-	zhub := Zhub{controller: controller, Flag: false, mode: config.Mode}
+	zhub := Zhub{controller: controller, Flag: false, config: config}
 	return &zhub, nil
 }
 
 func (zhub *Zhub) Start() error {
 	zhub.Flag = true
-	var err error
-	if zhub.mode == "prod" {
-		err = zhub.controller.start_network(zdo.DefaultRFChannels)
-	} else {
-		err = zhub.controller.start_network(zdo.TestRFChannels)
-	}
+
+	err := zhub.controller.start_network()
 	if err != nil {
 		log.Fatal(err)
 	}

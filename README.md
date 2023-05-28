@@ -16,6 +16,13 @@ This is not a full-fledged finished project (as Zhub2 on C++), it is rather a te
 #### Settings
 File with config need place into /usr/local/etc/zhub4 (content example in  config_example)
 
+#### Build an start
+```
+make
+make install
+zhub4
+```
+
 #### Console commands
 - q Quit
 - j Permit join

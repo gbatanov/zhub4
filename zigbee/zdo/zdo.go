@@ -4,6 +4,8 @@ gbatanov@yandex.ru
 */
 package zdo
 
+// low lewel functions
+
 import (
 	"encoding/binary"
 	"errors"
@@ -294,7 +296,7 @@ func (zdo *Zdo) Read_rf_channels() RF_Channels {
 		log.Printf("rf.channels bitMask: 0x%08x \n", channelBitMask)
 		for i := 0; i < 32; i++ {
 			if (channelBitMask & uint32(1<<i)) != 0 {
-				rf.channels = append(rf.channels, uint8(i))
+				rf.Channels = append(rf.Channels, uint8(i))
 				log.Printf("channel %d\n", i)
 			}
 		}
@@ -305,7 +307,7 @@ func (zdo *Zdo) Read_rf_channels() RF_Channels {
 // write channels list into coordinator
 func (zdo *Zdo) Write_rf_channels(new RF_Channels) error {
 	channelBitMask := uint32(0)
-	for _, channel := range new.channels {
+	for _, channel := range new.Channels {
 		channelBitMask |= (1 << channel)
 	}
 	//	log.Printf("write bitMask: 0x%08x \n", channelBitMask)
