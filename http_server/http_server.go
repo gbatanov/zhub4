@@ -10,6 +10,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
+	"strconv"
 )
 
 type MyResponse struct {
@@ -33,6 +35,8 @@ func Http_server_create() (*HttpServer, error) {
 // register handlers
 func (web *HttpServer) register_routing() {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/css/", web.css_handler)
+	mux.HandleFunc("/command", web.command_handler)
 	mux.HandleFunc("/", web.other_handler)
 	web.srv.Handler = mux
 }
@@ -68,7 +72,9 @@ func (web *HttpServer) NotFound(w http.ResponseWriter, r *http.Request) {
 	my_resp.body += fmt.Sprintf("<a href=\"%s\">Home page</a>", baseUrl.String())
 
 	my_resp.head = "<title>Page not found</title>"
-	web.send_answer(w, my_resp, 404)
+	my_resp.head += "<link href=\"/css/gsb_style.css\" rel=\"stylesheet\" type=\"text/css\">"
+	var headers map[string]string = make(map[string]string)
+	web.send_answer(w, my_resp, 404, "text/html", headers)
 }
 
 func (web *HttpServer) other_handler(w http.ResponseWriter, r *http.Request) {
@@ -83,30 +89,74 @@ func (web *HttpServer) other_handler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// TODO: path to config
+func (web *HttpServer) css_handler(w http.ResponseWriter, r *http.Request) {
+
+	var my_resp MyResponse
+
+	css := r.URL.Path[5:]
+	str, err := os.ReadFile("/usr/local/etc/zhub4/web/" + css)
+	if err != nil {
+		log.Println("Error open css file")
+		my_resp.body = ""
+	} else {
+		my_resp.body = string(str)
+	}
+	var headers map[string]string = make(map[string]string)
+	web.send_answer(w, my_resp, 200, "text/css", headers)
+
+}
+func (web *HttpServer) command_handler(w http.ResponseWriter, r *http.Request) {
+
+	var my_resp MyResponse
+	host := r.Host
+	baseUrl, _ := url.Parse("http://" + host)
+
+	my_resp.body = "<h3>Commands list</h3>"
+	my_resp.body += fmt.Sprintf("<a href=\"%s\">Home page</a>", baseUrl.String())
+	//my_resp.body += fmt.Sprintf("<br><a href=\"%s\">Commands</a>", baseUrl.String()+"/command")
+	var headers map[string]string = make(map[string]string)
+	my_resp.head = "<title>Commands list</title>"
+	my_resp.head += "<link href=\"/css/gsb_style.css\" rel=\"stylesheet\" type=\"text/css\">"
+	web.send_answer(w, my_resp, 200, "text/html", headers)
+
+}
+
 func (web *HttpServer) main_page(w http.ResponseWriter, r *http.Request) {
 	var my_resp MyResponse
 	host := r.Host
 	baseUrl, _ := url.Parse("http://" + host)
 
-	my_resp.body = "<div>Device list</div>"
+	my_resp.body = "<h3>Device list</h3>"
 	//	my_resp.body += fmt.Sprintf("<a href=\"%s\">Home page</a>", baseUrl.String())
 	my_resp.body += fmt.Sprintf("<br><a href=\"%s\">Commands</a>", baseUrl.String()+"/command")
 
 	my_resp.head = "<title>Device list</title>"
-	web.send_answer(w, my_resp, 200)
+	my_resp.head += "<link href=\"/css/gsb_style.css\" rel=\"stylesheet\" type=\"text/css\">"
+	var headers map[string]string = make(map[string]string)
+	web.send_answer(w, my_resp, 200, "text/html", headers)
 }
 
 // send answer to client
-func (web *HttpServer) send_answer(w http.ResponseWriter, my_resp MyResponse, code int) {
+func (web *HttpServer) send_answer(w http.ResponseWriter, my_resp MyResponse, code int, mime string, headers map[string]string) {
+	var result string = ""
+	if mime == "text/html" {
+		result = "<html>"
 
-	var result string = "<html>"
+		result += "<head>"
+		result += my_resp.head
+		result += "</head><body>"
+		result += my_resp.body
+		result += "</body></html>"
+	} else if mime == "text/css" {
+		mime = "text/plain"
+		result += my_resp.body
+	}
+	headers["Content-Type"] = mime + ";charset=utf-8"
+	headers["Content-Length"] = strconv.Itoa(len(result))
 
-	result += "<head>"
-	result += my_resp.head
-	result += "</head><body>"
-	result += my_resp.body
-	result += "</body></html>"
-	send_headers(w, code)
+	//	fmt.Printf("%q \n", headers)
+	web.send_headers(w, code, headers)
 	w.Write([]byte(result))
 }
 
@@ -122,7 +172,10 @@ func (web *HttpServer) get_params(req *http.Request) (url.Values, error) {
 }
 
 // send header to client
-func send_headers(w http.ResponseWriter, code int) {
-	w.Header().Add("Content-Type", "text/html;charset=utf-8")
+func (web *HttpServer) send_headers(w http.ResponseWriter, code int, headers map[string]string) {
+
+	for k, v := range headers {
+		w.Header().Add(k, v)
+	}
 	w.WriteHeader(code)
 }

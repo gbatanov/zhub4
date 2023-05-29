@@ -12,3 +12,4 @@ zhub4:
 install:
 	go install
 	cp config /usr/local/etc/zhub4/
+	cp http_server/gsb_style.css /usr/local/etc/zhub4/web/
