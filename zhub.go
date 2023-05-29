@@ -22,12 +22,18 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.3.25"
+const Version string = "v0.3.26"
 
 var Flag bool = true
 
+type Zhub struct {
+	controller *zigbee.Controller
+	Flag       bool
+	config     zigbee.GlobalConfig
+}
+
 func init() {
-	fmt.Println("Init in main")
+	fmt.Println("Init in  zhub")
 }
 
 func main() {
@@ -58,7 +64,7 @@ func main() {
 		Flag = false
 	}
 
-	zhub, err := zigbee.Zhub_create(config)
+	zhub, err := Zhub_create(config)
 	if err != nil {
 		sysLog.Emerg(err.Error())
 		log.Println(err)
@@ -175,4 +181,33 @@ func get_global_config() (zigbee.GlobalConfig, error) {
 	}
 
 	return config, nil
+}
+
+func Zhub_create(config zigbee.GlobalConfig) (*Zhub, error) {
+	controller, err := zigbee.Controller_create(config)
+	if err != nil {
+		return &Zhub{}, err
+	}
+	zhub := Zhub{controller: controller, Flag: false, config: config}
+	return &zhub, nil
+}
+
+func (zhub *Zhub) Start() error {
+	zhub.Flag = true
+
+	err := zhub.controller.Start_network()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return nil
+
+}
+
+func (zhub *Zhub) Stop() {
+	zhub.controller.Stop()
+}
+
+func (zhub *Zhub) Get_controller() *zigbee.Controller {
+	return zhub.controller
 }

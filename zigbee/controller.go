@@ -51,7 +51,7 @@ type Controller struct {
 	tlgMsgChan         chan telega32.Message
 }
 
-func controller_create(config GlobalConfig) (*Controller, error) {
+func Controller_create(config GlobalConfig) (*Controller, error) {
 	chn1 := make(chan zdo.Command, 16)
 	chn2 := make(chan []byte, 12) // chan for join command shortAddr + macAddrj
 	chn3 := make(chan clusters.MotionMsg, 16)
@@ -87,7 +87,7 @@ func controller_create(config GlobalConfig) (*Controller, error) {
 func (c *Controller) Get_zdo() *zdo.Zdo {
 	return c.zdobj
 }
-func (c *Controller) start_network() error {
+func (c *Controller) Start_network() error {
 
 	log.Println("Controller start network")
 	var defconf zdo.RF_Channels
@@ -608,8 +608,10 @@ func (c *Controller) on_attribute_report(ed *zdo.EndDevice, ep zcl.Endpoint, clu
 
 }
 func (c *Controller) get_smart_plug_params() {
-	ed := c.get_device_by_mac(0x70b3d52b6001b4a4)
-
+	ed := c.get_device_by_mac(0x70b3d52b6001b4a4) // SmartPlug
+	if ed.ShortAddress == 0 {
+		return
+	}
 	// request current,voltage and instant power for every 5 minutes
 	interval := float64(300)
 	if c.config.Mode == "test" {
