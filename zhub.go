@@ -22,7 +22,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.4.30"
+const Version string = "v0.4.31"
 
 func init() {
 	fmt.Println("Init in  zhub")

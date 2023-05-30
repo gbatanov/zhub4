@@ -57,7 +57,7 @@ func (a AnalogInputCluster) Handler_attributes(endpoint zcl.Endpoint, attributes
 		} else if unit == "C" {
 			a.Ed.Set_temperature(int8(value))
 		} else if unit == "V" {
-			a.Ed.Set_battery_params(0, value)
+			a.Ed.Set_battery_params(0, value) // TODO ???
 		} else if unit == "Pa" {
 			a.Ed.Set_pressure(value)
 		} else {

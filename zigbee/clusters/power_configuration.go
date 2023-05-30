@@ -36,21 +36,8 @@ func (p PowerConfigurationCluster) Handler_attributes(endpoint zcl.Endpoint, att
 				val = 0xc8
 			}
 			value := val / 2
-			/*
-				valStr := ""
-
-				if val < 0x30 {
-					valStr = "<1/4"
-				} else if val >= 0x30 && val < 0x60 {
-					valStr = "<1/2"
-				} else if val >= 0x60 && val < 0x90 {
-					valStr = "<3/4"
-				} else if val >= 0x90 {
-					valStr = ">3/4"
-				}
-			*/
 			fmt.Printf(" remain: %d%% (0x%02x) \n\n", value, val)
-			p.Ed.Set_battery_params(val, 0.0)
+			p.Ed.Set_battery_params(value, 0.0)
 
 		default:
 			fmt.Printf("unknown attribute 0x%04x \n", attribute.Id)
