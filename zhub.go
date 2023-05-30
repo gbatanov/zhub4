@@ -22,21 +22,18 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.4.29"
-
-var Flag bool = true
-
-type Zhub struct {
-	controller *zigbee.Controller
-	Flag       bool
-	config     zigbee.GlobalConfig
-}
+const Version string = "v0.4.30"
 
 func init() {
 	fmt.Println("Init in  zhub")
 }
 
 func main() {
+
+	var Flag bool = true
+	var controller *zigbee.Controller
+	var config zigbee.GlobalConfig
+
 	sysLog, err := syslog.New(syslog.LOG_INFO|syslog.LOG_SYSLOG, "zhub4")
 	sysLog.Info("Start zhub4, version " + Version)
 
@@ -57,24 +54,27 @@ func main() {
 		//		intrpt = true
 	}()
 
-	config, err := get_global_config()
+	config, err = get_global_config()
 	if err != nil {
 		sysLog.Emerg(err.Error())
 		log.Println(err)
 		Flag = false
 	}
 
-	zhub, err := Zhub_create(config)
+	controller, err = zigbee.Controller_create(config)
+
 	if err != nil {
 		sysLog.Emerg(err.Error())
 		log.Println(err)
 		Flag = false
 	}
+
 	if Flag {
 
-		err = zhub.Start()
+		err := controller.Start_network()
+
 		if err == nil {
-			defer zhub.Stop()
+			defer controller.Stop()
 			var wg sync.WaitGroup
 
 			wg.Add(1)
@@ -87,7 +87,7 @@ func main() {
 						case 'q':
 							Flag = false
 						case 'j':
-							zhub.Get_controller().Get_zdo().Permit_join(60 * time.Second)
+							controller.Get_zdo().Permit_join(60 * time.Second)
 						} //switch
 					}
 				} //for
@@ -181,33 +181,4 @@ func get_global_config() (zigbee.GlobalConfig, error) {
 	}
 
 	return config, nil
-}
-
-func Zhub_create(config zigbee.GlobalConfig) (*Zhub, error) {
-	controller, err := zigbee.Controller_create(config)
-	if err != nil {
-		return &Zhub{}, err
-	}
-	zhub := Zhub{controller: controller, Flag: false, config: config}
-	return &zhub, nil
-}
-
-func (zhub *Zhub) Start() error {
-	zhub.Flag = true
-
-	err := zhub.controller.Start_network()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return nil
-
-}
-
-func (zhub *Zhub) Stop() {
-	zhub.controller.Stop()
-}
-
-func (zhub *Zhub) Get_controller() *zigbee.Controller {
-	return zhub.controller
 }
