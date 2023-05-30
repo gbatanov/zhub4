@@ -11,45 +11,12 @@ import (
 	"os"
 	"sync"
 	"time"
+	"zhub4/http_server"
 	"zhub4/telega32"
 	"zhub4/zigbee/clusters"
 	"zhub4/zigbee/zdo"
 	"zhub4/zigbee/zdo/zcl"
 )
-
-type GlobalConfig struct {
-	// telegram bot
-	BotName   string
-	MyId      int64
-	TokenPath string
-	// map short address to mac address
-	MapPath string
-	// working mode
-	Mode string
-	// channels
-	Channels []uint8
-	// serial port
-	Port string
-	// operating system
-	Os string
-}
-type Controller struct {
-	zdobj              *zdo.Zdo
-	config             GlobalConfig
-	devices            map[uint64]*zdo.EndDevice
-	devicessAddressMap map[uint16]uint64
-	flag               bool
-	msgChan            chan zdo.Command        // chanel for receive incoming message command from zdo
-	joinChan           chan []byte             // chanel for receive command join device from zdo
-	motionMsgChan      chan clusters.MotionMsg // chanel for get message from motion sensors
-	lastMotion         time.Time               // last motion any motion sensor
-	smartPlugTS        time.Time               // timestamp for smart plug timer
-	switchOffTS        bool                    // flag for switch off timer
-	mapFileMutex       sync.Mutex
-	tlg32              *telega32.Tlg32
-	withTlg            bool
-	tlgMsgChan         chan telega32.Message
-}
 
 func Controller_create(config GlobalConfig) (*Controller, error) {
 	chn1 := make(chan zdo.Command, 16)
@@ -62,9 +29,18 @@ func Controller_create(config GlobalConfig) (*Controller, error) {
 		return &Controller{}, err
 	}
 
+	// telegram bot block
 	tlgMsgChan := make(chan telega32.Message, 16)
-	//func Tlg32Create(botName string, mode string, tokenPath string, myId int64, msgChan chan Message) *Tlg32 {
 	tlg32 := telega32.Tlg32Create(config.BotName, config.Mode, config.TokenPath, config.MyId, tlgMsgChan) //your bot name
+	tlgBlock := TlgBlock{tlg32: tlg32, withTlg: false, tlgMsgChan: tlgMsgChan}
+
+	// http server block
+	httpBlock := HttpBlock{}
+	httpBlock.answerChan = make(chan string, 8)
+	httpBlock.queryChan = make(chan string, 8)
+	httpBlock.web, err = http_server.Http_server_create(httpBlock.answerChan, httpBlock.queryChan)
+	httpBlock.withHttp = err == nil
+
 	controller := Controller{
 		zdobj:              zdoo,
 		config:             config,
@@ -78,9 +54,9 @@ func Controller_create(config GlobalConfig) (*Controller, error) {
 		smartPlugTS:        ts,
 		switchOffTS:        false,
 		mapFileMutex:       sync.Mutex{},
-		tlg32:              tlg32,
-		withTlg:            false,
-		tlgMsgChan:         tlgMsgChan}
+		tlg:                tlgBlock,
+		http:               httpBlock,
+		startTime:          time.Now()}
 	return &controller, nil
 
 }
@@ -150,12 +126,25 @@ func (c *Controller) Start_network() error {
 		return err
 	}
 
-	err = c.tlg32.Run()
-	if err != nil {
-		c.withTlg = false
-	} else {
-		c.withTlg = true
+	if c.http.withHttp {
+		err = c.http.web.Start()
+		c.http.withHttp = err == nil
+		if c.http.withHttp {
+			go func() {
+				for c.flag {
+					cmdFromHttp := <-c.http.queryChan
+					answer := c.handleHttpQuery(cmdFromHttp)
+					c.http.answerChan <- answer
+				}
+			}()
+			if c.http.withHttp {
+				fmt.Println("Web server started")
+			}
+		}
 	}
+
+	err = c.tlg.tlg32.Run()
+	c.tlg.withTlg = err == nil
 
 	c.create_devices_by_map()
 	c.Get_zdo().Permit_join(60 * time.Second)
@@ -165,9 +154,9 @@ func (c *Controller) Start_network() error {
 			c.get_smart_plug_params()
 		}
 	}()
-	if c.withTlg {
+	if c.tlg.withTlg {
 		outMsg := telega32.Message{ChatId: c.config.MyId, Msg: "Zhub4 start"}
-		c.tlgMsgChan <- outMsg
+		c.tlg.tlgMsgChan <- outMsg
 	}
 	log.Println("Controller start network success")
 	return nil
@@ -176,8 +165,11 @@ func (c *Controller) Start_network() error {
 func (c *Controller) Stop() {
 	log.Println("Controller stop")
 	c.flag = false
-	c.tlg32.Stop()
+	c.tlg.tlg32.Stop()
 	c.Get_zdo().Stop()
+	if c.http.withHttp {
+		c.http.web.Stop()
+	}
 	// release channels
 	c.msgChan <- *zdo.NewCommand(0)
 	c.joinChan <- []byte{}
@@ -501,9 +493,9 @@ func (c *Controller) message_handler(command zdo.Command) {
 					c.ias_zone_command(uint8(0), uint16(0)) // close valves, switch off wash machine
 					ts := time.Now()                        // get time now
 					ed.Set_last_action(ts)
-					if c.withTlg {
+					if c.tlg.withTlg {
 						alarmMsg := "Сработал датчик протечки: " + ed.Get_human_name()
-						c.tlgMsgChan <- telega32.Message{ChatId: c.config.MyId, Msg: alarmMsg}
+						c.tlg.tlgMsgChan <- telega32.Message{ChatId: c.config.MyId, Msg: alarmMsg}
 					}
 					// gsmmodem->master_call()
 				}
@@ -641,9 +633,9 @@ func (c *Controller) after_message_action(ed *zdo.EndDevice) {
 		c.switchOffTS = true
 		c.switch_off_with_list()
 		log.Printf("There is no one at home\n")
-		if c.withTlg {
+		if c.tlg.withTlg {
 			alarmMsg := "There is no one at home "
-			c.tlgMsgChan <- telega32.Message{ChatId: c.config.MyId, Msg: alarmMsg}
+			c.tlg.tlgMsgChan <- telega32.Message{ChatId: c.config.MyId, Msg: alarmMsg}
 		}
 
 	}

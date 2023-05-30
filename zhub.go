@@ -17,13 +17,12 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"zhub4/http_server"
 	"zhub4/zigbee"
 
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.4.28"
+const Version string = "v0.4.29"
 
 var Flag bool = true
 
@@ -31,8 +30,6 @@ type Zhub struct {
 	controller *zigbee.Controller
 	Flag       bool
 	config     zigbee.GlobalConfig
-	withHttp   bool
-	web        *http_server.HttpServer
 }
 
 func init() {
@@ -73,18 +70,8 @@ func main() {
 		log.Println(err)
 		Flag = false
 	}
-	zhub.web, err = http_server.Http_server_create()
-	zhub.withHttp = err == nil
-
-	if zhub.withHttp {
-		err = zhub.web.Start()
-		zhub.withHttp = err == nil
-	}
-	if zhub.withHttp {
-		fmt.Println("Web server started")
-	}
-
 	if Flag {
+
 		err = zhub.Start()
 		if err == nil {
 			defer zhub.Stop()
@@ -219,9 +206,6 @@ func (zhub *Zhub) Start() error {
 
 func (zhub *Zhub) Stop() {
 	zhub.controller.Stop()
-	if zhub.withHttp {
-		zhub.web.Stop()
-	}
 }
 
 func (zhub *Zhub) Get_controller() *zigbee.Controller {

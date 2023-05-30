@@ -20,14 +20,15 @@ type MyResponse struct {
 }
 
 type HttpServer struct {
-	srv  http.Server
-	Flag bool
+	srv        http.Server
+	answerChan chan string
+	queryChan  chan string
 }
 
-func Http_server_create() (*HttpServer, error) {
+func Http_server_create(answerChan chan string, queryChan chan string) (*HttpServer, error) {
 	var srv http.Server
 	srv.Addr = "192.168.88.240:8180"
-	httpServer := HttpServer{srv: srv, Flag: true}
+	httpServer := HttpServer{srv: srv, answerChan: answerChan, queryChan: queryChan}
 
 	return &httpServer, nil
 }
@@ -42,6 +43,7 @@ func (web *HttpServer) register_routing() {
 }
 
 func (web *HttpServer) Start() error {
+	//	log.Println("Web server Start()")
 	web.register_routing()
 	go func() {
 		web.srv.ListenAndServe()
@@ -51,11 +53,13 @@ func (web *HttpServer) Start() error {
 	return nil
 }
 func (web *HttpServer) Stop() {
+	//	log.Println("Web server Stop()")
 	web.srv.Shutdown(context.Background())
 }
 
 // page 404
 func (web *HttpServer) NotFound(w http.ResponseWriter, r *http.Request) {
+	//	log.Println("NotFound")
 
 	host := r.Host
 	var my_resp MyResponse
@@ -78,7 +82,7 @@ func (web *HttpServer) NotFound(w http.ResponseWriter, r *http.Request) {
 }
 
 func (web *HttpServer) other_handler(w http.ResponseWriter, r *http.Request) {
-
+	//	log.Println("other_handler")
 	// The "/" pattern matches everything, so we need to check
 	// that we're at the root here.
 	if len(r.URL.Path) > 0 && r.URL.Path != "/" {
@@ -107,14 +111,19 @@ func (web *HttpServer) css_handler(w http.ResponseWriter, r *http.Request) {
 
 }
 func (web *HttpServer) command_handler(w http.ResponseWriter, r *http.Request) {
-
+	//	log.Println("command_handler")
 	var my_resp MyResponse
 	host := r.Host
 	baseUrl, _ := url.Parse("http://" + host)
 
 	my_resp.body = "<h3>Commands list</h3>"
-	my_resp.body += fmt.Sprintf("<a href=\"%s\">Home page</a>", baseUrl.String())
-	//my_resp.body += fmt.Sprintf("<br><a href=\"%s\">Commands</a>", baseUrl.String()+"/command")
+
+	cmd := web.parse_command(r)
+	web.queryChan <- cmd
+	answer := <-web.answerChan
+	my_resp.body += "<div>" + answer + "</div"
+
+	my_resp.body += fmt.Sprintf("<p><a href=\"%s\">Home page</a></p>", baseUrl.String())
 	var headers map[string]string = make(map[string]string)
 	my_resp.head = "<title>Commands list</title>"
 	my_resp.head += "<link href=\"/css/gsb_style.css\" rel=\"stylesheet\" type=\"text/css\">"
@@ -122,13 +131,21 @@ func (web *HttpServer) command_handler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (web *HttpServer) parse_command(r *http.Request) string {
+	return "command_list" //TODO: dummy
+}
+
 func (web *HttpServer) main_page(w http.ResponseWriter, r *http.Request) {
+	//	log.Println("Http main page")
 	var my_resp MyResponse
 	host := r.Host
 	baseUrl, _ := url.Parse("http://" + host)
 
-	my_resp.body = "<h3>Device list</h3>"
-	//	my_resp.body += fmt.Sprintf("<a href=\"%s\">Home page</a>", baseUrl.String())
+	my_resp.body = ""
+
+	web.queryChan <- "device_list"
+	answer := <-web.answerChan
+	my_resp.body += "<div>" + answer + "</div"
 	my_resp.body += fmt.Sprintf("<br><a href=\"%s\">Commands</a>", baseUrl.String()+"/command")
 
 	my_resp.head = "<title>Device list</title>"
@@ -149,6 +166,9 @@ func (web *HttpServer) send_answer(w http.ResponseWriter, my_resp MyResponse, co
 		result += my_resp.body
 		result += "</body></html>"
 	} else if mime == "text/css" {
+		mime = "text/plain"
+		result += my_resp.body
+	} else {
 		mime = "text/plain"
 		result += my_resp.body
 	}
