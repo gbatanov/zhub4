@@ -154,8 +154,8 @@ func End_device_create(macAddress uint64, shortAddress uint16) *EndDevice {
 	ed.Di = KNOWN_DEVICES[macAddress]
 	ed.modelIdentifier = ""
 	ed.linkQuality = 0
-	ed.lastSeen = time.Time{} // time.isZero - time is not initialized
-	ed.lastAction = time.Time{}
+	ed.lastSeen = time.Now() // time.isZero - time is not initialized
+	ed.lastAction = time.Now()
 	ed.state = "Unknown"
 	ed.state2 = "Unknown"
 	ed.electric = ElectricParams{

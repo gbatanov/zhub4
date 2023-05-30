@@ -88,22 +88,29 @@ func (o OnOffCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 					o.Ed.Set_current_state(newState, 1)
 				}
 			} else if o.Ed.Get_device_type() == 11 { // duochannel relay has EP1 and EP2
-				ts := time.Now() // get time now
+				currentState := o.Ed.Get_current_state(endpoint.Number)
+
 				newState := "Off"
 				if b_val {
 					newState = "On"
 				}
-				fmt.Printf("Duochannel relay %s \n", newState)
-				o.Ed.Set_last_action(ts)
-				o.Ed.Set_current_state(newState, endpoint.Number)
+				fmt.Printf("Duochannel relay %s channel %d\n", newState, endpoint.Number)
+				if newState != currentState {
+					ts := time.Now() // get time now
+					o.Ed.Set_last_action(ts)
+					o.Ed.Set_current_state(newState, endpoint.Number)
+				}
 			} else {
-				ts := time.Now() // get time now
+				currentState := o.Ed.Get_current_state(1)
 				newState := "Off"
 				if b_val {
 					newState = "On"
 				}
-				o.Ed.Set_last_action(ts)
-				o.Ed.Set_current_state(newState, 1)
+				if newState != currentState {
+					ts := time.Now() // get time now
+					o.Ed.Set_last_action(ts)
+					o.Ed.Set_current_state(newState, 1)
+				}
 				fmt.Printf("Device 0x%04x %s endpoint %d state = %s \n", endpoint.Address, o.Ed.Get_human_name(), endpoint.Number, newState)
 			}
 
