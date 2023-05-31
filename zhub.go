@@ -22,15 +22,18 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.3.25"
-
-var Flag bool = true
+const Version string = "v0.4.33"
 
 func init() {
-	fmt.Println("Init in main")
+	fmt.Println("Init in  zhub")
 }
 
 func main() {
+
+	var Flag bool = true
+	var controller *zigbee.Controller
+	var config zigbee.GlobalConfig
+
 	sysLog, err := syslog.New(syslog.LOG_INFO|syslog.LOG_SYSLOG, "zhub4")
 	sysLog.Info("Start zhub4, version " + Version)
 
@@ -51,14 +54,15 @@ func main() {
 		//		intrpt = true
 	}()
 
-	config, err := get_global_config()
+	config, err = get_global_config()
 	if err != nil {
 		sysLog.Emerg(err.Error())
 		log.Println(err)
 		Flag = false
 	}
 
-	zhub, err := zigbee.Zhub_create(config)
+	controller, err = zigbee.Controller_create(config)
+
 	if err != nil {
 		sysLog.Emerg(err.Error())
 		log.Println(err)
@@ -66,9 +70,11 @@ func main() {
 	}
 
 	if Flag {
-		err = zhub.Start()
+
+		err := controller.Start_network()
+
 		if err == nil {
-			defer zhub.Stop()
+			defer controller.Stop()
 			var wg sync.WaitGroup
 
 			wg.Add(1)
@@ -81,7 +87,7 @@ func main() {
 						case 'q':
 							Flag = false
 						case 'j':
-							zhub.Get_controller().Get_zdo().Permit_join(60 * time.Second)
+							controller.Get_zdo().Permit_join(60 * time.Second)
 						} //switch
 					}
 				} //for
@@ -158,6 +164,8 @@ func get_global_config() (zigbee.GlobalConfig, error) {
 				config.MapPath = values[1]
 			case "Port":
 				config.Port = values[1]
+			case "Http":
+				config.HttpAddress = values[1]
 			case "Channels":
 				config.Channels = make([]uint8, 0)
 				channels := strings.Split(values[1], ",")

@@ -180,10 +180,21 @@ func (zdo *Zdo) parse_command(BufRead []byte) ([]Command, bool) {
 			}
 
 			i++
+			if i >= len(BufRead) {
+				return []Command{}, true
+			}
 			cmd0 := BufRead[i]
 			i++
+			if i >= len(BufRead) {
+				return []Command{}, true
+			}
+
 			cmd1 := BufRead[i]
 			i++
+			if i >= len(BufRead) {
+				return []Command{}, true
+			}
+
 			// в команде сначала идет старший байт Cmd0, за ним младший Cmd1
 			var cmd CommandId = CommandId(zcl.UINT16_(cmd1, cmd0))
 			var command *Command = NewCommand(cmd)
@@ -387,6 +398,7 @@ func (zdo *Zdo) Startup(delay time.Duration) error {
 			}
 			fmt.Println("")
 		}
+		fmt.Println("")
 	} else {
 		return errors.New("startup error 2")
 	}

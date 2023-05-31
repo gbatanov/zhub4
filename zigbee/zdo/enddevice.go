@@ -20,7 +20,7 @@ type DeviceInfo struct {
 	humanName    string
 	powerSource  zcl.PowerSource
 	Available    uint8 // include in prod configuration
-	test         uint8 //include in test configuration
+	Test         uint8 //include in test configuration
 }
 
 // MAC Address,Type, Vendor,Model, GrafanaName, Human name, Power source,available,test
@@ -154,8 +154,8 @@ func End_device_create(macAddress uint64, shortAddress uint16) *EndDevice {
 	ed.Di = KNOWN_DEVICES[macAddress]
 	ed.modelIdentifier = ""
 	ed.linkQuality = 0
-	ed.lastSeen = time.Time{} // time.isZero - time is not initialized
-	ed.lastAction = time.Time{}
+	ed.lastSeen = time.Now() // time.isZero - time is not initialized
+	ed.lastAction = time.Now()
 	ed.state = "Unknown"
 	ed.state2 = "Unknown"
 	ed.electric = ElectricParams{
@@ -173,18 +173,31 @@ func End_device_create(macAddress uint64, shortAddress uint16) *EndDevice {
 	return &ed
 }
 
+func (ed EndDevice) Get_power_source() uint8 {
+	return uint8(ed.Di.powerSource)
+}
 func (ed EndDevice) Get_mac_address() uint64 {
 	return ed.MacAddress
 }
 func (ed *EndDevice) Set_linkquality(quality uint8) {
 	ed.linkQuality = quality
 }
+func (ed *EndDevice) Get_linkquality() uint8 {
+	return ed.linkQuality
+}
 func (ed *EndDevice) Set_last_seen(tm time.Time) {
 	ed.lastSeen = tm
+}
+func (ed *EndDevice) Get_last_seen() time.Time {
+	return ed.lastSeen
 }
 func (ed *EndDevice) Set_last_action(tm time.Time) {
 	ed.lastAction = tm
 }
+func (ed *EndDevice) Get_last_action() time.Time {
+	return ed.lastAction
+}
+
 func (ed *EndDevice) Set_manufacturer(value string) {
 	ed.Di.manufacturer = value
 }
@@ -233,8 +246,17 @@ func (ed *EndDevice) Set_battery_params(value1 uint8, value2 float32) {
 		ed.battery.voltage = value2
 	}
 }
+func (ed *EndDevice) Get_battery_level() uint8 {
+	return ed.battery.level
+}
+func (ed *EndDevice) Get_battery_voltage() float32 {
+	return ed.battery.voltage
+}
 func (ed *EndDevice) Set_temperature(value int8) {
 	ed.temperature = value
+}
+func (ed *EndDevice) Get_temperature() int8 {
+	return ed.temperature
 }
 func (ed *EndDevice) Set_luminocity(value int8) {
 	ed.luminocity = value
@@ -245,8 +267,14 @@ func (ed *EndDevice) Get_luminocity() int8 {
 func (ed *EndDevice) Set_humidity(value int8) {
 	ed.humidity = value
 }
+func (ed *EndDevice) Get_humidity() int8 {
+	return ed.humidity
+}
 func (ed *EndDevice) Set_pressure(value float32) {
 	ed.pressure = value
+}
+func (ed *EndDevice) Get_pressure() float32 {
+	return ed.pressure
 }
 
 func (ed EndDevice) Get_human_name() string {
