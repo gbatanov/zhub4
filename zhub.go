@@ -22,7 +22,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.4.32"
+const Version string = "v0.4.33"
 
 func init() {
 	fmt.Println("Init in  zhub")
@@ -164,6 +164,8 @@ func get_global_config() (zigbee.GlobalConfig, error) {
 				config.MapPath = values[1]
 			case "Port":
 				config.Port = values[1]
+			case "Http":
+				config.HttpAddress = values[1]
 			case "Channels":
 				config.Channels = make([]uint8, 0)
 				channels := strings.Split(values[1], ",")

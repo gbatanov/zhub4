@@ -26,12 +26,12 @@ func (e ElectricalMeasurementCluster) Handler_attributes(endpoint zcl.Endpoint, 
 		case zcl.ElectricalMeasurement_0508: // RMS Current mA
 			val := zcl.UINT16_(attribute.Value[0], attribute.Value[1])
 			e.Ed.Set_current(float32(val) / 1000)
-			fmt.Printf(" Current %0.2fA ", e.Ed.Get_current())
+			fmt.Printf(" Current %0.3fA ", e.Ed.Get_current())
 
 		case zcl.ElectricalMeasurement_050B: // Active Power
 			val := zcl.UINT16_(attribute.Value[0], attribute.Value[1])
 			e.Ed.Set_power(float32(val))
-			fmt.Printf(" Active Power %0.2fW \n", float32(val))
+			fmt.Printf(" Active Power %0.3fW \n", float32(val))
 			/*
 				case zcl.ElectricalMeasurement_050F: // Apparent Power, not supported by coordinator
 					val := zcl.UINT16_(attribute.Value[0], attribute.Value[1])

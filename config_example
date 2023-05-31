@@ -1,6 +1,7 @@
 // working mode, always before sections
 Mode   test 
 Port /dev/cu.usbmodem148201
+Http localhost:8054
 
 [prod]
 // telegram bot

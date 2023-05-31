@@ -20,15 +20,15 @@ type MyResponse struct {
 }
 
 type HttpServer struct {
-	srv        http.Server
+	srv        *http.Server
 	answerChan chan string
 	queryChan  chan string
 }
 
-func Http_server_create(answerChan chan string, queryChan chan string) (*HttpServer, error) {
+func Http_server_create(address string, answerChan chan string, queryChan chan string) (*HttpServer, error) {
 	var srv http.Server
-	srv.Addr = "192.168.88.240:8054"
-	httpServer := HttpServer{srv: srv, answerChan: answerChan, queryChan: queryChan}
+	srv.Addr = address
+	httpServer := HttpServer{&srv, answerChan, queryChan}
 
 	return &httpServer, nil
 }

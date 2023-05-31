@@ -28,6 +28,8 @@ type GlobalConfig struct {
 	Port string
 	// operating system
 	Os string
+	// HTTP server
+	HttpAddress string
 }
 type TlgBlock struct {
 	tlg32      *telega32.Tlg32
