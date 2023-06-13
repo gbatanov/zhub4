@@ -22,7 +22,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.4.33"
+const Version string = "v0.4.34"
 
 func init() {
 	fmt.Println("Init in  zhub")
@@ -44,7 +44,7 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	//	intrpt := false // for gracefull exit
 	// signal.Notify registers this channel to receive notifications of the specified signals.
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
 	// This goroutine performs signal blocking.
 	// When goroutine receives signal, it prints signal name out and then notifies the program that it can be terminated.
 	go func() {
@@ -52,6 +52,7 @@ func main() {
 		log.Println(sig)
 		Flag = false
 		//		intrpt = true
+		//		controller.Stop()
 	}()
 
 	config, err = get_global_config()
@@ -78,10 +79,12 @@ func main() {
 			var wg sync.WaitGroup
 
 			wg.Add(1)
+			//
 			go func() {
 				for Flag {
 					reader := bufio.NewReader(os.Stdin)
 					text, _ := reader.ReadString('\n')
+					fmt.Println(text)
 					if len(text) > 0 {
 						switch []byte(text)[0] {
 						case 'q':
@@ -91,6 +94,7 @@ func main() {
 						} //switch
 					}
 				} //for
+				fmt.Println("flag false")
 				wg.Done()
 			}()
 			wg.Wait()
@@ -104,7 +108,7 @@ func get_global_config() (zigbee.GlobalConfig, error) {
 	gi, _ := goInfo.GetInfo()
 	config.Os = gi.GoOS
 
-	filename := "/usr/local/etc/zhub4/config"
+	filename := "/usr/local/etc/zhub4/config.txt"
 	fd, err := os.OpenFile(filename, os.O_RDONLY, 0755)
 	if err != nil {
 		return zigbee.GlobalConfig{}, errors.New("incorrect file with configuration")

@@ -43,7 +43,7 @@ func (web *HttpServer) register_routing() {
 }
 
 func (web *HttpServer) Start() error {
-	//	log.Println("Web server Start()")
+	log.Println("Web server Start()")
 	web.register_routing()
 	go func() {
 		web.srv.ListenAndServe()
@@ -53,7 +53,7 @@ func (web *HttpServer) Start() error {
 	return nil
 }
 func (web *HttpServer) Stop() {
-	//	log.Println("Web server Stop()")
+	log.Println("Web server Stop()")
 	web.srv.Shutdown(context.Background())
 }
 
@@ -111,15 +111,14 @@ func (web *HttpServer) css_handler(w http.ResponseWriter, r *http.Request) {
 
 }
 func (web *HttpServer) command_handler(w http.ResponseWriter, r *http.Request) {
-	//	log.Println("command_handler")
+	log.Println("command_handler")
 	var my_resp MyResponse
 	host := r.Host
 	baseUrl, _ := url.Parse("http://" + host)
 
 	my_resp.body = "<h3>Commands list</h3>"
 
-	cmd := web.parse_command(r)
-	web.queryChan <- cmd
+	web.queryChan <- r.RequestURI
 	answer := <-web.answerChan
 	my_resp.body += "<div>" + answer + "</div"
 
@@ -129,10 +128,6 @@ func (web *HttpServer) command_handler(w http.ResponseWriter, r *http.Request) {
 	my_resp.head += "<link href=\"/css/gsb_style.css\" rel=\"stylesheet\" type=\"text/css\">"
 	web.send_answer(w, my_resp, 200, "text/html", headers)
 
-}
-
-func (web *HttpServer) parse_command(r *http.Request) string {
-	return "command_list" //TODO: dummy
 }
 
 func (web *HttpServer) main_page(w http.ResponseWriter, r *http.Request) {

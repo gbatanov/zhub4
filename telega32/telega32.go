@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	fmt.Println("init in telega 32")
+	fmt.Println("init in telega32")
 }
 
 type Message struct {
@@ -63,6 +63,7 @@ func (bot *Tlg32) get_token() error {
 }
 func (bot *Tlg32) Stop() {
 	bot.Flag = false
+	log.Println("Telegram stopped")
 }
 func (bot *Tlg32) Run() error {
 	var err error
@@ -71,7 +72,7 @@ func (bot *Tlg32) Run() error {
 	if err != nil {
 		return errors.New("incorrect token")
 	}
-	bot.botApi.Debug = true
+	bot.botApi.Debug = false
 
 	fmt.Printf("Telebot authorized on account %s\n", bot.botApi.Self.UserName)
 

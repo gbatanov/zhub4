@@ -396,9 +396,9 @@ func (zdo *Zdo) Startup(delay time.Duration) error {
 			for i := 0; i < int(device_info_response.Payload[13]); i++ {
 				fmt.Printf("0x%04x ", zcl.UINT16_(device_info_response.Payload[i+14], device_info_response.Payload[i+15]))
 			}
-			fmt.Println("")
+			fmt.Printf("\n")
 		}
-		fmt.Println("")
+		fmt.Printf("\n")
 	} else {
 		return errors.New("startup error 2")
 	}
@@ -463,7 +463,8 @@ func (zdo *Zdo) Parse_zcl_data(data []byte) zcl.Frame {
 	return zclFrame
 }
 
-func (zdo *Zdo) Send_message(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame, timeout time.Duration) error {
+// send a message to a specific device
+func (zdo *Zdo) Send_message(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame) error {
 	var message Message = Message{}
 	message.Cluster = cl
 	message.Source = zcl.Endpoint{Address: 0x0000, Number: 1}
@@ -557,29 +558,29 @@ func (zdo *Zdo) Bind(shortAddress uint16, macAddress uint64, endpoint uint8, clu
 	return zdo.async_request(*bindRequest, 3*time.Second)
 }
 
-// handler the particular command
+// handler the specific command
 func (zdo *Zdo) handle_command(command Command) {
-	//	log.Printf("zdo.handle_command:: input_command cmd.id: 0x%04x %s \n", uint16(command.Id), Command_to_string(command.Id))
+	log.Printf("zdo.handle_command:: input_command cmd.id: 0x%04x %s \n", uint16(command.Id), Command_to_string(command.Id))
 	switch command.Id {
-	case AF_INCOMING_MSG: // 0x4481
+	case AF_INCOMING_MSG: // 0x4481 Incomming message from device
 		if !zdo.isReady {
 			return
 		}
 		zdo.msgChan <- command // send incoming message to controller
 
-	case ZDO_STATE_CHANGE_IND:
+	case ZDO_STATE_CHANGE_IND: // the status of the coordinator has changed
 		log.Printf("New zhub status = %d \n", command.Payload[0])
 		if command.Payload[0] == 9 {
 			zdo.isReady = true
 		}
 
-	case ZDO_MGMT_PERMIT_JOIN_RSP:
+	case ZDO_MGMT_PERMIT_JOIN_RSP: // coordinator in "permit join" state
 		log.Printf("Zhub permit join status = %d\n", command.Payload[2])
 
-	case ZDO_PERMIT_JOIN_IND:
+	case ZDO_PERMIT_JOIN_IND: // duration permit join in seconds
 		log.Printf("Zhub permit for %d seconds \n", command.Payload[0])
 
-	case ZDO_END_DEVICE_ANNCE_IND: //  0x45c1
+	case ZDO_END_DEVICE_ANNCE_IND: //  0x45c1 anounce new device
 		fmt.Printf("ZDO_END_DEVICE_ANNCE_IND: payload len = %d, payload:  ", command.Payload_size())
 		for i := 0; i < int(command.Payload_size()); i++ {
 			fmt.Printf("0x%02x ", command.Payload[i])
@@ -587,7 +588,7 @@ func (zdo *Zdo) handle_command(command Command) {
 		fmt.Println()
 		zdo.joinChan <- command.Payload[2:]
 
-	case ZDO_ACTIVE_EP_RSP: // 0x4585
+	case ZDO_ACTIVE_EP_RSP: // 0x4585 Endpoints from new device
 		fmt.Printf("ZDO_ACTIVE_EP_RSP: payload len = %d, payload:  ", command.Payload_size())
 		for i := 0; i < int(command.Payload_size()); i++ {
 			fmt.Printf("0x%02x ", command.Payload[i])
@@ -623,7 +624,7 @@ func (zdo *Zdo) handle_command(command Command) {
 			if command.Payload[2] == byte(zcl.SUCCESS) {
 				shortAddr := zcl.UINT16_(command.Payload[0], command.Payload[1])
 
-				// descriptorLen := command.Payload[5] // длина дескриптора, начинается с номера эндпойнта
+				// descriptorLen := command.Payload[5] //
 
 				descriptor := Simple_descriptor{}
 				descriptor.endpointNumber = uint16(command.Payload[6])                     // номер эндпойнта, для которого пришел дескриптор
