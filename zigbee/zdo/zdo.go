@@ -398,7 +398,7 @@ func (zdo *Zdo) Startup(delay time.Duration) error {
 			}
 			fmt.Printf("\n")
 		}
-		fmt.Printf("\n")
+		fmt.Println("")
 	} else {
 		return errors.New("startup error 2")
 	}

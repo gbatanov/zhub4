@@ -14,6 +14,7 @@ MapPath /usr/local/etc/zhub4/map_addr.cfg
 Channels 11
 
 [test]
+Port /dev/ttyACM0
 // telegram bot
 BotName EmptyBot
 MyId 000000000

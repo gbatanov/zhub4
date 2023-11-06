@@ -9,24 +9,18 @@ import (
 	"net/url"
 	"os"
 	"strconv"
-	"strings"
 	"time"
+	"zhub4/pi4"
 	"zhub4/zigbee/zdo"
 	"zhub4/zigbee/zdo/zcl"
 )
 
-func (c *Controller) handleHttpQuery(uri string) string {
-
-	elems := strings.Split(uri, "?")
-	if len(elems) == 1 {
-		elems = append(elems, "")
-	}
-
-	switch elems[0] {
+func (c *Controller) handleHttpQuery(cmdFromHttp string) string {
+	switch cmdFromHttp {
 	case "device_list":
 		return c.create_device_list()
-	case "/command":
-		return c.create_command_list(elems[1])
+	case "command_list":
+		return c.create_command_list()
 	default:
 		return "Unknown request"
 	}
@@ -36,13 +30,14 @@ func (c *Controller) create_device_list() string {
 
 	var result string = ""
 
-	boardTemperature := c.get_board_temperature()
-	if boardTemperature > -100.0 {
-		bt := fmt.Sprintf("%d", boardTemperature)
-		result += "<p>" + "<b>Температура платы управления: </b>"
-		result += bt + "</p>"
+	if pi4.Pi4Available {
+		boardTemperature := c.get_board_temperature()
+		if boardTemperature > -100.0 {
+			bt := fmt.Sprintf("%d", boardTemperature)
+			result += "<p>" + "<b>Температура платы управления: </b>"
+			result += bt + "</p>"
+		}
 	}
-
 	//#ifdef WITH_SIM800
 	//   result = result + "<p>" + zhub->show_sim800_battery() + "</p>";
 	//#endif

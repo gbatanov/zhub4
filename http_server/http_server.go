@@ -118,7 +118,8 @@ func (web *HttpServer) command_handler(w http.ResponseWriter, r *http.Request) {
 
 	my_resp.body = "<h3>Commands list</h3>"
 
-	web.queryChan <- r.RequestURI
+	cmd := web.parse_command(r)
+	web.queryChan <- cmd
 	answer := <-web.answerChan
 	my_resp.body += "<div>" + answer + "</div"
 
@@ -128,6 +129,10 @@ func (web *HttpServer) command_handler(w http.ResponseWriter, r *http.Request) {
 	my_resp.head += "<link href=\"/css/gsb_style.css\" rel=\"stylesheet\" type=\"text/css\">"
 	web.send_answer(w, my_resp, 200, "text/html", headers)
 
+}
+
+func (web *HttpServer) parse_command(r *http.Request) string {
+	return "command_list" //TODO: dummy
 }
 
 func (web *HttpServer) main_page(w http.ResponseWriter, r *http.Request) {

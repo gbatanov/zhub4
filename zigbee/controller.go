@@ -129,7 +129,6 @@ func (c *Controller) Start_network() error {
 		return err
 	}
 
-	// start of web interface
 	if c.http.withHttp {
 		err = c.http.web.Start()
 		c.http.withHttp = err == nil
@@ -147,11 +146,9 @@ func (c *Controller) Start_network() error {
 		}
 	}
 
-	// start of telegram bot
 	err = c.tlg.tlg32.Run()
 	c.tlg.withTlg = err == nil
 
-	// creating devices by devices list
 	c.create_devices_by_map()
 
 	// permit join during 1 minute
@@ -164,8 +161,6 @@ func (c *Controller) Start_network() error {
 			c.get_smart_plug_params()
 		}
 	}()
-
-	// start telegram bot
 	if c.tlg.withTlg {
 		outMsg := telega32.Message{ChatId: c.config.MyId, Msg: "Zhub4 start"}
 		c.tlg.tlgMsgChan <- outMsg
@@ -615,11 +610,11 @@ func (c *Controller) on_attribute_report(ed *zdo.EndDevice, ep zcl.Endpoint, clu
 
 }
 func (c *Controller) get_smart_plug_params() {
-	ed := c.get_device_by_mac(0x70b3d52b6001b4a4) // my SmartPlug
+	ed := c.get_device_by_mac(0x70b3d52b6001b4a4) // SmartPlug
 	if ed.ShortAddress == 0 {
 		return
 	}
-	// request current,voltage and instant power for every 5 minutes (in test mode - 30 seconds)
+	// request current,voltage and instant power for every 5 minutes
 	interval := float64(300)
 	if c.config.Mode == "test" {
 		interval = 30.0
