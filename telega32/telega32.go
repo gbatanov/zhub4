@@ -45,7 +45,7 @@ func Tlg32Create(botName string, mode string, tokenPath string, myId int64, msgC
 }
 func (bot *Tlg32) get_token() error {
 
-	token, err := os.ReadFile("/usr/local/etc/telebot32/.token" + bot.botName + "/.token")
+	token, err := os.ReadFile("/usr/local/etc/telebot32/.q" + bot.botName)
 	if err != nil {
 		return errors.New("incorrect file with token")
 	}
