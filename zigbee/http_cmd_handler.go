@@ -71,7 +71,8 @@ func (c *Controller) get_board_temperature() int {
 
 }
 
-func (c *Controller) create_command_list(params string) string {
+func (c *Controller) create_command_list() string {
+	var params string = ""
 	fmt.Println(params)
 	mapParams, _ := url.ParseQuery(params)
 	fmt.Println(mapParams)
