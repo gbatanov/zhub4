@@ -1,5 +1,7 @@
 github.com/gbatanov/gsm v0.3.16 h1:AvWC7+5I45pcRu1bS0ajKtPOARAHQvo4Dkq+hoQFdsc=
 github.com/gbatanov/gsm v0.3.16/go.mod h1:oRCQ3KVZqS2GzYM3UBRGYm+sTFlOvcVfNvGkbwDZtNM=
+github.com/gbatanov/gsm v0.3.17 h1:5y2iAt4J+TXdh0ATdaulL7EnZKQdYuVMukiiat25KR0=
+github.com/gbatanov/gsm v0.3.17/go.mod h1:oRCQ3KVZqS2GzYM3UBRGYm+sTFlOvcVfNvGkbwDZtNM=
 github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1 h1:wG8n/XJQ07TmjbITcGiUaOtXxdrINDz1b0J1w0SzqDc=
 github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1/go.mod h1:A2S0CWkNylc2phvKXWBBdD3K0iGnDBGbzRpISP2zBl8=
 github.com/matishsiao/goInfo v0.0.0-20210923090445-da2e3fa8d45f h1:B0OD7nYl2FPQEVrw8g2uyc1lGEzNbvrKh7fspGZcbvY=
