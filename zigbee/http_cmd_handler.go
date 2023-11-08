@@ -6,10 +6,13 @@ package zigbee
 
 import (
 	"fmt"
+	"net/url"
+	"os"
+	"strconv"
 	"time"
-	"zhub4/pi4"
-	"zhub4/zigbee/zdo"
-	"zhub4/zigbee/zdo/zcl"
+
+	"github.com/gbatanov/zhub4/zigbee/zdo"
+	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
 )
 
 func (c *Controller) handleHttpQuery(cmdFromHttp string) string {
@@ -27,14 +30,13 @@ func (c *Controller) create_device_list() string {
 
 	var result string = ""
 
-	if pi4.Pi4Available {
-		boardTemperature := c.get_board_temperature()
-		if boardTemperature > -100.0 {
-			bt := fmt.Sprintf("%d", boardTemperature)
-			result += "<p>" + "<b>Температура платы управления: </b>"
-			result += bt + "</p>"
-		}
+	boardTemperature := c.get_board_temperature()
+	if boardTemperature > -100.0 {
+		bt := fmt.Sprintf("%d", boardTemperature)
+		result += "<p>" + "<b>Температура платы управления: </b>"
+		result += bt + "</p>"
 	}
+
 	//#ifdef WITH_SIM800
 	//   result = result + "<p>" + zhub->show_sim800_battery() + "</p>";
 	//#endif
@@ -48,11 +50,49 @@ func (c *Controller) create_device_list() string {
 }
 
 func (c *Controller) get_board_temperature() int {
-	return -25
-}
-func (c *Controller) create_command_list() string {
+	if c.config.Os == "Darwin" {
+		return -100
+	}
+	dat, err := os.ReadFile("/sys/class/thermal/thermal_zone0/temp")
+	if err != nil {
+		fmt.Println("get_board_temperature:: OpenFile error: ", err)
+		return -200.0
+	} else {
+	}
+	var temp_f int
 
-	var result string = "<p>Command list will be here</p>"
+	n, err := fmt.Sscanf(string(dat), "%d", &temp_f)
+	if err != nil || n == 0 {
+
+		return -200.0
+	}
+	return int(temp_f / 1000)
+
+}
+
+func (c *Controller) create_command_list() string {
+	var params string = ""
+	fmt.Println(params)
+	mapParams, _ := url.ParseQuery(params)
+	fmt.Println(mapParams)
+	_, idExists := mapParams["id"]
+	_, cmdExists := mapParams["cmd"]
+
+	if idExists && cmdExists {
+		fmt.Println(mapParams["id"][0])
+		macAddress, err := strconv.ParseUint(mapParams["id"][0], 0, 64)
+		if err == nil {
+			fmt.Println(macAddress)
+			cmnd, err := strconv.Atoi(mapParams["cmd"][0])
+			if err == nil {
+				c.switch_relay(macAddress, uint8(cmnd), 1)
+			}
+		} else {
+			fmt.Println(err)
+		}
+	}
+
+	var result string = "<p>Relay 6 <a href=\"/command?id=0x54ef441000609dcc&cmd=1\">On</a>&nbsp;<a href=\"/command?id=0x54ef441000609dcc&cmd=0\">Off</a></p>"
 	return result
 }
 

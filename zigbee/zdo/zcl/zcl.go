@@ -59,8 +59,8 @@ const (
 	ALARMS                           Cluster = 0x0009
 	TIME                             Cluster = 0x000a // Attributes and commands that provide an interface to a real-time clock. (С реле aquara идет каждую минуту с одним и тем же значением)
 	RSSI                             Cluster = 0x000b // Attributes and commands for exchanging location information and channel parameters among devices, and (optionally) reporting data to a centralized device that collects data from devices in the network and calculates their positions from the set of collected data.
-	ANALOG_INPUT                     Cluster = 0x000c // у реле от Aquara похоже на передачу потребляемой мощности, значения идут только при включенной нагрузке, чередуются значение и нуль. При выключенной нагрузке ничего не передается.
-	// передается на endpoint=15 По значению похоже на показатель потребляемой мощности.
+	ANALOG_INPUT                     Cluster = 0x000c // реле от Aquara.
+	//                                                   передается на endpoint=21 По значению похоже на показатель потребляемого тока.
 	ANALOG_OUTPUT                    Cluster = 0x000d
 	ANALOG_VALUE                     Cluster = 0x000e
 	BINARY_INPUT                     Cluster = 0x000f

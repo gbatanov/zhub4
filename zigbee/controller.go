@@ -11,28 +11,40 @@ import (
 	"os"
 	"sync"
 	"time"
-	"zhub4/http_server"
-	"zhub4/telega32"
-	"zhub4/zigbee/clusters"
-	"zhub4/zigbee/zdo"
-	"zhub4/zigbee/zdo/zcl"
+
+	"github.com/gbatanov/gsm/modem"
+	"github.com/gbatanov/zhub4/http_server"
+	"github.com/gbatanov/zhub4/telega32"
+	"github.com/gbatanov/zhub4/zigbee/clusters"
+	"github.com/gbatanov/zhub4/zigbee/zdo"
+	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
+
+	"github.com/matishsiao/goInfo"
 )
 
-func Controller_create(config GlobalConfig) (*Controller, error) {
+func Controller_create(config *GlobalConfig) (*Controller, error) {
 	chn1 := make(chan zdo.Command, 16)
 	chn2 := make(chan []byte, 12) // chan for join command shortAddr + macAddrj
 	chn3 := make(chan clusters.MotionMsg, 16)
 	ts := time.Now()
+
+	gi, _ := goInfo.GetInfo()
+	oss := gi.GoOS
 
 	zdoo, err := zdo.Zdo_create(config.Port, config.Os, chn1, chn2)
 	if err != nil {
 		return &Controller{}, err
 	}
 
+	// Modem block
+	mdm := modem.GsmModemCreate(config.ModemPort, oss, 9600, config.MyPhoneNumber)
+	err = mdm.Open()
+	config.WithModem = err == nil
+
 	// telegram bot block
 	tlgMsgChan := make(chan telega32.Message, 16)
 	tlg32 := telega32.Tlg32Create(config.BotName, config.Mode, config.TokenPath, config.MyId, tlgMsgChan) //your bot name
-	tlgBlock := TlgBlock{tlg32: tlg32, withTlg: false, tlgMsgChan: tlgMsgChan}
+	tlgBlock := TlgBlock{tlg32: tlg32, tlgMsgChan: tlgMsgChan}
 
 	// http server block
 	httpBlock := HttpBlock{}
@@ -56,7 +68,8 @@ func Controller_create(config GlobalConfig) (*Controller, error) {
 		mapFileMutex:       sync.Mutex{},
 		tlg:                tlgBlock,
 		http:               httpBlock,
-		startTime:          time.Now()}
+		startTime:          time.Now(),
+		mdm:                mdm}
 	return &controller, nil
 
 }
@@ -79,14 +92,17 @@ func (c *Controller) Start_network() error {
 		c.Get_zdo().Uart.Loop(c.Get_zdo().Cmdinput)
 	}()
 
-	//
+	// Incoming messages handler
 	go func() {
 		c.on_message()
 	}()
+
+	// Event handler of joined device
 	go func() {
 		c.join_device()
 	}()
 
+	// Message handler from motion sensors
 	go func() {
 		for c.flag {
 			msg := <-c.motionMsgChan
@@ -95,7 +111,7 @@ func (c *Controller) Start_network() error {
 	}()
 
 	// reset of zhub
-	log.Println("Controller reset adapter")
+	log.Println("Controller reset adapter (wait about 1 minute)")
 	err := c.Get_zdo().Reset()
 	if err != nil {
 		return err
@@ -138,26 +154,40 @@ func (c *Controller) Start_network() error {
 				}
 			}()
 			if c.http.withHttp {
-				fmt.Println("Web server started")
+				log.Println("Web server started")
 			}
 		}
 	}
 
 	err = c.tlg.tlg32.Run()
-	c.tlg.withTlg = err == nil
+	c.config.WithTlg = err == nil
 
 	c.create_devices_by_map()
+
+	// permit join during 1 minute
 	c.Get_zdo().Permit_join(60 * time.Second)
+
+	// we will get SmurtPlug parameters  every 30 seconds
 	go func() {
 		for c.flag {
 			time.Sleep(30 * time.Second)
-			c.get_smart_plug_params()
+			c.getSmartPlugParams()
 		}
 	}()
-	if c.tlg.withTlg {
+	if c.config.WithTlg {
 		outMsg := telega32.Message{ChatId: c.config.MyId, Msg: "Zhub4 start"}
 		c.tlg.tlgMsgChan <- outMsg
 	}
+
+	if c.config.WithModem {
+		go func() {
+			for c.flag {
+				cmd := <-c.mdm.CmdToController
+				c.executeCmd(cmd)
+			}
+		}()
+	}
+
 	log.Println("Controller start network success")
 	return nil
 }
@@ -169,6 +199,9 @@ func (c *Controller) Stop() {
 	c.Get_zdo().Stop()
 	if c.http.withHttp {
 		c.http.web.Stop()
+	}
+	if c.config.WithModem {
+		defer c.mdm.Stop()
 	}
 	// release channels
 	c.msgChan <- *zdo.NewCommand(0)
@@ -210,6 +243,7 @@ func (c *Controller) write_map_to_file() error {
 
 // read map from file on start the program
 func (c *Controller) read_map_from_file() error {
+	fmt.Println("ReadMap")
 	m := sync.Mutex{}
 	m.Lock()
 	defer m.Unlock()
@@ -238,6 +272,7 @@ func (c *Controller) read_map_from_file() error {
 				fmt.Printf("0x%04x : 0x%016x \n", a, b)
 			}
 		}
+		fmt.Printf("\n")
 	}
 
 	return nil
@@ -304,6 +339,7 @@ func (c *Controller) join_device() {
 	}
 }
 
+// adjusting joined devices
 func (c *Controller) on_join(shortAddress uint16, macAddress uint64) {
 	ed := c.get_device_by_mac(macAddress)
 	if ed.ShortAddress == 0 || ed.ShortAddress != shortAddress {
@@ -377,7 +413,7 @@ func (c *Controller) get_identifier(address uint16) {
 	frame.Payload = append(frame.Payload, zcl.LOWBYTE(id6))
 	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(id6))
 
-	c.Get_zdo().Send_message(endpoint, cl, frame, 3*time.Second)
+	c.Get_zdo().Send_message(endpoint, cl, frame)
 }
 
 func (c *Controller) get_device_by_short_addr(shortAddres uint16) *zdo.EndDevice {
@@ -422,7 +458,7 @@ func (c *Controller) message_handler(command zdo.Command) {
 	log.Printf("Cluster %s (0x%04X) device: %s \n", zcl.Cluster_to_string(message.Cluster), message.Cluster, ed.Get_human_name())
 	if message.Cluster != zcl.TIME { // too often
 		fmt.Printf("source endpoint shortAddr: 0x%04x ", message.Source.Address)
-		fmt.Printf("number: 0x%02x \n", message.Source.Number)
+		fmt.Printf("number: %d \n", message.Source.Number)
 		fmt.Printf("linkQuality: %d \n", message.LinkQuality)
 		//	fmt.Printf("ts %d \n", uint32(ts/1000))
 		fmt.Printf("length of ZCL data %d \n", length)
@@ -493,7 +529,7 @@ func (c *Controller) message_handler(command zdo.Command) {
 					c.ias_zone_command(uint8(0), uint16(0)) // close valves, switch off wash machine
 					ts := time.Now()                        // get time now
 					ed.Set_last_action(ts)
-					if c.tlg.withTlg {
+					if c.config.WithTlg {
 						alarmMsg := "Сработал датчик протечки: " + ed.Get_human_name()
 						c.tlg.tlgMsgChan <- telega32.Message{ChatId: c.config.MyId, Msg: alarmMsg}
 					}
@@ -506,9 +542,9 @@ func (c *Controller) message_handler(command zdo.Command) {
 		case zcl.ALARMS:
 			log.Printf("Cluster ALARMS:: command 0x%02x payload %q \n", message.ZclFrame.Command, message.ZclFrame.Payload)
 		case zcl.TIME:
-			fmt.Println("")
+			//fmt.Println("")
 			// Approximately 30 seconds pass with the Aqara relay, no useful information
-			//log.Printf("Cluster TIME:: command 0x%02x \n", message.ZclFrame.Command)
+			log.Printf("Cluster TIME:: command 0x%02x \n\n", message.ZclFrame.Command)
 		} //switch
 	}
 	c.after_message_action(ed)
@@ -599,7 +635,8 @@ func (c *Controller) on_attribute_report(ed *zdo.EndDevice, ep zcl.Endpoint, clu
 	}
 
 }
-func (c *Controller) get_smart_plug_params() {
+
+func (c *Controller) getSmartPlugParams() {
 	ed := c.get_device_by_mac(0x70b3d52b6001b4a4) // SmartPlug
 	if ed.ShortAddress == 0 {
 		return
@@ -612,34 +649,44 @@ func (c *Controller) get_smart_plug_params() {
 	diff := time.Since(c.smartPlugTS)
 	if diff.Seconds() > interval {
 		c.smartPlugTS = time.Now()
-		var idsAV []uint16 = []uint16{0x0505, 0x508, 0x050B}
+		var idsAV []uint16 = []uint16{0x0505, 0x0508, 0x050B} // Voltage, Current, Energy
 		c.read_attribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
 
-		var idsAVSM []uint16 = []uint16{0x0000}
+		var idsAVSM []uint16 = []uint16{0x0000} // Power
 		c.read_attribute(ed.ShortAddress, zcl.SIMPLE_METERING, idsAVSM)
 
+		// if the state has not yet been received
 		if ed.Get_current_state(1) != "On" && ed.Get_current_state(1) != "Off" {
-			var idsAV []uint16 = []uint16{0x0000}
+			var idsAV []uint16 = []uint16{0x0000} // state On / Off
 			c.read_attribute(ed.ShortAddress, zcl.ON_OFF, idsAV)
 		}
 	}
 
 }
+
+// action after any message (they happen quite often, I use them as a timer)
 func (c *Controller) after_message_action(ed *zdo.EndDevice) {
 
+	var interval float64 = 20
+	if c.config.Mode == "test" {
+		interval = 10.0
+	}
+	// 20 minutes after the last movement, I capture the state "No one at home"
+	// write to log and send to telegram
 	lastMotion := c.get_last_motion_sensor_activity()
 	diffOff := time.Since(lastMotion)
-	if diffOff.Minutes() > 30 && !c.switchOffTS {
+	if diffOff.Minutes() > interval && !c.switchOffTS {
 		c.switchOffTS = true
 		c.switch_off_with_list()
 		log.Printf("There is no one at home\n")
-		if c.tlg.withTlg {
+		if c.config.WithTlg {
 			alarmMsg := "There is no one at home "
 			c.tlg.tlgMsgChan <- telega32.Message{ChatId: c.config.MyId, Msg: alarmMsg}
 		}
-
 	}
 }
+
+// make a request to read an attribute (attributes)
 func (c *Controller) read_attribute(address uint16, cl zcl.Cluster, ids []uint16) error {
 
 	endpoint := zcl.Endpoint{Address: address, Number: 1}
@@ -660,10 +707,12 @@ func (c *Controller) read_attribute(address uint16, cl zcl.Cluster, ids []uint16
 		frame.Payload[0+i*2] = zcl.LOWBYTE(ids[i])
 		frame.Payload[1+i*2] = zcl.HIGHBYTE(ids[i])
 	}
-	return c.Get_zdo().Send_message(endpoint, cl, frame, 3*time.Second)
+	return c.Get_zdo().Send_message(endpoint, cl, frame)
 }
+
+// make a request to read power attributes
 func (c *Controller) get_power(ed *zdo.EndDevice) {
-	// var cluster zcl.Cluster = zcl.POWER_CONFIGURATION
+
 	cluster := zcl.POWER_CONFIGURATION
 	endpoint := zcl.Endpoint{Address: ed.ShortAddress, Number: 1}
 
@@ -676,14 +725,14 @@ func (c *Controller) get_power(ed *zdo.EndDevice) {
 	frame.TransactionSequenceNumber = c.Get_zdo().Generate_transaction_sequence_number()
 	frame.Command = uint8(zcl.READ_ATTRIBUTES) // 0x00
 	// in payload set of required attributes
-	frame.Payload = append(frame.Payload, zcl.LOWBYTE(uint16(zcl.PowerConfiguration_MAINS_VOLTAGE)))    // 0x0000 Напряжение основного питания в 0,1 В UINT16
+	frame.Payload = append(frame.Payload, zcl.LOWBYTE(uint16(zcl.PowerConfiguration_MAINS_VOLTAGE)))    // 0x0000 main voltage, 0.1V, UINT16
 	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(uint16(zcl.PowerConfiguration_MAINS_VOLTAGE)))   //
-	frame.Payload = append(frame.Payload, zcl.LOWBYTE(uint16(zcl.PowerConfiguration_BATTERY_VOLTAGE)))  // 0x0020 возвращает напряжение батарейки в десятых долях вольта UINT8
+	frame.Payload = append(frame.Payload, zcl.LOWBYTE(uint16(zcl.PowerConfiguration_BATTERY_VOLTAGE)))  // 0x0020 Battery voltage, 0.1V. UINT8
 	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(uint16(zcl.PowerConfiguration_BATTERY_VOLTAGE))) //
-	frame.Payload = append(frame.Payload, zcl.LOWBYTE(uint16(zcl.PowerConfiguration_BATTERY_REMAIN)))   //  0x0021 Остаток заряда батареи в процентах
+	frame.Payload = append(frame.Payload, zcl.LOWBYTE(uint16(zcl.PowerConfiguration_BATTERY_REMAIN)))   //  0x0021 Battery remain level, 0.5%, UINT8
 	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(uint16(zcl.PowerConfiguration_BATTERY_REMAIN)))  //
 
-	c.Get_zdo().Send_message(endpoint, cluster, frame, 10*time.Second)
+	c.Get_zdo().Send_message(endpoint, cluster, frame)
 }
 
 // Turn off the relay according to the list with a long press on the buttons Sonoff1 Sonoff2
@@ -698,6 +747,7 @@ func (c *Controller) switch_off_with_list() {
 
 }
 func (c *Controller) switch_relay(macAddress uint64, cmd uint8, channel uint8) {
+	log.Printf("Relay 0x%016x switch to %d\n", macAddress, cmd)
 	ed := c.get_device_by_mac(macAddress)
 	if ed.ShortAddress > 0 && ed.Di.Available == 1 {
 		c.send_command_to_onoff_device(ed.ShortAddress, cmd, channel)
@@ -726,7 +776,7 @@ func (c *Controller) send_command_to_onoff_device(address uint16, cmd uint8, ep 
 	frame.TransactionSequenceNumber = c.Get_zdo().Generate_transaction_sequence_number()
 	frame.Command = cmd
 
-	c.Get_zdo().Send_message(endpoint, cluster, frame, 3*time.Second)
+	c.Get_zdo().Send_message(endpoint, cluster, frame)
 }
 
 func (c *Controller) configure_reporting(address uint16,
@@ -761,7 +811,7 @@ func (c *Controller) configure_reporting(address uint16,
 	frame.Payload = append(frame.Payload, zcl.LOWBYTE(reportable_change))
 	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(reportable_change))
 
-	return c.Get_zdo().Send_message(endpoint, cluster, frame, 3*time.Second)
+	return c.Get_zdo().Send_message(endpoint, cluster, frame)
 }
 
 func (c *Controller) set_last_motion_sensor_activity(lastTime time.Time) {
@@ -770,6 +820,10 @@ func (c *Controller) set_last_motion_sensor_activity(lastTime time.Time) {
 	}
 }
 func (c *Controller) get_last_motion_sensor_activity() time.Time { return c.lastMotion }
+
+func (c *Controller) executeCmd(cmd string) {
+	log.Println("Execute cmd ", cmd)
+}
 
 func Mapkey(m map[uint16]uint64, value uint64) (key uint16, ok bool) {
 	for k, v := range m {

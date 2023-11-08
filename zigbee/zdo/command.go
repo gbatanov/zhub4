@@ -6,7 +6,8 @@ package zdo
 
 import (
 	"fmt"
-	"zhub4/zigbee/zdo/zcl"
+
+	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
 )
 
 type Command struct {

@@ -9,7 +9,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"time"
-	"zhub4/zigbee/zdo/zcl"
+
+	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
 )
 
 type DeviceInfo struct {
@@ -76,10 +77,12 @@ var DEVICE_TYPES map[uint8]string = map[uint8]string{
 	6: "WaterValve",
 	7: "IkeaButton",       // 1 endpoint (7 input cluster - 0x0000, 0x0001, 0x0003,0x0009,0x0020,0x1000,0xfc7c 7 output cluster - 0x0003,0x0004,0x0006,0x0008,0x0019,0x0102, 0x1000)
 	8: "IkeaMotionSensor", // 1 endpoint (7 input cluster - 0x0000, 0x0001, 0x0003,0x0009,0x0020,0x1000,0xfc7c 6 output cluster - 0x0003,0x0004,0x0006,0x0008,0x0019,0x1000 )
-	9: "RelayAqara",       // 5 endpoint 1 - (8 input cluster - 0x0000, 0x0002, 0x0003,0x0004,0x0005,0x0009,0x000a,0xfcc0 3 output cluster - 0x000a,0x0019,0xffff)
-	//   endpoint 21, 31 - (1 input cluster - 0x0012 )
-	//   endpoint 41 - (1 input cluster - 0x000c )
-	//   endpoint 242 - (1 output cluster 0x0021)
+	9: "RelayAqara",       // 5 endpoint
+	// endpoint  1 - (8 input cluster -  0x0000, 0x0002, 0x0003,0x0004,0x0005,0x0009,0x000a,0xfcc0
+	//  	          3 output cluster - 0x000a, 0x0019, 0xffff)
+	// endpoint 21, 31 - (1 input cluster -  0x0012 )
+	// endpoint 41 -     (1 input cluster -  0x000c )
+	// endpoint 242 -    (1 output cluster - 0x0021)
 	10: "SmartPlug",        // 1 endpoint (8 input cluster - 0x0000, 0x0003, 0x0004, 0x0005, 0x0006, 0x0702,0x0b04, 0xe001,  )
 	11: "RelayAqaraDouble", // 2 endpoint 1 - {11 input cluster - 0x0000, 0x0001,0x0002, 0x0003,0x0004,0x0005,0x0006,0x000a,0x0010,0x0b04,0x000c 2 output cluster - 0x000a,0x0019}
 } //            2 -?
@@ -94,6 +97,7 @@ var OFF_LIST []uint64 = []uint64{
 	0x70b3d52b6001b4a4, // SmartPlug 1
 	0x70b3d52b60022ac9, // SmartPlug 3
 	0x70b3d52b60022cfd, // SmartPlug 4
+	0x54ef441000609dcc, // Relay 6
 }
 
 /*

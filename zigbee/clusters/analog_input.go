@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"zhub4/zigbee/zdo"
-	"zhub4/zigbee/zdo/zcl"
+
+	"github.com/gbatanov/zhub4/zigbee/zdo"
+
+	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
 )
 
 type AnalogInputCluster struct {
@@ -25,11 +27,10 @@ func (a AnalogInputCluster) Handler_attributes(endpoint zcl.Endpoint, attributes
 
 		switch zcl.AnalogInputAttribute(attribute.Id) {
 		case zcl.AnalogInput_0055: // value
-			//  на реле показывает суммарный ток в 0,1 А (потребляемый нагрузкой и самим реле)
-			// показывает сразу после изменения нагрузки в отличие от получаемого в репортинге
+			//
 			value = float32(attribute.Value[0])
 			if a.Ed.Get_device_type() == 9 { // relay
-				fmt.Printf("Summary current =  %0.3fA \n", value/100)
+				fmt.Printf("Analog Input Value =  %0.3f \n", value)
 			} else {
 				fmt.Printf("Analog Input Value =  %f \n", value)
 			}

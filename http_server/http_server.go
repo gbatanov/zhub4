@@ -43,7 +43,7 @@ func (web *HttpServer) register_routing() {
 }
 
 func (web *HttpServer) Start() error {
-	//	log.Println("Web server Start()")
+	log.Println("Web server Start()")
 	web.register_routing()
 	go func() {
 		web.srv.ListenAndServe()
@@ -53,7 +53,7 @@ func (web *HttpServer) Start() error {
 	return nil
 }
 func (web *HttpServer) Stop() {
-	//	log.Println("Web server Stop()")
+	log.Println("Web server Stop()")
 	web.srv.Shutdown(context.Background())
 }
 
@@ -111,7 +111,7 @@ func (web *HttpServer) css_handler(w http.ResponseWriter, r *http.Request) {
 
 }
 func (web *HttpServer) command_handler(w http.ResponseWriter, r *http.Request) {
-	//	log.Println("command_handler")
+	log.Println("command_handler")
 	var my_resp MyResponse
 	host := r.Host
 	baseUrl, _ := url.Parse("http://" + host)

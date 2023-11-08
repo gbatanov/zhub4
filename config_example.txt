@@ -14,7 +14,10 @@ MapPath /usr/local/etc/zhub4/map_addr.cfg
 Channels 11
 
 [test]
+// порт zigbee адаптера
 Port /dev/ttyACM0
+// порт модема
+ModemPort COM4
 // telegram bot
 BotName EmptyBot
 MyId 000000000

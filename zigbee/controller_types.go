@@ -7,10 +7,12 @@ package zigbee
 import (
 	"sync"
 	"time"
-	"zhub4/http_server"
-	"zhub4/telega32"
-	"zhub4/zigbee/clusters"
-	"zhub4/zigbee/zdo"
+
+	"github.com/gbatanov/gsm/modem"
+	"github.com/gbatanov/zhub4/http_server"
+	"github.com/gbatanov/zhub4/telega32"
+	"github.com/gbatanov/zhub4/zigbee/clusters"
+	"github.com/gbatanov/zhub4/zigbee/zdo"
 )
 
 type GlobalConfig struct {
@@ -24,16 +26,22 @@ type GlobalConfig struct {
 	Mode string
 	// channels
 	Channels []uint8
-	// serial port
+	// serial port - zigbee adapter
 	Port string
+	// serial port - modem adapter
+	ModemPort string
 	// operating system
 	Os string
 	// HTTP server
 	HttpAddress string
+	WithTlg     bool
+	WithModem   bool
+	// Мой номер телефона
+	MyPhoneNumber string
 }
 type TlgBlock struct {
-	tlg32      *telega32.Tlg32
-	withTlg    bool
+	tlg32 *telega32.Tlg32
+	//	withTlg    bool
 	tlgMsgChan chan telega32.Message
 }
 type HttpBlock struct {
@@ -45,7 +53,7 @@ type HttpBlock struct {
 
 type Controller struct {
 	zdobj              *zdo.Zdo
-	config             GlobalConfig
+	config             *GlobalConfig
 	devices            map[uint64]*zdo.EndDevice
 	devicessAddressMap map[uint16]uint64
 	flag               bool
@@ -59,4 +67,5 @@ type Controller struct {
 	tlg                TlgBlock
 	http               HttpBlock
 	startTime          time.Time
+	mdm                *modem.GsmModem
 }

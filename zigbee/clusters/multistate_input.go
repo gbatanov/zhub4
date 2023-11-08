@@ -2,7 +2,8 @@ package clusters
 
 import (
 	"log"
-	"zhub4/zigbee/zdo/zcl"
+
+	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
 )
 
 type MultistateInputCluster struct {
