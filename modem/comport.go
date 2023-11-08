@@ -12,6 +12,7 @@ import (
 
 const SOF byte = 0xFE
 
+// UART for modem adapter
 type Uart struct {
 	port       string
 	os         string

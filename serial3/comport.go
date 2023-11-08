@@ -11,6 +11,7 @@ import (
 
 const SOF byte = 0xFE
 
+// UART for zigbee adapter
 type Uart struct {
 	port       string
 	os         string
@@ -44,13 +45,15 @@ func (u *Uart) Open() error {
 // Opening the given port
 func (u Uart) openPort() (*serial.Port, error) {
 
-	// bitrate for linux (checked!) - 115200 230400 460800 500000 576000
+	// bitrate for linux  (checked!) - 115200 230400 460800 500000 576000
+	// bitrate for  windows  - 115200 128000
 	// bitrate fo Mac - 115200 only!
-	var baud int = 576000
-	if u.os == "darwin" {
-		baud = 115200
-	}
-	c := &serial.Config{Name: u.port, Baud: baud, ReadTimeout: time.Second * 3}
+	baud := 115200
+
+	c := &serial.Config{
+		Name:        u.port,
+		Baud:        baud,
+		ReadTimeout: time.Second * 3}
 	return serial.OpenPort(c)
 
 }

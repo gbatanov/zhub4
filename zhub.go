@@ -21,8 +21,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.5.36"
-const PORT = "/dev/tty.usbserial-A50285BI"
+const Version string = "v0.5.37"
 
 func init() {
 	fmt.Println("Init in  zhub")
@@ -60,43 +59,43 @@ func main() {
 	controller, err = zigbee.Controller_create(&config)
 
 	if err != nil {
-		log.Println(err.Error())
-		log.Println(err)
-		Flag = false
+		log.Println("1. ", err.Error())
+		return
 	}
 
-	if Flag {
+	err = controller.Start_network()
 
-		err := controller.Start_network()
-
-		if err == nil {
-			defer controller.Stop()
-
-			var wg sync.WaitGroup
-
-			wg.Add(1)
-			//
-			go func() {
-				for Flag {
-					reader := bufio.NewReader(os.Stdin)
-					text, _ := reader.ReadString('\n')
-					fmt.Println(text)
-					if len(text) > 0 {
-						switch []byte(text)[0] {
-						case 'q':
-							Flag = false
-						case 'j':
-							controller.Get_zdo().Permit_join(60 * time.Second)
-						} //switch
-					}
-				} //for
-				fmt.Println("flag false")
-				wg.Done()
-			}()
-			wg.Wait()
-		}
-		Flag = false
+	if err != nil {
+		log.Println("2. ", err.Error())
+		return
 	}
+	defer controller.Stop()
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	//
+	go func() {
+		for Flag {
+			reader := bufio.NewReader(os.Stdin)
+			text, _ := reader.ReadString('\n')
+			log.Println(text)
+			if len(text) > 0 {
+				switch []byte(text)[0] {
+				case 'q':
+					Flag = false
+				case 'j':
+					controller.Get_zdo().Permit_join(60 * time.Second)
+				} //switch
+			}
+		} //for
+		log.Println("flag false")
+		wg.Done()
+	}()
+	wg.Wait()
+
+	Flag = false
+
 }
 
 func getGlobalConfig() (zigbee.GlobalConfig, error) {

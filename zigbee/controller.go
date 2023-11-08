@@ -170,7 +170,7 @@ func (c *Controller) Start_network() error {
 	go func() {
 		for c.flag {
 			time.Sleep(30 * time.Second)
-			c.get_smart_plug_params()
+			c.getSmartPlugParams()
 		}
 	}()
 	if c.config.WithTlg {
@@ -624,7 +624,8 @@ func (c *Controller) on_attribute_report(ed *zdo.EndDevice, ep zcl.Endpoint, clu
 	}
 
 }
-func (c *Controller) get_smart_plug_params() {
+
+func (c *Controller) getSmartPlugParams() {
 	ed := c.get_device_by_mac(0x70b3d52b6001b4a4) // SmartPlug
 	if ed.ShortAddress == 0 {
 		return

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/matishsiao/goInfo"
 )
 
 func init() {
@@ -44,8 +45,16 @@ func Tlg32Create(botName string, mode string, tokenPath string, myId int64, msgC
 	return &bot
 }
 func (bot *Tlg32) get_token() error {
+	gi, _ := goInfo.GetInfo()
+	oss := gi.GoOS
 
-	token, err := os.ReadFile("/usr/local/etc/telebot32/." + bot.botName)
+	tokenFileName := "/usr/local/etc/telebot32/." + bot.botName
+	if oss == "windows" {
+		tokenFileName = "C:\\work\\my\\zhub4\\." + bot.botName
+	}
+
+	token, err := os.ReadFile(tokenFileName)
+
 	if err != nil {
 		return errors.New("incorrect file with token")
 	}
