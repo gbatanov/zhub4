@@ -10,7 +10,7 @@ import (
 	"os"
 	"strconv"
 	"time"
-	"zhub4/pi4"
+
 	"zhub4/zigbee/zdo"
 	"zhub4/zigbee/zdo/zcl"
 )
@@ -30,14 +30,13 @@ func (c *Controller) create_device_list() string {
 
 	var result string = ""
 
-	if pi4.Pi4Available {
-		boardTemperature := c.get_board_temperature()
-		if boardTemperature > -100.0 {
-			bt := fmt.Sprintf("%d", boardTemperature)
-			result += "<p>" + "<b>Температура платы управления: </b>"
-			result += bt + "</p>"
-		}
+	boardTemperature := c.get_board_temperature()
+	if boardTemperature > -100.0 {
+		bt := fmt.Sprintf("%d", boardTemperature)
+		result += "<p>" + "<b>Температура платы управления: </b>"
+		result += bt + "</p>"
 	}
+
 	//#ifdef WITH_SIM800
 	//   result = result + "<p>" + zhub->show_sim800_battery() + "</p>";
 	//#endif

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"time"
-	"zhub4/pi4"
 	"zhub4/zigbee/zdo"
 )
 
@@ -325,8 +324,5 @@ func (c *Controller) ikea_button_action(cmd uint8) {
 }
 
 func (c *Controller) ringer() {
-	if pi4.Pi4Available {
-		pi4 := pi4.Pi4{}
-		pi4.Ringer()
-	}
+	// TODO: системный вызов на ноуте, либо через USB-RS232
 }

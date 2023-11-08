@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"log/syslog"
 	"os"
 	"os/signal"
 	"strconv"
@@ -22,7 +21,8 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.5.35"
+const Version string = "v0.5.36"
+const PORT = "/dev/tty.usbserial-A50285BI"
 
 func init() {
 	fmt.Println("Init in  zhub")
@@ -30,16 +30,12 @@ func init() {
 
 func main() {
 
+	var err error
 	var Flag bool = true
 	var controller *zigbee.Controller
 	var config zigbee.GlobalConfig
 
-	sysLog, err := syslog.New(syslog.LOG_INFO|syslog.LOG_SYSLOG, "zhub4")
-	sysLog.Info("Start zhub4, version " + Version)
-
-	if err != nil {
-		log.Fatal(err)
-	}
+	log.Println("Start zhub4, version " + Version)
 
 	sigs := make(chan os.Signal, 1)
 	//	intrpt := false // for gracefull exit
@@ -55,17 +51,16 @@ func main() {
 		//		controller.Stop()
 	}()
 
-	config, err = get_global_config()
+	config, err = getGlobalConfig()
 	if err != nil {
-		sysLog.Emerg(err.Error())
-		log.Println(err)
+		log.Println(err.Error())
 		Flag = false
 	}
 
-	controller, err = zigbee.Controller_create(config)
+	controller, err = zigbee.Controller_create(&config)
 
 	if err != nil {
-		sysLog.Emerg(err.Error())
+		log.Println(err.Error())
 		log.Println(err)
 		Flag = false
 	}
@@ -76,6 +71,7 @@ func main() {
 
 		if err == nil {
 			defer controller.Stop()
+
 			var wg sync.WaitGroup
 
 			wg.Add(1)
@@ -103,12 +99,16 @@ func main() {
 	}
 }
 
-func get_global_config() (zigbee.GlobalConfig, error) {
+func getGlobalConfig() (zigbee.GlobalConfig, error) {
 	config := zigbee.GlobalConfig{}
 	gi, _ := goInfo.GetInfo()
 	config.Os = gi.GoOS
-
+	config.WithModem = false
+	config.WithTlg = false
 	filename := "/usr/local/etc/zhub4/config.txt"
+	if config.Os == "windows" {
+		filename = "C:\\work\\my\\zhub4\\config.txt"
+	}
 	fd, err := os.OpenFile(filename, os.O_RDONLY, 0755)
 	if err != nil {
 		return zigbee.GlobalConfig{}, errors.New("incorrect file with configuration")
@@ -168,6 +168,8 @@ func get_global_config() (zigbee.GlobalConfig, error) {
 				config.MapPath = values[1]
 			case "Port":
 				config.Port = values[1]
+			case "ModemPort":
+				config.ModemPort = values[1]
 			case "Http":
 				config.HttpAddress = values[1]
 			case "Channels":
