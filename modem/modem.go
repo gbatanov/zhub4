@@ -1,3 +1,7 @@
+/*
+GSB, 2023
+gbatanov@yandex.ru
+*/
 package modem
 
 import (
@@ -16,17 +20,18 @@ const TX_BUFFER_SIZE = 256
 const MY_PHONE_NUMBER = "9250109365"
 const MY_PHONE_NUMBER_FOR_SMS = "9752109063F5"
 
-var CmdInput chan []byte = make(chan []byte, 256)
+var cmdInput chan []byte = make(chan []byte, 256)
 
 type GsmModem struct {
-	uart           *Uart
-	rxBuff         []byte
-	txBuff         []byte
-	isCall         bool
-	toneCmd        string
-	toneCmdStarted bool
-	Flag           bool
-	em             *event.EventEmitter
+	uart            *Uart
+	rxBuff          []byte
+	txBuff          []byte
+	isCall          bool
+	toneCmd         string
+	toneCmdStarted  bool
+	Flag            bool
+	em              *event.EventEmitter
+	CmdToController chan string
 }
 
 func GsmModemCreate(port string, os string, baud int) *GsmModem {
@@ -39,7 +44,7 @@ func GsmModemCreate(port string, os string, baud int) *GsmModem {
 	gsm.toneCmdStarted = false
 	gsm.Flag = true
 	gsm.em = event.EventEmitterCreate()
-
+	gsm.CmdToController = make(chan string, 2)
 	return &gsm
 }
 
@@ -49,13 +54,13 @@ func (mdm *GsmModem) Open() error {
 		return err
 	}
 
-	go mdm.uart.Loop(CmdInput)
+	go mdm.uart.Loop(cmdInput)
 
 	// Цикл обработки принятых сообщений
 	go func() {
 
 		for mdm.Flag {
-			buff := <-CmdInput
+			buff := <-cmdInput
 
 			if strings.Contains(string(buff), "\r\r\n") { // Ответ на команду
 				answer := string(buff)
@@ -442,8 +447,10 @@ func (mdm *GsmModem) HangUp() {
 	}
 }
 
+// TODO: надо отправить команду контроллеру через выделенный канал
 func (mdm *GsmModem) executeToneComand() {
 	mdm.HangOut()
 	log.Printf("Исполняем команду %s \n", mdm.toneCmd)
+	mdm.CmdToController <- mdm.toneCmd
 	mdm.toneCmd = ""
 }

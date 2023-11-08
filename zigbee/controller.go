@@ -177,6 +177,15 @@ func (c *Controller) Start_network() error {
 		outMsg := telega32.Message{ChatId: c.config.MyId, Msg: "Zhub4 start"}
 		c.tlg.tlgMsgChan <- outMsg
 	}
+
+	if c.config.WithModem {
+		go func() {
+			for c.flag {
+				cmd := <-c.mdm.CmdToController
+				c.executeCmd(cmd)
+			}
+		}()
+	}
 	log.Println("Controller start network success")
 	return nil
 }
@@ -656,11 +665,11 @@ func (c *Controller) getSmartPlugParams() {
 // action after any message (they happen quite often, I use them as a timer)
 func (c *Controller) after_message_action(ed *zdo.EndDevice) {
 
-	var interval float64 = 30
+	var interval float64 = 20
 	if c.config.Mode == "test" {
 		interval = 10.0
 	}
-	// 30 minutes after the last movement, I capture the state "No one at home"
+	// 20 minutes after the last movement, I capture the state "No one at home"
 	// write to log and send to telegram
 	lastMotion := c.get_last_motion_sensor_activity()
 	diffOff := time.Since(lastMotion)
@@ -809,6 +818,10 @@ func (c *Controller) set_last_motion_sensor_activity(lastTime time.Time) {
 	}
 }
 func (c *Controller) get_last_motion_sensor_activity() time.Time { return c.lastMotion }
+
+func (c *Controller) executeCmd(cmd string) {
+	log.Println("Execute cmd ", cmd)
+}
 
 func Mapkey(m map[uint16]uint64, value uint64) (key uint16, ok bool) {
 	for k, v := range m {
