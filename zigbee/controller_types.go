@@ -7,11 +7,12 @@ package zigbee
 import (
 	"sync"
 	"time"
-	"zhub4/http_server"
-	"zhub4/modem"
-	"zhub4/telega32"
-	"zhub4/zigbee/clusters"
-	"zhub4/zigbee/zdo"
+
+	"github.com/gbatanov/gsm/modem"
+	"github.com/gbatanov/zhub4/http_server"
+	"github.com/gbatanov/zhub4/telega32"
+	"github.com/gbatanov/zhub4/zigbee/clusters"
+	"github.com/gbatanov/zhub4/zigbee/zdo"
 )
 
 type GlobalConfig struct {
@@ -35,6 +36,8 @@ type GlobalConfig struct {
 	HttpAddress string
 	WithTlg     bool
 	WithModem   bool
+	// Мой номер телефона
+	MyPhoneNumber string
 }
 type TlgBlock struct {
 	tlg32 *telega32.Tlg32

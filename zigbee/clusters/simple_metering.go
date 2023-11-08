@@ -8,8 +8,10 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
-	"zhub4/zigbee/zdo"
-	"zhub4/zigbee/zdo/zcl"
+
+	"github.com/gbatanov/zhub4/zigbee/zdo"
+
+	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
 )
 
 type SimpleMeteringCluster struct {

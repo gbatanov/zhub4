@@ -11,12 +11,13 @@ import (
 	"os"
 	"sync"
 	"time"
-	"zhub4/http_server"
-	"zhub4/modem"
-	"zhub4/telega32"
-	"zhub4/zigbee/clusters"
-	"zhub4/zigbee/zdo"
-	"zhub4/zigbee/zdo/zcl"
+
+	"github.com/gbatanov/gsm/modem"
+	"github.com/gbatanov/zhub4/http_server"
+	"github.com/gbatanov/zhub4/telega32"
+	"github.com/gbatanov/zhub4/zigbee/clusters"
+	"github.com/gbatanov/zhub4/zigbee/zdo"
+	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
 
 	"github.com/matishsiao/goInfo"
 )
@@ -36,7 +37,7 @@ func Controller_create(config *GlobalConfig) (*Controller, error) {
 	}
 
 	// Modem block
-	mdm := modem.GsmModemCreate(config.ModemPort, oss, 9600)
+	mdm := modem.GsmModemCreate(config.ModemPort, oss, 9600, config.MyPhoneNumber)
 	err = mdm.Open()
 	config.WithModem = err == nil
 
@@ -186,6 +187,7 @@ func (c *Controller) Start_network() error {
 			}
 		}()
 	}
+
 	log.Println("Controller start network success")
 	return nil
 }

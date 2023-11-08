@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"log"
 	"time"
-	"zhub4/zigbee/zdo"
+
+	"github.com/gbatanov/zhub4/zigbee/zdo"
 )
 
 // scenarios

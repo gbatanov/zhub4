@@ -16,12 +16,12 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"zhub4/zigbee"
 
+	"github.com/gbatanov/zhub4/zigbee"
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.5.38"
+const Version string = "v0.5.39"
 
 func init() {
 	fmt.Println("Init in zhub")
@@ -46,8 +46,7 @@ func main() {
 		sig := <-sigs
 		log.Println(sig)
 		Flag = false
-		//		intrpt = true
-		//		controller.Stop()
+
 	}()
 
 	config, err = getGlobalConfig()
@@ -167,6 +166,8 @@ func getGlobalConfig() (zigbee.GlobalConfig, error) {
 				config.MapPath = values[1]
 			case "Port":
 				config.Port = values[1]
+			case "MyPhoneNumber":
+				config.MyPhoneNumber = values[1]
 			case "ModemPort":
 				config.ModemPort = values[1]
 			case "Http":

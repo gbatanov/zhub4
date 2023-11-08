@@ -9,7 +9,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"time"
-	"zhub4/zigbee/zdo/zcl"
+
+	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
 )
 
 type DeviceInfo struct {

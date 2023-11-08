@@ -13,8 +13,9 @@ import (
 	"log"
 	"sync"
 	"time"
-	"zhub4/serial3"
-	"zhub4/zigbee/zdo/zcl"
+
+	"github.com/gbatanov/zhub4/serial3"
+	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
 )
 
 type Simple_descriptor struct {
