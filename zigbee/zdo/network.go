@@ -1,7 +1,8 @@
 /*
-GSB, 2023
-gbatanov@yandex.ru
+zhub4 - Система домашней автоматизации на Go
+Copyright (c) 2023 GSB, Georgii Batanov gbatanov @ yandex.ru
 */
+
 package zdo
 
 type RF_Channels struct {

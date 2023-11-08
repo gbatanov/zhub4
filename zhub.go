@@ -1,6 +1,6 @@
 /*
-GSB, 2023
-gbatanov@yandex.ru
+zhub4 - Система домашней автоматизации на Go
+Copyright (c) 2023 GSB, Georgii Batanov gbatanov @ yandex.ru
 */
 package main
 
@@ -21,7 +21,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.5.39"
+const Version string = "v0.5.40"
 
 func init() {
 	fmt.Println("Init in zhub")
