@@ -82,6 +82,23 @@ func (c *Controller) Start_network() error {
 	var defconf zdo.RF_Channels
 	defconf.Channels = c.config.Channels
 
+	err := c.tlg.tlg32.Run()
+	if err == nil {
+		c.config.WithTlg = true
+		log.Println("Telegram bot started")
+		if c.config.WithModem {
+			outMsg := telega32.Message{ChatId: c.config.MyId, Msg: "SIM800 started"}
+			c.tlg.tlgMsgChan <- outMsg
+		} else {
+			outMsg := telega32.Message{ChatId: c.config.MyId, Msg: "SIM800 not started"}
+			c.tlg.tlgMsgChan <- outMsg
+		}
+
+	} else {
+		c.config.WithTlg = false
+		log.Println("Telebot error:", err.Error())
+	}
+
 	// thread for commands handle
 	go func() {
 		c.Get_zdo().Input_command()
@@ -112,7 +129,7 @@ func (c *Controller) Start_network() error {
 
 	// reset of zhub
 	log.Println("Controller reset adapter (wait about 1 minute)")
-	err := c.Get_zdo().Reset()
+	err = c.Get_zdo().Reset()
 	if err != nil {
 		return err
 	}
@@ -158,9 +175,6 @@ func (c *Controller) Start_network() error {
 			}
 		}
 	}
-
-	err = c.tlg.tlg32.Run()
-	c.config.WithTlg = err == nil
 
 	c.create_devices_by_map()
 

@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gbatanov/zhub4/zigbee/zdo"
@@ -50,7 +51,7 @@ func (c *Controller) create_device_list() string {
 }
 
 func (c *Controller) get_board_temperature() int {
-	if c.config.Os == "Darwin" {
+	if strings.ToLower(c.config.Os) == "darwin" {
 		return -100
 	}
 	dat, err := os.ReadFile("/sys/class/thermal/thermal_zone0/temp")
