@@ -21,7 +21,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.5.41"
+const Version string = "v0.5.42"
 
 func init() {
 	fmt.Println("Init in zhub")
@@ -37,7 +37,6 @@ func main() {
 	log.Println("Start zhub4, version " + Version)
 
 	sigs := make(chan os.Signal, 1)
-	//	intrpt := false // for gracefull exit
 	// signal.Notify registers this channel to receive notifications of the specified signals.
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
 	// This goroutine performs signal blocking.
@@ -46,7 +45,6 @@ func main() {
 		sig := <-sigs
 		log.Println(sig)
 		Flag = false
-
 	}()
 
 	config, err = getGlobalConfig()
@@ -78,7 +76,7 @@ func main() {
 		for Flag {
 			reader := bufio.NewReader(os.Stdin)
 			text, _ := reader.ReadString('\n')
-			log.Println(text)
+
 			if len(text) > 0 {
 				switch []byte(text)[0] {
 				case 'q':
@@ -88,12 +86,10 @@ func main() {
 				} //switch
 			}
 		} //for
-		log.Println("flag false")
+		log.Println("Flag is false")
 		wg.Done()
 	}()
 	wg.Wait()
-
-	Flag = false
 
 }
 

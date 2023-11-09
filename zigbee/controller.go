@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gbatanov/gsm/modem"
+	"github.com/gbatanov/sim800l/modem"
 	"github.com/gbatanov/zhub4/http_server"
 	"github.com/gbatanov/zhub4/telega32"
 	"github.com/gbatanov/zhub4/zigbee/clusters"
