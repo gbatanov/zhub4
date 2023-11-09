@@ -17,8 +17,8 @@ type BasicCluster struct {
 	Ed *zdo.EndDevice
 }
 
-func (b BasicCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	log.Printf("BasicCluster:: %s, endpoint address: 0x%04x number = %d \n", b.Ed.Get_human_name(), endpoint.Address, endpoint.Number)
+func (b BasicCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
+	log.Printf("BasicCluster:: %s, endpoint address: 0x%04x number = %d \n", b.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
 
 	for _, attribute := range attributes {
 
@@ -131,7 +131,7 @@ func (b BasicCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 					if attribute.Value[i] == 1 {
 						state = "On"
 					}
-					b.Ed.Set_current_state(state, 1)
+					b.Ed.SetCurrentState(state, 1)
 
 				case 0x65: //  device state, channel 2
 					i = i + 2
@@ -139,7 +139,7 @@ func (b BasicCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 					if attribute.Value[i] == 1 {
 						state = "On"
 					}
-					b.Ed.Set_current_state(state, 2)
+					b.Ed.SetCurrentState(state, 2)
 
 				case 0x6e, // uint8
 					0x6f,

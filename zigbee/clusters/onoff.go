@@ -26,8 +26,8 @@ type MotionMsg struct {
 	Cmd uint8
 }
 
-func (o OnOffCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	log.Printf("OnOffCluster:: %s, endpoint address: 0x%04x number = %d \n", o.Ed.Get_human_name(), endpoint.Address, endpoint.Number)
+func (o OnOffCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
+	log.Printf("OnOffCluster:: %s, endpoint address: 0x%04x number = %d \n", o.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
 	a0000 := false
 	for _, attribute := range attributes {
 
@@ -78,7 +78,7 @@ func (o OnOffCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 					o.MsgChan <- msg
 
 				}
-			} else if o.Ed.Get_device_type() == 10 { // SmartPlug
+			} else if o.Ed.GetDeviceType() == 10 { // SmartPlug
 				currentState := o.Ed.Get_current_state(1)
 				newState := "Off"
 				if b_val {
@@ -87,10 +87,10 @@ func (o OnOffCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 				fmt.Printf("SmartPlug %s \n", newState)
 				if newState != currentState {
 					ts := time.Now() // get time now
-					o.Ed.Set_last_action(ts)
-					o.Ed.Set_current_state(newState, 1)
+					o.Ed.SetLastAction(ts)
+					o.Ed.SetCurrentState(newState, 1)
 				}
-			} else if o.Ed.Get_device_type() == 11 { // duochannel relay has EP1 and EP2
+			} else if o.Ed.GetDeviceType() == 11 { // duochannel relay has EP1 and EP2
 				currentState := o.Ed.Get_current_state(endpoint.Number)
 
 				newState := "Off"
@@ -100,8 +100,8 @@ func (o OnOffCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 				fmt.Printf("Duochannel relay %s channel %d\n", newState, endpoint.Number)
 				if newState != currentState {
 					ts := time.Now() // get time now
-					o.Ed.Set_last_action(ts)
-					o.Ed.Set_current_state(newState, endpoint.Number)
+					o.Ed.SetLastAction(ts)
+					o.Ed.SetCurrentState(newState, endpoint.Number)
 				}
 			} else {
 				currentState := o.Ed.Get_current_state(1)
@@ -111,10 +111,10 @@ func (o OnOffCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl
 				}
 				if newState != currentState {
 					ts := time.Now() // get time now
-					o.Ed.Set_last_action(ts)
-					o.Ed.Set_current_state(newState, 1)
+					o.Ed.SetLastAction(ts)
+					o.Ed.SetCurrentState(newState, 1)
 				}
-				fmt.Printf("Device 0x%04x %s endpoint %d state = %s \n", endpoint.Address, o.Ed.Get_human_name(), endpoint.Number, newState)
+				fmt.Printf("Device 0x%04x %s endpoint %d state = %s \n", endpoint.Address, o.Ed.GetHumanName(), endpoint.Number, newState)
 			}
 
 		case zcl.OnOff_ON_TIME:

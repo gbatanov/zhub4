@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,18 +22,24 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.5.43"
+const Version string = "v0.5.44"
 
 func init() {
 	fmt.Println("Init in zhub")
 }
 
 func main() {
-
 	var err error
 	var Flag bool = true
+	config := zigbee.GlobalConfig{}
+	gi, _ := goInfo.GetInfo()
+	config.Os = gi.GoOS
+	rootDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err == nil {
+		config.ProgramDir = rootDir
+	}
+
 	var controller *zigbee.Controller
-	var config zigbee.GlobalConfig
 
 	log.Println("Start zhub4, version " + Version)
 
@@ -47,20 +54,20 @@ func main() {
 		Flag = false
 	}()
 
-	config, err = getGlobalConfig()
+	err = getGlobalConfig(&config)
 	if err != nil {
 		log.Println(err.Error())
 		Flag = false
 	}
 
-	controller, err = zigbee.Controller_create(&config)
+	controller, err = zigbee.ControllerCreate(&config)
 
 	if err != nil {
 		log.Println("1. ", err.Error())
 		return
 	}
 
-	err = controller.Start_network()
+	err = controller.StartNetwork()
 
 	if err != nil {
 		log.Println("2. ", err.Error())
@@ -82,7 +89,7 @@ func main() {
 				case 'q':
 					Flag = false
 				case 'j':
-					controller.Get_zdo().Permit_join(60 * time.Second)
+					controller.GetZdo().PermitJoin(60 * time.Second)
 				} //switch
 			}
 		} //for
@@ -93,19 +100,17 @@ func main() {
 
 }
 
-func getGlobalConfig() (zigbee.GlobalConfig, error) {
-	config := zigbee.GlobalConfig{}
-	gi, _ := goInfo.GetInfo()
-	config.Os = gi.GoOS
+func getGlobalConfig(config *zigbee.GlobalConfig) error {
+
 	config.WithModem = false
 	config.WithTlg = false
 	filename := "/usr/local/etc/zhub4/config.txt"
 	if config.Os == "windows" {
-		filename = "C:\\work\\my\\zhub4\\config.txt"
+		filename = config.ProgramDir + "\\config.txt"
 	}
 	fd, err := os.OpenFile(filename, os.O_RDONLY, 0755)
 	if err != nil {
-		return zigbee.GlobalConfig{}, errors.New("incorrect file with configuration")
+		return errors.New("incorrect file with configuration")
 	} else {
 		scan := bufio.NewScanner(fd)
 		var mode string = ""
@@ -152,7 +157,7 @@ func getGlobalConfig() (zigbee.GlobalConfig, error) {
 			case "MyId":
 				valInt, err := strconv.Atoi(values[1])
 				if err != nil {
-					return zigbee.GlobalConfig{}, errors.New("incorrect MyId")
+					return errors.New("incorrect MyId")
 				} else {
 					config.MyId = int64(valInt)
 				}
@@ -184,5 +189,5 @@ func getGlobalConfig() (zigbee.GlobalConfig, error) {
 		fd.Close()
 	}
 
-	return config, nil
+	return nil
 }

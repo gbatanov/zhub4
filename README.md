@@ -5,7 +5,7 @@ Golang version of my project home automation system on C++
 Starting from version 0.5.34, the project is developed only for notebooks and desktop computers.
 
 ##### Directories:
-- http_server - HTTP server, web api to zigbee part
+- httpServer - HTTP server, web api to zigbee part
 - serial3 - serial port package
 - telega32 - telegram bot package
 - zigbee - package for working with zigbee
@@ -14,13 +14,13 @@ Starting from version 0.5.34, the project is developed only for notebooks and de
   - clusters - a package of handlers in clusters
 
 #### Settings
-File with config need place into /usr/local/etc/zhub4 (content example in  config_example)
+File with config need place into /usr/local/etc/zhub4 (content example in  config_example.txt)
 
-#### Build an start
+#### Build and start (Linux, Mac)
 ```
 make
-make install
-zhub4
+sudo make install
+sudo zhub4
 ```
 
 #### Console commands

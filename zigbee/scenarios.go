@@ -13,8 +13,8 @@ import (
 )
 
 // scenarios
-func (c *Controller) handle_motion(ed *zdo.EndDevice, cmd uint8) {
-	fmt.Println("handle_motion")
+func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
+	fmt.Println("handleMotion")
 
 	state := "No motion"
 	cur_motion := ed.Get_motion_state()
@@ -26,8 +26,8 @@ func (c *Controller) handle_motion(ed *zdo.EndDevice, cmd uint8) {
 	if int8(cmd) != cur_motion {
 		if cmd == 1 {
 			ts := time.Now() // get time now
-			c.set_last_motion_sensor_activity(ts)
-			ed.Set_last_action(ts)
+			c.setLastMotionSensorActivity(ts)
+			ed.SetLastAction(ts)
 			c.switchOffTS = false
 		}
 	}
@@ -35,7 +35,7 @@ func (c *Controller) handle_motion(ed *zdo.EndDevice, cmd uint8) {
 	if cmd == 1 {
 		state = "Motion"
 	}
-	ed.Set_current_state(state, 1) // text value
+	ed.SetCurrentState(state, 1) // text value
 
 	macAddress := ed.MacAddress
 
@@ -44,7 +44,7 @@ func (c *Controller) handle_motion(ed *zdo.EndDevice, cmd uint8) {
 
 		//  on/off  light in coridor 0x54ef4410001933d3
 		//  works in couple with custom2
-		custom2 := c.get_device_by_mac(0x00124b0014db2724)
+		custom2 := c.getDeviceByMac(0x00124b0014db2724)
 		if custom2.ShortAddress > 0 {
 			lum = custom2.Get_luminocity()
 		}
@@ -52,7 +52,7 @@ func (c *Controller) handle_motion(ed *zdo.EndDevice, cmd uint8) {
 		if cmd == 1 {
 			if lum != 1 {
 				log.Printf("Motion sensor in coridor. Turn on light relay. \n")
-				c.switch_relay(0x54ef4410001933d3, 1, 1)
+				c.switchRelay(0x54ef4410001933d3, 1, 1)
 			}
 		} else if cmd == 0 {
 			if custom2.ShortAddress > 0 {
@@ -60,7 +60,7 @@ func (c *Controller) handle_motion(ed *zdo.EndDevice, cmd uint8) {
 			}
 			if cur_motion != 1 {
 				log.Printf("Motion sensor in coridor. Turn off light relay. \n")
-				c.switch_relay(0x54ef4410001933d3, 0, 1)
+				c.switchRelay(0x54ef4410001933d3, 0, 1)
 			}
 		}
 	} else if macAddress == 0x00124b0014db2724 {
@@ -69,7 +69,7 @@ func (c *Controller) handle_motion(ed *zdo.EndDevice, cmd uint8) {
 		lum := ed.Get_luminocity()
 		log.Printf("Motion sensor in custom2. cmd = %d, lum = %d\n", cmd, lum)
 
-		relay := c.get_device_by_mac(0x54ef4410001933d3)
+		relay := c.getDeviceByMac(0x54ef4410001933d3)
 		relayCurrentState := relay.Get_current_state(1)
 
 		if cmd == 1 && relayCurrentState != "On" {
@@ -78,29 +78,29 @@ func (c *Controller) handle_motion(ed *zdo.EndDevice, cmd uint8) {
 			if h > 7 && h < 23 {
 				if lum != 1 {
 					log.Printf("Motion sensor in hallway. Turn on light relay. \n")
-					c.switch_relay(0x54ef4410001933d3, 1, 1)
+					c.switchRelay(0x54ef4410001933d3, 1, 1)
 				}
 			}
 		} else if cmd == 0 && relayCurrentState != "Off" {
-			motion1 := c.get_device_by_mac(0x00124b0025137475)
+			motion1 := c.getDeviceByMac(0x00124b0025137475)
 			if motion1.ShortAddress > 0 {
 				cur_motion = motion1.Get_motion_state()
 			}
 			if cur_motion != 1 {
 				log.Printf("Motion sensor in hallway. Turn off light relay. \n")
-				c.switch_relay(0x54ef4410001933d3, 0, 1)
+				c.switchRelay(0x54ef4410001933d3, 0, 1)
 			}
 		}
 	} else if macAddress == 0x00124b0009451438 {
-		relay := c.get_device_by_mac(0x00158d0009414d7e)
+		relay := c.getDeviceByMac(0x00158d0009414d7e)
 		relayCurrentState := relay.Get_current_state(1)
 		// presence sensor 1, on/off light in kitchen - relay 7 endpoint 1
 		if cmd == 1 && relayCurrentState != "On" {
 			log.Printf("Turn on light in kitchen")
-			c.switch_relay(0x00158d0009414d7e, 1, 1)
+			c.switchRelay(0x00158d0009414d7e, 1, 1)
 		} else if cmd == 0 && relayCurrentState != "Off" {
 			log.Printf("Turn off light in kitchen")
-			c.switch_relay(0x00158d0009414d7e, 0, 1)
+			c.switchRelay(0x00158d0009414d7e, 0, 1)
 		}
 	} else if macAddress == 0x00124b002444d159 {
 		// motion sensor 3, children room
@@ -131,7 +131,7 @@ func (c *Controller) handle_motion(ed *zdo.EndDevice, cmd uint8) {
 		if cmd == 1 {
 			go func() {
 				time.Sleep(30 * time.Second)
-				c.handle_motion(ed, 0)
+				c.handleMotion(ed, 0)
 			}()
 		}
 	} else if macAddress == 0x00124b0007246963 {
@@ -159,43 +159,43 @@ func (c *Controller) onoff_command(ed *zdo.EndDevice, message zdo.Message) {
 	if cmd == 1 {
 		state = "On"
 	}
-	ed.Set_current_state(state, 1)
+	ed.SetCurrentState(state, 1)
 	ts := time.Now() // get time now
-	ed.Set_last_action(ts)
+	ed.SetLastAction(ts)
 
 	if macAddress == 0x8cf681fffe0656ef {
 		// IKEA button on/off only
-		//		c.get_power(ed)
+		//		c.getPower(ed)
 		c.ikea_button_action(cmd)
 	} else if macAddress == 0x0c4314fffe17d8a8 {
 		// IKEA motion sensor
-		//		c.get_power(ed)
-		c.handle_motion(ed, 1) // switch off with timer
+		//		c.getPower(ed)
+		c.handleMotion(ed, 1) // switch off with timer
 	} else if macAddress == 0x00124b0028928e8a {
 		// button Sonoff1
 		switch cmd { // 1 - double , 2 - single, 0 - long press
 		case 0:
-			ed.Set_current_state("Long click", 1)
-			c.switch_off_with_list()
+			ed.SetCurrentState("Long click", 1)
+			c.switchOffWithList()
 		case 1:
-			ed.Set_current_state("Double click", 1)
+			ed.SetCurrentState("Double click", 1)
 		case 2:
-			ed.Set_current_state("Single click", 1)
+			ed.SetCurrentState("Single click", 1)
 		} //switch
 	} else if macAddress == 0x00124b00253ba75f {
 		// button Sonoff 2 call ringer with double click
 		// switch off relays by list with long press
 		switch cmd {
 		case 0:
-			ed.Set_current_state("Long click", 1)
-			c.switch_off_with_list()
+			ed.SetCurrentState("Long click", 1)
+			c.switchOffWithList()
 		case 1:
-			ed.Set_current_state("Double click", 1)
+			ed.SetCurrentState("Double click", 1)
 			c.ringer()
 			// alarm_msg := "Вызов с кнопки "
 			// tlg32->send_message(alarm_msg);
 		case 2:
-			ed.Set_current_state("Single click", 1)
+			ed.SetCurrentState("Single click", 1)
 		}
 	}
 }
@@ -204,7 +204,7 @@ func (c *Controller) onoff_command(ed *zdo.EndDevice, message zdo.Message) {
 func (c *Controller) level_command(ed *zdo.EndDevice, message zdo.Message) {
 	fmt.Println("level_command")
 	ts := time.Now() // get time now
-	ed.Set_last_action(ts)
+	ed.SetLastAction(ts)
 
 	cmd := message.ZclFrame.Command // 5 - Hold+, 7 - button realised, 1 - Hold-
 
@@ -212,13 +212,13 @@ func (c *Controller) level_command(ed *zdo.EndDevice, message zdo.Message) {
 
 	switch cmd {
 	case 1: // Hold
-		ed.Set_current_state("Minus down", 1)
+		ed.SetCurrentState("Minus down", 1)
 		log.Printf("IKEA button: Hold-\n")
 	case 5:
-		ed.Set_current_state("Plus down", 1)
+		ed.SetCurrentState("Plus down", 1)
 		log.Printf("IKEA button: Hold+\n")
 	case 7:
-		ed.Set_current_state("No act", 1)
+		ed.SetCurrentState("No act", 1)
 		log.Printf("IKEA button: realised\n")
 	}
 	fmt.Println("")
@@ -232,7 +232,7 @@ func (c *Controller) level_command(ed *zdo.EndDevice, message zdo.Message) {
 // {0x54ef441000193352, {"lumi.switch.n0agl1", "Xiaomi", "SSM-U01", "Реле 2(стиральная машина)", zigbee::zcl::Cluster::ON_OFF}}
 // washing machine contactor normally closed,
 // when the executive relay is turned on, the contactor turns off
-func (c *Controller) ias_zone_command(cmnd uint8, shortAddr uint16) {
+func (c *Controller) iasZoneCommand(cmnd uint8, shortAddr uint16) {
 	executiveDevices := [3]uint64{
 		0xa4c138d9758e1dcd,
 		0xa4c138373e89d731,
@@ -246,7 +246,7 @@ func (c *Controller) ias_zone_command(cmnd uint8, shortAddr uint16) {
 		if res && dev == shortAddr {
 			cmd = 1 - cmnd
 		}
-		c.send_command_to_onoff_device(shortAddr, cmd, 1)
+		c.sendCommandToOnoffDevice(shortAddr, cmd, 1)
 		log.Printf("Close device 0x%04x\n", shortAddr)
 	} else {
 		// all executive devices
@@ -258,13 +258,13 @@ func (c *Controller) ias_zone_command(cmnd uint8, shortAddr uint16) {
 			_, res := Mapkey(c.devicessAddressMap, macAddress)
 			if res {
 				ts := time.Now() // get time now
-				ed := c.get_device_by_mac(macAddress)
+				ed := c.getDeviceByMac(macAddress)
 				if ed.ShortAddress > 0 {
-					ed.Set_last_action(ts)
+					ed.SetLastAction(ts)
 
 					// the Valves close slowly, we start everything in parallel threads
 					go func(short uint16, cmd uint8) {
-						c.send_command_to_onoff_device(short, cmd, 1)
+						c.sendCommandToOnoffDevice(short, cmd, 1)
 					}(shortAddr, cmd1)
 				}
 			}
@@ -272,23 +272,23 @@ func (c *Controller) ias_zone_command(cmnd uint8, shortAddr uint16) {
 	}
 }
 
-func (c *Controller) handle_sonoff_door(ed *zdo.EndDevice, cmd uint8) {
+func (c *Controller) handleSonoffDoor(ed *zdo.EndDevice, cmd uint8) {
 	ts := time.Now() // get time now
-	ed.Set_last_action(ts)
+	ed.SetLastAction(ts)
 
 	state := "Closed"
 	if ed.MacAddress == 0x00124b002512a60b { // door sensor 2
 		if cmd == 1 {
 			state = "Opened"
 		}
-		ed.Set_current_state(state, 1)
+		ed.SetCurrentState(state, 1)
 		// control relay 3, turn on the backlight in the cabinet in the  bedroom
-		c.switch_relay(0x54ef44100018b523, cmd, 1)
+		c.switchRelay(0x54ef44100018b523, cmd, 1)
 	} else if ed.MacAddress == 0x00124b00250bba63 { // door sensor 3
 		if cmd == 1 {
 			state = "Opened"
 		}
-		ed.Set_current_state(state, 1)
+		ed.SetCurrentState(state, 1)
 		// alarmMsg = "Закрыт ящик "
 		// if cmd == 0x01 {
 		// alarmMsg = "Открыт ящик "
@@ -298,17 +298,17 @@ func (c *Controller) handle_sonoff_door(ed *zdo.EndDevice, cmd uint8) {
 		if cmd == 0 {
 			state = "Opened"
 		}
-		ed.Set_current_state(state, 1)
+		ed.SetCurrentState(state, 1)
 
 		// light "Toilet occupied" in the corridor is turned on only from 9 am to 10 pm
 		// turn off at any time (to cancel manual turn on)
 		// enable/disable the relay 0x54ef4410005b2639 - light relay "Toilet occupied"
 		if cmd == 0x01 {
-			c.switch_relay(0x54ef4410005b2639, 0, 1)
+			c.switchRelay(0x54ef4410005b2639, 0, 1)
 		} else if cmd == 0 {
 			h, _, _ := time.Now().Clock()
 			if h > 7 && h < 23 {
-				c.switch_relay(0x54ef4410005b2639, 1, 1)
+				c.switchRelay(0x54ef4410005b2639, 1, 1)
 			}
 		}
 	}

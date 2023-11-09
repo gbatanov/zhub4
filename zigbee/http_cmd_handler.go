@@ -42,7 +42,7 @@ func (c *Controller) create_device_list() string {
 	//   result = result + "<p>" + zhub->show_sim800_battery() + "</p>";
 	//#endif
 	result += "<p>Старт программы: " + c.format_date_time(c.startTime) + "</p>"
-	la := c.get_last_motion_sensor_activity()
+	la := c.getLastMotionSensorActivity()
 	result += "<p>Время последнего срабатывания датчиков движения: "
 	result += c.format_date_time(la) + "</p>"
 	result += c.show_device_statuses()
@@ -86,7 +86,7 @@ func (c *Controller) create_command_list() string {
 			fmt.Println(macAddress)
 			cmnd, err := strconv.Atoi(mapParams["cmd"][0])
 			if err == nil {
-				c.switch_relay(macAddress, uint8(cmnd), 1)
+				c.switchRelay(macAddress, uint8(cmnd), 1)
 			}
 		} else {
 			fmt.Println(err)
@@ -122,7 +122,7 @@ func (c *Controller) show_device_statuses() string {
 	for _, di := range allDevices {
 		result += "<tr class='empty'><td colspan='8'><hr></td></tr>"
 		for _, addr := range di {
-			ed := c.get_device_by_mac(addr)
+			ed := c.getDeviceByMac(addr)
 			if ed.ShortAddress != 0 && ed.Di.Test == 1 {
 				result += c.show_one_type(ed)
 			}
@@ -133,7 +133,7 @@ func (c *Controller) show_device_statuses() string {
 	addResult := "<table>"
 	addResult += "<th>Комната</th><th>Температура</th><th>Влажность</th><th>Давление</th>"
 	tmpResult := ""
-	ed := c.get_device_by_mac(0x00124b000b1bb401) // Climat device on balconen, custom ptvo firmware
+	ed := c.getDeviceByMac(0x00124b000b1bb401) // Climat device on balconen, custom ptvo firmware
 	if ed.ShortAddress != 0 && ed.Di.Test == 1 {
 
 		tmpResult += "<tr><td>Балкон</td>"
@@ -153,7 +153,7 @@ func (c *Controller) show_device_statuses() string {
 			tmpResult += "<td>&nbsp;</td></tr>"
 		}
 	}
-	ed = c.get_device_by_mac(0x00124b0007246963) // Climat device on children room, custom ptvo firmware
+	ed = c.getDeviceByMac(0x00124b0007246963) // Climat device on children room, custom ptvo firmware
 	if ed.ShortAddress != 0 && ed.Di.Test == 1 {
 
 		tmpResult += "<tr><td>Детская</td>"
@@ -182,9 +182,9 @@ func (c *Controller) show_device_statuses() string {
 func (c *Controller) show_one_type(ed *zdo.EndDevice) string {
 	var result string = "<tr>"
 	result += "<td class='addr'>" + fmt.Sprintf("0x%04x", ed.ShortAddress) +
-		"</td><td>" + ed.Get_human_name() + "</td><td>"
+		"</td><td>" + ed.GetHumanName() + "</td><td>"
 	result += ed.Get_current_state(1)
-	if ed.Get_device_type() == 11 {
+	if ed.GetDeviceType() == 11 {
 		result += "/" + ed.Get_current_state(2)
 	}
 

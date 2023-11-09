@@ -154,7 +154,7 @@ type EndDevice struct {
 	motionState     int8
 }
 
-func End_device_create(macAddress uint64, shortAddress uint16) *EndDevice {
+func EndDeviceCreate(macAddress uint64, shortAddress uint16) *EndDevice {
 	ed := EndDevice{MacAddress: macAddress, ShortAddress: shortAddress}
 	ed.Di = KNOWN_DEVICES[macAddress]
 	ed.modelIdentifier = ""
@@ -196,7 +196,7 @@ func (ed *EndDevice) Set_last_seen(tm time.Time) {
 func (ed *EndDevice) Get_last_seen() time.Time {
 	return ed.lastSeen
 }
-func (ed *EndDevice) Set_last_action(tm time.Time) {
+func (ed *EndDevice) SetLastAction(tm time.Time) {
 	ed.lastAction = tm
 }
 func (ed *EndDevice) Get_last_action() time.Time {
@@ -282,15 +282,15 @@ func (ed *EndDevice) Get_pressure() float32 {
 	return ed.pressure
 }
 
-func (ed EndDevice) Get_human_name() string {
+func (ed EndDevice) GetHumanName() string {
 	return ed.Di.humanName
 }
 
-func (ed EndDevice) Get_device_type() uint8 {
+func (ed EndDevice) GetDeviceType() uint8 {
 	return ed.Di.deviceType
 }
 
-func (ed *EndDevice) Set_current_state(state string, channel uint8) {
+func (ed *EndDevice) SetCurrentState(state string, channel uint8) {
 	if channel == 1 {
 		ed.state = state
 	} else if channel == 2 {

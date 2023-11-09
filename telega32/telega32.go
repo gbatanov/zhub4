@@ -53,7 +53,7 @@ func (bot *Tlg32) get_token() error {
 	token, err := os.ReadFile(tokenFileName)
 
 	if err != nil {
-		return errors.New("incorrect file with token")
+		return err
 	}
 	// remove trailing CR LF SPACE
 	l := len(token)
@@ -74,7 +74,11 @@ func (bot *Tlg32) Stop() {
 }
 func (bot *Tlg32) Run() error {
 	var err error
-	bot.get_token()
+	err = bot.get_token()
+	if err != nil {
+		return err
+	}
+
 	bot.botApi, err = tgbotapi.NewBotAPI(string(bot.token))
 	if err != nil {
 		return errors.New("incorrect token")
