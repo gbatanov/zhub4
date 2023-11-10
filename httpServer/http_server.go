@@ -6,7 +6,6 @@ MIT License
 package httpServer
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -20,14 +19,15 @@ type MyResponse struct {
 	body string
 }
 
-type HttpServer struct {
-	srv        *http.Server
-	answerChan chan string
-	queryChan  chan map[string]string
-	os         string
-	programDir string
-}
-
+/*
+	type HttpServer struct {
+		srv        *http.Server
+		answerChan chan string
+		queryChan  chan map[string]string
+		os         string
+		programDir string
+	}
+*/
 func HttpServerCreate(address string, answerChan chan string, queryChan chan map[string]string, os string, programDir string) (*HttpServer, error) {
 	var srv http.Server
 	srv.Addr = address
@@ -45,6 +45,7 @@ func (web *HttpServer) registerRouting() {
 	web.srv.Handler = mux
 }
 
+/*
 func (web *HttpServer) Start() error {
 	log.Println("Web server Start()")
 	web.registerRouting()
@@ -59,7 +60,7 @@ func (web *HttpServer) Stop() {
 	log.Println("Web server Stop()")
 	web.srv.Shutdown(context.Background())
 }
-
+*/
 // page 404
 func (web *HttpServer) NotFound(w http.ResponseWriter, r *http.Request) {
 	//	log.Println("NotFound")

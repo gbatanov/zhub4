@@ -33,9 +33,11 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 	}
 
 	// Modem block
-	mdm := modem.GsmModemCreate(config.ModemPort, 9600, config.MyPhoneNumber)
-	err = mdm.Open()
-	config.WithModem = err == nil
+	config.WithModem = false
+	var mdm *modem.GsmModem
+	//mdm := modem.GsmModemCreate(config.ModemPort, 9600, config.MyPhoneNumber)
+	//	err = mdm.Open()
+	//config.WithModem = err == nil
 
 	// telegram bot block
 	tlgMsgChan := make(chan telega32.Message, 16)
@@ -46,7 +48,8 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 	httpBlock := HttpBlock{}
 	httpBlock.answerChan = make(chan string, 8)
 	httpBlock.queryChan = make(chan map[string]string, 8)
-	httpBlock.web, err = httpServer.HttpServerCreate(config.HttpAddress, httpBlock.answerChan, httpBlock.queryChan, config.Os, config.ProgramDir)
+	//	httpBlock.web, err = httpServer.HttpServerCreate(config.HttpAddress, httpBlock.answerChan, httpBlock.queryChan, config.Os, config.ProgramDir)
+	httpBlock.web, err = httpServer.NewHttpServer(config.HttpAddress, httpBlock.answerChan, httpBlock.queryChan, config.Os, config.ProgramDir)
 	httpBlock.withHttp = err == nil
 
 	controller := Controller{
@@ -156,15 +159,17 @@ func (c *Controller) StartNetwork() error {
 	}
 
 	if c.http.withHttp {
-		err = c.http.web.Start()
-		c.http.withHttp = err == nil
+		c.http.web.Start()
+		c.http.withHttp = true
 		if c.http.withHttp {
 			go func() {
 				for c.flag {
 					// Прием команд из HTTP и формирование ответа на команду
 					cmdFromHttp := <-c.http.queryChan
 					answer := c.handleHttpQuery(cmdFromHttp)
-					c.http.answerChan <- answer
+					if len(answer) > 0 {
+						c.http.answerChan <- answer
+					}
 				}
 			}()
 			if c.http.withHttp {

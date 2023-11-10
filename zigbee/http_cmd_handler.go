@@ -7,6 +7,7 @@ package zigbee
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"strconv"
 	"time"
@@ -17,7 +18,13 @@ import (
 
 // cmdFromHttp - [<commandCode>]<parameters string>
 func (c *Controller) handleHttpQuery(cmdFromHttp map[string]string) string {
-	_, keyExists := cmdFromHttp["device_list"]
+	_, keyExists := cmdFromHttp["error"]
+	if keyExists {
+		log.Println(cmdFromHttp["error"])
+		c.http.withHttp = false
+		return ""
+	}
+	_, keyExists = cmdFromHttp["device_list"]
 	if keyExists {
 		return c.createDeviceList(cmdFromHttp)
 	}
@@ -34,15 +41,6 @@ func (c *Controller) createDeviceList(cmdFromHttp map[string]string) string {
 
 	var result string = ""
 
-	/*
-		It is not used since version 0.5
-			boardTemperature := c.getBoardTemperature()
-			if boardTemperature > -100.0 {
-				bt := fmt.Sprintf("%d", boardTemperature)
-				result += "<p>" + "<b>Температура платы управления: </b>"
-				result += bt + "</p>"
-			}
-	*/
 	if c.config.WithModem {
 		result += "<p>Модем SIM800l подключен</p>"
 	}
@@ -55,29 +53,6 @@ func (c *Controller) createDeviceList(cmdFromHttp map[string]string) string {
 	return result
 }
 
-/*
-// Температура материнской платы, с переходом на ноутбук неактуально
-// Система сама отслеживает включение вентилятора
-
-	func (c *Controller) getBoardTemperature() int {
-		if strings.ToLower(c.config.Os) != "linux" {
-			return -100
-		}
-		dat, err := os.ReadFile("/sys/class/thermal/thermal_zone0/temp")
-		if err != nil {
-			fmt.Println("getBoardTemperature:: OpenFile error: ", err)
-			return -200.0
-		}
-		var temp_f int
-
-		n, err := fmt.Sscanf(string(dat), "%d", &temp_f)
-		if err != nil || n == 0 {
-			return -200.0
-		}
-		return int(temp_f / 1000)
-
-}
-*/
 // get URL parameters
 func (c *Controller) getParams(uri string) (url.Values, error) {
 
