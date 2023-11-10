@@ -19,10 +19,10 @@ type AnalogInputCluster struct {
 	Ed *zdo.EndDevice
 }
 
-func (a AnalogInputCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
+func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
 	var value float32 = -100.0
 	var unit string
-	log.Printf("AnalogInputCluster::%s, endpoint address: 0x%04x number = %d \n", a.Ed.Get_human_name(), endpoint.Address, endpoint.Number)
+	log.Printf("AnalogInputCluster::%s, endpoint address: 0x%04x number = %d \n", a.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
 
 	for _, attribute := range attributes {
 
@@ -30,7 +30,7 @@ func (a AnalogInputCluster) Handler_attributes(endpoint zcl.Endpoint, attributes
 		case zcl.AnalogInput_0055: // value
 			//
 			value = float32(attribute.Value[0])
-			if a.Ed.Get_device_type() == 9 { // relay
+			if a.Ed.GetDeviceType() == 9 { // relay
 				fmt.Printf("Analog Input Value =  %0.3f \n", value)
 			} else {
 				fmt.Printf("Analog Input Value =  %f \n", value)
@@ -55,7 +55,7 @@ func (a AnalogInputCluster) Handler_attributes(endpoint zcl.Endpoint, attributes
 	if len(unit) > 0 && value > -100.0 {
 		if unit == "%" {
 			a.Ed.Set_humidity(int8(value))
-			a.Ed.Set_current_state("On", endpoint.Number)
+			a.Ed.SetCurrentState("On", endpoint.Number)
 		} else if unit == "C" {
 			a.Ed.Set_temperature(int8(value))
 		} else if unit == "V" {
@@ -67,7 +67,7 @@ func (a AnalogInputCluster) Handler_attributes(endpoint zcl.Endpoint, attributes
 		}
 		value = -100.0
 		unit = ""
-	} else if (a.Ed.Get_device_type() == 11 || a.Ed.Get_device_type() == 9 || a.Ed.Get_device_type() == 10) && (value > -100.0) {
+	} else if (a.Ed.GetDeviceType() == 11 || a.Ed.GetDeviceType() == 9 || a.Ed.GetDeviceType() == 10) && (value > -100.0) {
 		a.Ed.Set_current(value / 100)
 	}
 	fmt.Println("")

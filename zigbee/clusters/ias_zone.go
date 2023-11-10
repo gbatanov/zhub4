@@ -17,7 +17,7 @@ type IasZoneCluster struct {
 	Ed *zdo.EndDevice
 }
 
-func (i IasZoneCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
+func (i IasZoneCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
 	log.Printf("IasZoneCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
 
 	for _, attribute := range attributes {

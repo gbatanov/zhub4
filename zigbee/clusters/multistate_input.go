@@ -13,7 +13,7 @@ import (
 type MultistateInputCluster struct {
 }
 
-func (m MultistateInputCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
+func (m MultistateInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
 	log.Printf("MultistateInputCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
 	for _, attribute := range attributes {
 		log.Printf("MULTISTATE_INPUT attribute id =0x%04x \n", attribute.Id)

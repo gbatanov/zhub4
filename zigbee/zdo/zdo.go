@@ -1,8 +1,8 @@
 /*
 zhub4 - Система домашней автоматизации на Go
-Copyright (c) 2023 GSB, Georgii Batanov gbatanov @ yandex.ru
+Copyright (c) 2022-2023 GSB, Georgii Batanov gbatanov@yandex.ru
+MIT License
 */
-
 package zdo
 
 // low lewel functions
@@ -63,7 +63,7 @@ func init() {
 	fmt.Println("Init in zigbee: zdo")
 }
 
-func Zdo_create(port string, os string, chn chan Command, jchn chan []byte) (*Zdo, error) {
+func ZdoCreate(port string, os string, chn chan Command, jchn chan []byte) (*Zdo, error) {
 	eh := Create_event_handler()
 	uart := serial3.UartCreate(port, os)
 	cmdinput := make(chan []byte, 256)
@@ -134,7 +134,7 @@ func (zdo *Zdo) prepare_command(command Command) []byte {
 }
 
 // receive command from UART and call command handler
-func (zdo *Zdo) Input_command() {
+func (zdo *Zdo) InputCommand() {
 
 	for zdo.Flag {
 		command_src := <-zdo.Cmdinput
@@ -142,7 +142,7 @@ func (zdo *Zdo) Input_command() {
 			if len(zdo.tmpBuff) > 0 {
 				command_src = append(zdo.tmpBuff, command_src...)
 			}
-			commands, next := zdo.parse_command(command_src)
+			commands, next := zdo.parseCommand(command_src)
 			if next {
 				zdo.tmpBuff = append(zdo.tmpBuff, command_src...)
 			} else {
@@ -157,7 +157,7 @@ func (zdo *Zdo) Input_command() {
 }
 
 // len(BufRead) >= 5!!! SOF Length Cmd0 Cmd1 FCS
-func (zdo *Zdo) parse_command(BufRead []byte) ([]Command, bool) {
+func (zdo *Zdo) parseCommand(BufRead []byte) ([]Command, bool) {
 
 	if len(BufRead) < 5 {
 		return []Command{}, true
@@ -165,7 +165,7 @@ func (zdo *Zdo) parse_command(BufRead []byte) ([]Command, bool) {
 	var result []Command = make([]Command, 0)
 
 	if false {
-		fmt.Printf("parse_command:: BufRead: len = %d , data: ", len(BufRead))
+		fmt.Printf("parseCommand:: BufRead: len = %d , data: ", len(BufRead))
 		for i := 0; i < len(BufRead); i++ {
 			fmt.Printf("0x%02x ", BufRead[i])
 		}
@@ -299,7 +299,7 @@ func (zdo *Zdo) read_nvram(item zcl.NvItems) []byte {
 }
 
 // read channels list from coordinator
-func (zdo *Zdo) Read_rf_channels() RF_Channels {
+func (zdo *Zdo) ReadRfChannels() RF_Channels {
 	rf := RF_Channels{}
 	item_data := zdo.read_nvram(zcl.CHANNEL_LIST) // CHANNEL_LIST = 0x00000084 //channel bit mask. Little endian. Default is 0x00000800 for CH11;  Ex: value: [ 0x00, 0x00, 0x00, 0x04 ] for CH26, [ 0x00, 0x00, 0x20, 0x00 ] for CH15.
 	if len(item_data) == 4 {                      //CHANNEL_LIST = 0x00000800 CH11 0x00008000 CH15
@@ -316,7 +316,7 @@ func (zdo *Zdo) Read_rf_channels() RF_Channels {
 }
 
 // write channels list into coordinator
-func (zdo *Zdo) Write_rf_channels(new RF_Channels) error {
+func (zdo *Zdo) WriteRfChannels(new RF_Channels) error {
 	channelBitMask := uint32(0)
 	for _, channel := range new.Channels {
 		channelBitMask |= (1 << channel)
@@ -333,7 +333,7 @@ func (zdo *Zdo) Write_rf_channels(new RF_Channels) error {
 	return zdo.write_nvram(zcl.CHANNEL_LIST, chann) // старший байт последний
 
 }
-func (zdo *Zdo) Finish_configuration() error {
+func (zdo *Zdo) FinishConfiguration() error {
 	err := zdo.write_nvram(zcl.ZDO_DIRECT_CB, []byte{1})
 	if err != nil {
 		return err
@@ -406,7 +406,7 @@ func (zdo *Zdo) Startup(delay time.Duration) error {
 	}
 	return nil
 }
-func (zdo *Zdo) Register_endpoint_descriptor(endpoint_descriptor Simple_descriptor) error {
+func (zdo *Zdo) RegisterEndpointDescriptor(endpoint_descriptor Simple_descriptor) error {
 
 	register_ep_request := New2(AF_REGISTER, 9)
 	register_ep_request.Payload[0] = 1 //uint8(endpoint_descriptor.endpoint_number)
@@ -428,7 +428,7 @@ func (zdo *Zdo) Register_endpoint_descriptor(endpoint_descriptor Simple_descript
 }
 
 // Enable pairing mode for duration seconds
-func (zdo *Zdo) Permit_join(duration time.Duration) error {
+func (zdo *Zdo) PermitJoin(duration time.Duration) error {
 
 	permitJoinRequest := New2(ZDO_MGMT_PERMIT_JOIN_REQ, 5)
 	permitJoinRequest.Payload[0] = 0x0F     // Destination address type : 0x02 - Address 16 bit, 0x0F - Broadcast.
@@ -440,16 +440,16 @@ func (zdo *Zdo) Permit_join(duration time.Duration) error {
 	return zdo.async_request(*permitJoinRequest, 3*time.Second)
 }
 
-func (zdo *Zdo) Parse_zcl_data(data []byte) zcl.Frame {
+func (zdo *Zdo) ParseZclData(data []byte) zcl.Frame {
 	var zclFrame zcl.Frame
 
-	zclFrame.Frame_control.Ftype = zcl.FrameType(data[0] & 0b00000011)
-	zclFrame.Frame_control.ManufacturerSpecific = (data[0] & 0b00000100) >> 2
-	zclFrame.Frame_control.Direction = zcl.FrameDirection(data[0] & 0b00001000)
-	zclFrame.Frame_control.DisableDefaultResponse = (data[0] & 0b00010000) >> 4
+	zclFrame.FrameControl.Ftype = zcl.FrameType(data[0] & 0b00000011)
+	zclFrame.FrameControl.ManufacturerSpecific = (data[0] & 0b00000100) >> 2
+	zclFrame.FrameControl.Direction = zcl.FrameDirection(data[0] & 0b00001000)
+	zclFrame.FrameControl.DisableDefaultResponse = (data[0] & 0b00010000) >> 4
 
 	var i uint8 = 1
-	if zclFrame.Frame_control.ManufacturerSpecific == 1 {
+	if zclFrame.FrameControl.ManufacturerSpecific == 1 {
 		zclFrame.ManufacturerCode = zcl.UINT16_(data[1], data[2])
 		i = 3
 	} else {
@@ -466,7 +466,7 @@ func (zdo *Zdo) Parse_zcl_data(data []byte) zcl.Frame {
 }
 
 // send a message to a specific device
-func (zdo *Zdo) Send_message(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame) error {
+func (zdo *Zdo) SendMessage(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame) error {
 	var message Message = Message{}
 	message.Cluster = cl
 	message.Source = zcl.Endpoint{Address: 0x0000, Number: 1}
@@ -485,13 +485,13 @@ func (zdo *Zdo) Send_message(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame) e
 	afDataRequest.Payload[6] = transactionNumber
 	afDataRequest.Payload[7] = 0
 	afDataRequest.Payload[8] = 7 // DEFAULT_RADIUS
-	afDataRequest.Payload[10] = byte(message.ZclFrame.Frame_control.Ftype&0b00000011) +
-		byte(message.ZclFrame.Frame_control.ManufacturerSpecific)<<2 +
-		byte(message.ZclFrame.Frame_control.Direction)<<3 +
-		message.ZclFrame.Frame_control.DisableDefaultResponse<<4
+	afDataRequest.Payload[10] = byte(message.ZclFrame.FrameControl.Ftype&0b00000011) +
+		byte(message.ZclFrame.FrameControl.ManufacturerSpecific)<<2 +
+		byte(message.ZclFrame.FrameControl.Direction)<<3 +
+		message.ZclFrame.FrameControl.DisableDefaultResponse<<4
 
 	var i uint8 = 11
-	if message.ZclFrame.Frame_control.ManufacturerSpecific == 1 {
+	if message.ZclFrame.FrameControl.ManufacturerSpecific == 1 {
 		afDataRequest.Payload[i] = zcl.LOWBYTE(message.ZclFrame.ManufacturerCode)
 		i++
 		afDataRequest.Payload[i] = zcl.HIGHBYTE(message.ZclFrame.ManufacturerCode)
@@ -513,7 +513,7 @@ func (zdo *Zdo) Send_message(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame) e
 }
 
 // get endpoint list from device
-func (zdo *Zdo) Active_endpoints(address uint16) error {
+func (zdo *Zdo) ActiveEndpoints(address uint16) error {
 	activeEndpointsRequest := New2(ZDO_ACTIVE_EP_REQ, 4)
 	activeEndpointsRequest.Payload[0] = zcl.LOWBYTE(address)
 	activeEndpointsRequest.Payload[1] = zcl.HIGHBYTE(address)
@@ -647,7 +647,7 @@ func (zdo *Zdo) handle_command(command Command) {
 					i++
 					p2 := command.Payload[i]
 					i++
-					fmt.Printf("ZDO_SIMPLE_DESC_RSP: Input Cluster %s 0x%04X \n", zcl.Cluster_to_string(zcl.Cluster(zcl.UINT16_(p1, p2))), zcl.UINT16_(p1, p2))
+					fmt.Printf("ZDO_SIMPLE_DESC_RSP: Input Cluster %s 0x%04X \n", zcl.ClusterToString(zcl.Cluster(zcl.UINT16_(p1, p2))), zcl.UINT16_(p1, p2))
 
 					descriptor.inputClusters = append(descriptor.inputClusters, zcl.UINT16_(p1, p2)) // List of input cluster Id's supported.
 					inputClustersNumber--
@@ -663,7 +663,7 @@ func (zdo *Zdo) handle_command(command Command) {
 					p2 := command.Payload[i]
 					i++
 
-					fmt.Printf("ZDO_SIMPLE_DESC_RSP: Output Cluster %s 0x%04X \n", zcl.Cluster_to_string(zcl.Cluster(zcl.UINT16_(p1, p2))), zcl.UINT16_(p1, p2))
+					fmt.Printf("ZDO_SIMPLE_DESC_RSP: Output Cluster %s 0x%04X \n", zcl.ClusterToString(zcl.Cluster(zcl.UINT16_(p1, p2))), zcl.UINT16_(p1, p2))
 
 					descriptor.outputClusters = append(descriptor.outputClusters, zcl.UINT16_(p1, p2)) // List of output cluster Id's supported.
 					outputClustersNumber--

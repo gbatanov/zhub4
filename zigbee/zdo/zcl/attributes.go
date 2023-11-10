@@ -173,7 +173,7 @@ type Attribute struct {
 }
 
 // return an array of bytes with array size and attribute type
-func Parse_attributes_payload(payload []byte, wStatus bool) []Attribute {
+func ParseAttributesPayload(payload []byte, wStatus bool) []Attribute {
 	var attributes []Attribute = make([]Attribute, 0)
 
 	i := uint16(0)

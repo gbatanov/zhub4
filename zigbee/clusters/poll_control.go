@@ -17,7 +17,7 @@ type PollControlCluster struct {
 	Ed *zdo.EndDevice
 }
 
-func (i PollControlCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
+func (i PollControlCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
 	log.Printf("PollControlCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
 
 	for _, attribute := range attributes {

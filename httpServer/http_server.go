@@ -1,8 +1,9 @@
 /*
 zhub4 - Система домашней автоматизации на Go
-Copyright (c) 2023 GSB, Georgii Batanov gbatanov @ yandex.ru
+Copyright (c) 2022-2023 GSB, Georgii Batanov gbatanov@yandex.ru
+MIT License
 */
-package http_server
+package httpServer
 
 import (
 	"context"
@@ -22,29 +23,31 @@ type MyResponse struct {
 type HttpServer struct {
 	srv        *http.Server
 	answerChan chan string
-	queryChan  chan string
+	queryChan  chan map[string]string
+	os         string
+	programDir string
 }
 
-func Http_server_create(address string, answerChan chan string, queryChan chan string) (*HttpServer, error) {
+func HttpServerCreate(address string, answerChan chan string, queryChan chan map[string]string, os string, programDir string) (*HttpServer, error) {
 	var srv http.Server
 	srv.Addr = address
-	httpServer := HttpServer{&srv, answerChan, queryChan}
+	httpServer := HttpServer{&srv, answerChan, queryChan, os, programDir}
 
 	return &httpServer, nil
 }
 
 // register handlers
-func (web *HttpServer) register_routing() {
+func (web *HttpServer) registerRouting() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/css/", web.css_handler)
-	mux.HandleFunc("/command", web.command_handler)
-	mux.HandleFunc("/", web.other_handler)
+	mux.HandleFunc("/css/", web.cssHandler)
+	mux.HandleFunc("/command", web.commandHandler)
+	mux.HandleFunc("/", web.otherHandler)
 	web.srv.Handler = mux
 }
 
 func (web *HttpServer) Start() error {
 	log.Println("Web server Start()")
-	web.register_routing()
+	web.registerRouting()
 	go func() {
 		web.srv.ListenAndServe()
 		log.Println("Web server stoped")
@@ -78,28 +81,33 @@ func (web *HttpServer) NotFound(w http.ResponseWriter, r *http.Request) {
 	my_resp.head = "<title>Page not found</title>"
 	my_resp.head += "<link href=\"/css/gsb_style.css\" rel=\"stylesheet\" type=\"text/css\">"
 	var headers map[string]string = make(map[string]string)
-	web.send_answer(w, my_resp, 404, "text/html", headers)
+	web.sendAnswer(w, my_resp, 404, "text/html", headers)
 }
 
-func (web *HttpServer) other_handler(w http.ResponseWriter, r *http.Request) {
-	//	log.Println("other_handler")
+func (web *HttpServer) otherHandler(w http.ResponseWriter, r *http.Request) {
+	//	log.Println("otherHandler")
 	// The "/" pattern matches everything, so we need to check
 	// that we're at the root here.
 	if len(r.URL.Path) > 0 && r.URL.Path != "/" {
 		web.NotFound(w, r)
 		return
 	}
-	web.main_page(w, r)
+	web.mainPage(w, r)
 
 }
 
 // TODO: path to config
-func (web *HttpServer) css_handler(w http.ResponseWriter, r *http.Request) {
+func (web *HttpServer) cssHandler(w http.ResponseWriter, r *http.Request) {
 
 	var my_resp MyResponse
 
+	cssPath := "/usr/local/etc/zhub4/web/"
+	if web.os == "windows" {
+		cssPath = web.programDir + "\\httpServer\\"
+	}
+
 	css := r.URL.Path[5:]
-	str, err := os.ReadFile("/usr/local/etc/zhub4/web/" + css)
+	str, err := os.ReadFile(cssPath + css)
 	if err != nil {
 		log.Println("Error open css file")
 		my_resp.body = ""
@@ -107,19 +115,24 @@ func (web *HttpServer) css_handler(w http.ResponseWriter, r *http.Request) {
 		my_resp.body = string(str)
 	}
 	var headers map[string]string = make(map[string]string)
-	web.send_answer(w, my_resp, 200, "text/css", headers)
+	web.sendAnswer(w, my_resp, 200, "text/css", headers)
 
 }
-func (web *HttpServer) command_handler(w http.ResponseWriter, r *http.Request) {
-	log.Println("command_handler")
+
+// command handler
+func (web *HttpServer) commandHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("commandHandler")
+
+	cmdMap := make(map[string]string)
 	var my_resp MyResponse
 	host := r.Host
 	baseUrl, _ := url.Parse("http://" + host)
 
 	my_resp.body = "<h3>Commands list</h3>"
 
-	cmd := web.parse_command(r)
-	web.queryChan <- cmd
+	cmd := r.RequestURI
+	cmdMap["command_list"] = cmd
+	web.queryChan <- cmdMap
 	answer := <-web.answerChan
 	my_resp.body += "<div>" + answer + "</div"
 
@@ -127,23 +140,19 @@ func (web *HttpServer) command_handler(w http.ResponseWriter, r *http.Request) {
 	var headers map[string]string = make(map[string]string)
 	my_resp.head = "<title>Commands list</title>"
 	my_resp.head += "<link href=\"/css/gsb_style.css\" rel=\"stylesheet\" type=\"text/css\">"
-	web.send_answer(w, my_resp, 200, "text/html", headers)
+	web.sendAnswer(w, my_resp, 200, "text/html", headers)
 
 }
 
-func (web *HttpServer) parse_command(r *http.Request) string {
-	return "command_list" //TODO: dummy
-}
-
-func (web *HttpServer) main_page(w http.ResponseWriter, r *http.Request) {
+func (web *HttpServer) mainPage(w http.ResponseWriter, r *http.Request) {
 	//	log.Println("Http main page")
 	var my_resp MyResponse
 	host := r.Host
 	baseUrl, _ := url.Parse("http://" + host)
-
+	cmdMap := make(map[string]string)
 	my_resp.body = ""
-
-	web.queryChan <- "device_list"
+	cmdMap["device_list"] = ""
+	web.queryChan <- cmdMap
 	answer := <-web.answerChan
 	my_resp.body += "<div>" + answer + "</div"
 	my_resp.body += fmt.Sprintf("<br><a href=\"%s\">Commands</a>", baseUrl.String()+"/command")
@@ -151,11 +160,11 @@ func (web *HttpServer) main_page(w http.ResponseWriter, r *http.Request) {
 	my_resp.head = "<title>Device list</title>"
 	my_resp.head += "<link href=\"/css/gsb_style.css\" rel=\"stylesheet\" type=\"text/css\">"
 	var headers map[string]string = make(map[string]string)
-	web.send_answer(w, my_resp, 200, "text/html", headers)
+	web.sendAnswer(w, my_resp, 200, "text/html", headers)
 }
 
 // send answer to client
-func (web *HttpServer) send_answer(w http.ResponseWriter, my_resp MyResponse, code int, mime string, headers map[string]string) {
+func (web *HttpServer) sendAnswer(w http.ResponseWriter, my_resp MyResponse, code int, mime string, headers map[string]string) {
 	var result string = ""
 	if mime == "text/html" {
 		result = "<html>"
@@ -176,23 +185,12 @@ func (web *HttpServer) send_answer(w http.ResponseWriter, my_resp MyResponse, co
 	headers["Content-Length"] = strconv.Itoa(len(result))
 
 	//	fmt.Printf("%q \n", headers)
-	web.send_headers(w, code, headers)
+	web.sendHeaders(w, code, headers)
 	w.Write([]byte(result))
 }
 
-// get URL parameters
-func (web *HttpServer) get_params(req *http.Request) (url.Values, error) {
-	uri := req.RequestURI
-	u, err := url.Parse(uri)
-	if err != nil {
-		return url.Values{}, err
-	}
-	m, _ := url.ParseQuery(u.RawQuery)
-	return m, nil
-}
-
 // send header to client
-func (web *HttpServer) send_headers(w http.ResponseWriter, code int, headers map[string]string) {
+func (web *HttpServer) sendHeaders(w http.ResponseWriter, code int, headers map[string]string) {
 
 	for k, v := range headers {
 		w.Header().Add(k, v)

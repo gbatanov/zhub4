@@ -17,8 +17,8 @@ type XiaomiCluster struct {
 	Ed *zdo.EndDevice
 }
 
-func (x XiaomiCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	log.Printf("XiaomiCluster:: %s, endpoint address: 0x%04x number = %d \n", x.Ed.Get_human_name(), endpoint.Address, endpoint.Number)
+func (x XiaomiCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
+	log.Printf("XiaomiCluster:: %s, endpoint address: 0x%04x number = %d \n", x.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
 	for _, attribute := range attributes {
 		log.Printf("XiaomiCluster::attribute id =0x%04x \n", attribute.Id)
 		switch zcl.XiaomiAttribute(attribute.Id) {
@@ -64,7 +64,7 @@ func (x XiaomiCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zc
 					if attribute.Value[i] == 1 {
 						state = "On"
 					}
-					x.Ed.Set_current_state(state, 1)
+					x.Ed.SetCurrentState(state, 1)
 					fmt.Printf("State %s\n", state)
 
 				case 0x65: // status2
@@ -73,7 +73,7 @@ func (x XiaomiCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zc
 					if attribute.Value[i] == 1 {
 						state = "On"
 					}
-					x.Ed.Set_current_state(state, 2)
+					x.Ed.SetCurrentState(state, 2)
 					fmt.Printf("State2 %s\n", state)
 
 				case 0x95: // energy

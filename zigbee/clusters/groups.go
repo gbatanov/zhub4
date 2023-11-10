@@ -17,7 +17,7 @@ type GroupsCluster struct {
 	Ed *zdo.EndDevice
 }
 
-func (i GroupsCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
+func (i GroupsCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
 	log.Printf("GroupsCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
 
 	for _, attribute := range attributes {

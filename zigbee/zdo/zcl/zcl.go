@@ -38,7 +38,7 @@ type FrameControl struct {
 }
 
 type Frame struct {
-	Frame_control             FrameControl
+	FrameControl              FrameControl
 	ManufacturerCode          uint16
 	TransactionSequenceNumber uint8
 	Command                   uint8
@@ -94,7 +94,7 @@ const (
 	UNKNOWN_CLUSTER                  Cluster = 0xffff
 )
 
-func Cluster_to_string(cl Cluster) string {
+func ClusterToString(cl Cluster) string {
 	var result string
 	switch cl {
 	case BASIC: // 0x0000

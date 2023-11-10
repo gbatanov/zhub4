@@ -1,103 +1,130 @@
 /*
 zhub4 - Система домашней автоматизации на Go
-Copyright (c) 2023 GSB, Georgii Batanov gbatanov @ yandex.ru
+Copyright (c) 2022-2023 GSB, Georgii Batanov gbatanov@yandex.ru
+MIT License
 */
 package zigbee
 
 import (
 	"fmt"
 	"net/url"
-	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gbatanov/zhub4/zigbee/zdo"
 	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
 )
 
-func (c *Controller) handleHttpQuery(cmdFromHttp string) string {
-	switch cmdFromHttp {
-	case "device_list":
-		return c.create_device_list()
-	case "command_list":
-		return c.create_command_list()
-	default:
-		return "Unknown request"
+// cmdFromHttp - [<commandCode>]<parameters string>
+func (c *Controller) handleHttpQuery(cmdFromHttp map[string]string) string {
+	_, keyExists := cmdFromHttp["device_list"]
+	if keyExists {
+		return c.createDeviceList(cmdFromHttp)
+	}
+	_, keyExists = cmdFromHttp["command_list"]
+	if keyExists {
+		return c.executeCommand(cmdFromHttp["command_list"])
+		//		return c.createCommandList(cmdFromHttp["command_list"])
 	}
 
+	return "Unknown request"
 }
-func (c *Controller) create_device_list() string {
+
+func (c *Controller) createDeviceList(cmdFromHttp map[string]string) string {
 
 	var result string = ""
 
-	boardTemperature := c.get_board_temperature()
-	if boardTemperature > -100.0 {
-		bt := fmt.Sprintf("%d", boardTemperature)
-		result += "<p>" + "<b>Температура платы управления: </b>"
-		result += bt + "</p>"
+	/*
+		It is not used since version 0.5
+			boardTemperature := c.getBoardTemperature()
+			if boardTemperature > -100.0 {
+				bt := fmt.Sprintf("%d", boardTemperature)
+				result += "<p>" + "<b>Температура платы управления: </b>"
+				result += bt + "</p>"
+			}
+	*/
+	if c.config.WithModem {
+		result += "<p>Модем SIM800l подключен</p>"
 	}
-
-	//#ifdef WITH_SIM800
-	//   result = result + "<p>" + zhub->show_sim800_battery() + "</p>";
-	//#endif
-	result += "<p>Старт программы: " + c.format_date_time(c.startTime) + "</p>"
-	la := c.get_last_motion_sensor_activity()
+	result += "<p>Старт программы: " + c.formatDateTime(c.startTime) + "</p>"
+	la := c.getLastMotionSensorActivity()
 	result += "<p>Время последнего срабатывания датчиков движения: "
-	result += c.format_date_time(la) + "</p>"
-	result += c.show_device_statuses()
+	result += c.formatDateTime(la) + "</p>"
+	result += c.showDeviceStatuses()
 
 	return result
 }
 
-func (c *Controller) get_board_temperature() int {
-	if strings.ToLower(c.config.Os) == "darwin" {
-		return -100
-	}
-	dat, err := os.ReadFile("/sys/class/thermal/thermal_zone0/temp")
-	if err != nil {
-		fmt.Println("get_board_temperature:: OpenFile error: ", err)
-		return -200.0
-	} else {
-	}
-	var temp_f int
+/*
+// Температура материнской платы, с переходом на ноутбук неактуально
+// Система сама отслеживает включение вентилятора
 
-	n, err := fmt.Sscanf(string(dat), "%d", &temp_f)
-	if err != nil || n == 0 {
+	func (c *Controller) getBoardTemperature() int {
+		if strings.ToLower(c.config.Os) != "linux" {
+			return -100
+		}
+		dat, err := os.ReadFile("/sys/class/thermal/thermal_zone0/temp")
+		if err != nil {
+			fmt.Println("getBoardTemperature:: OpenFile error: ", err)
+			return -200.0
+		}
+		var temp_f int
 
-		return -200.0
-	}
-	return int(temp_f / 1000)
+		n, err := fmt.Sscanf(string(dat), "%d", &temp_f)
+		if err != nil || n == 0 {
+			return -200.0
+		}
+		return int(temp_f / 1000)
 
 }
+*/
+// get URL parameters
+func (c *Controller) getParams(uri string) (url.Values, error) {
 
-func (c *Controller) create_command_list() string {
-	var params string = ""
-	fmt.Println(params)
-	mapParams, _ := url.ParseQuery(params)
-	fmt.Println(mapParams)
-	_, idExists := mapParams["id"]
-	_, cmdExists := mapParams["cmd"]
+	u, err := url.Parse(uri)
+	if err != nil {
+		return url.Values{}, err
+	}
+	m, _ := url.ParseQuery(u.RawQuery)
+	return m, nil
+}
 
-	if idExists && cmdExists {
-		fmt.Println(mapParams["id"][0])
-		macAddress, err := strconv.ParseUint(mapParams["id"][0], 0, 64)
-		if err == nil {
-			fmt.Println(macAddress)
-			cmnd, err := strconv.Atoi(mapParams["cmd"][0])
+// Исполняем пришедшую команду и отправляем ответ, включающий список команд
+func (c *Controller) executeCommand(uri string) string {
+
+	result := c.createCommandList()
+	mapParams, err := c.getParams(uri)
+	if err == nil {
+
+		fmt.Println(mapParams)
+		_, idExists := mapParams["id"]
+		_, cmdExists := mapParams["cmd"]
+
+		if idExists && cmdExists {
+			fmt.Println(mapParams["id"][0])
+			macAddress, err := strconv.ParseUint(mapParams["id"][0], 0, 64)
 			if err == nil {
-				c.switch_relay(macAddress, uint8(cmnd), 1)
+				fmt.Println(macAddress)
+				cmnd, err := strconv.Atoi(mapParams["cmd"][0])
+				if err == nil {
+					c.switchRelay(macAddress, uint8(cmnd), 1)
+					result += "<div>" + uri + "executed</div>"
+				}
+			} else {
+				fmt.Println(err)
 			}
-		} else {
-			fmt.Println(err)
 		}
 	}
+	return result
+}
+
+func (c *Controller) createCommandList() string {
 
 	var result string = "<p>Relay 6 <a href=\"/command?id=0x54ef441000609dcc&cmd=1\">On</a>&nbsp;<a href=\"/command?id=0x54ef441000609dcc&cmd=0\">Off</a></p>"
 	return result
 }
 
-func (c *Controller) format_date_time(la time.Time) string {
+func (c *Controller) formatDateTime(la time.Time) string {
 	return fmt.Sprintf("%d", la.Year()) + "-" +
 		fmt.Sprintf("%02d", la.Month()) + "-" +
 		fmt.Sprintf("%02d", la.Day()) + "  " +
@@ -105,7 +132,7 @@ func (c *Controller) format_date_time(la time.Time) string {
 		fmt.Sprintf("%02d", la.Minute()) + ":" +
 		fmt.Sprintf("%02d", la.Second())
 }
-func (c *Controller) show_device_statuses() string {
+func (c *Controller) showDeviceStatuses() string {
 	var result string = ""
 	ClimatSensors := []uint64{0x00124b000b1bb401}
 	WaterSensors := []uint64{0x00158d0006e469a4, 0x00158d0006f8fc61, 0x00158d0006b86b79, 0x00158d0006ea99db}
@@ -122,7 +149,7 @@ func (c *Controller) show_device_statuses() string {
 	for _, di := range allDevices {
 		result += "<tr class='empty'><td colspan='8'><hr></td></tr>"
 		for _, addr := range di {
-			ed := c.get_device_by_mac(addr)
+			ed := c.getDeviceByMac(addr)
 			if ed.ShortAddress != 0 && ed.Di.Test == 1 {
 				result += c.show_one_type(ed)
 			}
@@ -133,7 +160,7 @@ func (c *Controller) show_device_statuses() string {
 	addResult := "<table>"
 	addResult += "<th>Комната</th><th>Температура</th><th>Влажность</th><th>Давление</th>"
 	tmpResult := ""
-	ed := c.get_device_by_mac(0x00124b000b1bb401) // Climat device on balconen, custom ptvo firmware
+	ed := c.getDeviceByMac(0x00124b000b1bb401) // Climat device on balconen, custom ptvo firmware
 	if ed.ShortAddress != 0 && ed.Di.Test == 1 {
 
 		tmpResult += "<tr><td>Балкон</td>"
@@ -153,7 +180,7 @@ func (c *Controller) show_device_statuses() string {
 			tmpResult += "<td>&nbsp;</td></tr>"
 		}
 	}
-	ed = c.get_device_by_mac(0x00124b0007246963) // Climat device on children room, custom ptvo firmware
+	ed = c.getDeviceByMac(0x00124b0007246963) // Climat device on children room, custom ptvo firmware
 	if ed.ShortAddress != 0 && ed.Di.Test == 1 {
 
 		tmpResult += "<tr><td>Детская</td>"
@@ -182,9 +209,9 @@ func (c *Controller) show_device_statuses() string {
 func (c *Controller) show_one_type(ed *zdo.EndDevice) string {
 	var result string = "<tr>"
 	result += "<td class='addr'>" + fmt.Sprintf("0x%04x", ed.ShortAddress) +
-		"</td><td>" + ed.Get_human_name() + "</td><td>"
+		"</td><td>" + ed.GetHumanName() + "</td><td>"
 	result += ed.Get_current_state(1)
-	if ed.Get_device_type() == 11 {
+	if ed.GetDeviceType() == 11 {
 		result += "/" + ed.Get_current_state(2)
 	}
 
@@ -231,6 +258,6 @@ func (c *Controller) show_one_type(ed *zdo.EndDevice) string {
 	lastSeen := ed.Get_last_seen()
 	lastAction := ed.Get_last_action()
 
-	result += "<td>&nbsp;" + c.format_date_time(lastSeen) + " / " + c.format_date_time(lastAction) + "</td></tr>"
+	result += "<td>&nbsp;" + c.formatDateTime(lastSeen) + " / " + c.formatDateTime(lastAction) + "</td></tr>"
 	return result
 }

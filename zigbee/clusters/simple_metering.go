@@ -19,8 +19,8 @@ type SimpleMeteringCluster struct {
 	Ed *zdo.EndDevice
 }
 
-func (s SimpleMeteringCluster) Handler_attributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	log.Printf("SimpleMeteringCluster:: %s, endpoint address: 0x%04x number = %d \n", s.Ed.Get_human_name(), endpoint.Address, endpoint.Number)
+func (s SimpleMeteringCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
+	log.Printf("SimpleMeteringCluster:: %s, endpoint address: 0x%04x number = %d \n", s.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
 	a0000 := false
 	for _, attribute := range attributes {
 		switch attribute.Id {
