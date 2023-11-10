@@ -13,12 +13,14 @@ import (
 )
 
 type ActionHandler struct {
+	answerChan chan interface{}
+	queryChan  chan map[string]string
 	os         string
 	programDir string
 }
 
-func NewActionHandler(os string, programDir string) *ActionHandler {
-	ah := ActionHandler{os, programDir}
+func NewActionHandler(answerChan chan interface{}, queryChan chan map[string]string, os string, programDir string) *ActionHandler {
+	ah := ActionHandler{answerChan, queryChan, os, programDir}
 	return &ah
 }
 
@@ -39,35 +41,12 @@ func (ah *ActionHandler) cmdHandler(c *gin.Context) {
 
 // Главная страница
 func (ah *ActionHandler) otherHandler(c *gin.Context) {
-	id := c.Query("id")   //c.Params.ByName("id")
-	cmd := c.Query("cmd") //c.Params.ByName("cmd")
-
-	log.Printf("%s %s", id, cmd)
+	cmdMap := make(map[string]string)
+	cmdMap["device_list"] = ""
+	ah.queryChan <- cmdMap // отправляем запрос и ждем ответ TODO: синхронизация
+	answer := <-ah.answerChan
 
 	// HTML ответ на основе шаблона
-	c.HTML(http.StatusOK, "index.tmpl", gin.H{"title": "GSB website", "id": id, "cmd": cmd})
-}
-
-/*
-func (ah *ActionHandler) cssHandler(c *gin.Context) {
-
-	var my_resp MyResponse
-
-	cssPath := "/usr/local/etc/zhub4/web/"
-	if ah.os == "windows" {
-		cssPath = ah.programDir + "\\html\\"
-	}
-
-	css := c.Params.ByName("style")
-	str, err := os.ReadFile(cssPath + css)
-	if err != nil {
-		log.Println("Error open css file")
-		my_resp.body = ""
-	} else {
-		my_resp.body = string(str)
-	}
-	var headers map[string]string = make(map[string]string)
-	web.sendAnswer(w, my_resp, 200, "text/css", headers)
+	c.HTML(http.StatusOK, "index.tmpl", gin.H{"title": "GSB Smart Home", "deviceList": answer.(map[uint16]WebDeviceInfo)})
 
 }
-*/

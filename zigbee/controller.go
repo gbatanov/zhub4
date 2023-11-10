@@ -46,7 +46,7 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 
 	// http server block
 	httpBlock := HttpBlock{}
-	httpBlock.answerChan = make(chan string, 8)
+	httpBlock.answerChan = make(chan interface{}, 8)
 	httpBlock.queryChan = make(chan map[string]string, 8)
 	//	httpBlock.web, err = httpServer.HttpServerCreate(config.HttpAddress, httpBlock.answerChan, httpBlock.queryChan, config.Os, config.ProgramDir)
 	httpBlock.web, err = httpServer.NewHttpServer(config.HttpAddress, httpBlock.answerChan, httpBlock.queryChan, config.Os, config.ProgramDir)
@@ -167,9 +167,7 @@ func (c *Controller) StartNetwork() error {
 					// Прием команд из HTTP и формирование ответа на команду
 					cmdFromHttp := <-c.http.queryChan
 					answer := c.handleHttpQuery(cmdFromHttp)
-					if len(answer) > 0 {
-						c.http.answerChan <- answer
-					}
+					c.http.answerChan <- answer
 				}
 			}()
 			if c.http.withHttp {

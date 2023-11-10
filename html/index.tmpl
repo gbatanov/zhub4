@@ -1,10 +1,24 @@
 <html>
 <head> 
 <title>{{ .title }}</title>
+<link href="/css/gsb_style.css" rel="stylesheet" type="text/css">
 </head>
 <body>
 <div>
-   Device {{ .id }} command {{ .cmd }}
+<table>
+<tr><th>Адрес</th><th>Название</th><th>Статус</th><th>LQ</th><th>Температура<th>Питание</th><th>Last seen/action</th></tr>
+   {{ range .deviceList }}
+   <tr>
+    <td>{{ .ShortAddr }}</td>
+    <td>{{ .Name }}</td>
+    <td>{{ .State }}</td>
+    <td>{{ .LQ }}</td>
+    <td>{{ .Tmp }}</td>
+   <td>{{ .Pwr }}</td>
+   <td>{{ .LSeen }}</td>
+    </tr>
+  {{end}}
+  </table>
 </div>
 </body>
 </html>

@@ -48,7 +48,7 @@ type TlgBlock struct {
 }
 
 type HttpBlock struct {
-	answerChan chan string
+	answerChan chan interface{}
 	queryChan  chan map[string]string
 	withHttp   bool
 	web        *httpServer.HttpServer

@@ -3,16 +3,8 @@ zhub4 - Система домашней автоматизации на Go
 Copyright (c) 2022-2023 GSB, Georgii Batanov gbatanov@yandex.ru
 MIT License
 */
-package httpServer
 
-import (
-	"fmt"
-	"log"
-	"net/http"
-	"net/url"
-	"os"
-	"strconv"
-)
+package httpServer
 
 type MyResponse struct {
 	head string
@@ -27,7 +19,7 @@ type MyResponse struct {
 		os         string
 		programDir string
 	}
-*/
+
 func HttpServerCreate(address string, answerChan chan string, queryChan chan map[string]string, os string, programDir string) (*HttpServer, error) {
 	var srv http.Server
 	srv.Addr = address
@@ -45,7 +37,7 @@ func (web *HttpServer) registerRouting() {
 	web.srv.Handler = mux
 }
 
-/*
+
 func (web *HttpServer) Start() error {
 	log.Println("Web server Start()")
 	web.registerRouting()
@@ -60,7 +52,7 @@ func (web *HttpServer) Stop() {
 	log.Println("Web server Stop()")
 	web.srv.Shutdown(context.Background())
 }
-*/
+
 // page 404
 func (web *HttpServer) NotFound(w http.ResponseWriter, r *http.Request) {
 	//	log.Println("NotFound")
@@ -96,6 +88,7 @@ func (web *HttpServer) otherHandler(w http.ResponseWriter, r *http.Request) {
 	web.mainPage(w, r)
 
 }
+
 
 // TODO: path to config
 func (web *HttpServer) cssHandler(w http.ResponseWriter, r *http.Request) {
@@ -144,6 +137,7 @@ func (web *HttpServer) commandHandler(w http.ResponseWriter, r *http.Request) {
 	web.sendAnswer(w, my_resp, 200, "text/html", headers)
 
 }
+
 
 func (web *HttpServer) mainPage(w http.ResponseWriter, r *http.Request) {
 	//	log.Println("Http main page")
@@ -198,3 +192,4 @@ func (web *HttpServer) sendHeaders(w http.ResponseWriter, code int, headers map[
 	}
 	w.WriteHeader(code)
 }
+*/

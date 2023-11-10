@@ -14,31 +14,34 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type WebDeviceInfo struct {
+	ShortAddr string
+	Name      string
+	State     string
+	LQ        string
+	Tmp       string
+	Pwr       string
+	LSeen     string
+}
 type HttpServer struct {
-	srv *http.Server
-	//	router     *gin.Engine
-	answerChan chan string
-	queryChan  chan map[string]string
-	os         string
-	programDir string
+	srv       *http.Server
+	queryChan chan map[string]string
 }
 
 func NewHttpServer(addr string,
-	answerChan chan string,
+	answerChan chan interface{},
 	queryChan chan map[string]string,
 	os string,
 	programDir string) (*HttpServer, error) {
 
 	httpserv := HttpServer{}
-	httpserv.answerChan = answerChan
 	httpserv.queryChan = queryChan
-	httpserv.os = os
-	httpserv.programDir = programDir
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 	router.LoadHTMLGlob(programDir + "/html/*")
-	actionHandler := NewActionHandler(os, programDir)
+
+	actionHandler := NewActionHandler(answerChan, queryChan, os, programDir)
 
 	router.GET("/command", actionHandler.cmdHandler)
 	router.Static("/css", "/usr/local/etc/zhub4/web")
