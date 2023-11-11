@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gbatanov/sim800l/modem"
-	"github.com/gbatanov/zhub4/httpServer"
 	"github.com/gbatanov/zhub4/telega32"
 	"github.com/gbatanov/zhub4/zigbee/clusters"
 	"github.com/gbatanov/zhub4/zigbee/zdo"
@@ -51,7 +50,7 @@ type HttpBlock struct {
 	answerChan chan interface{}
 	queryChan  chan map[string]string
 	withHttp   bool
-	web        *httpServer.HttpServer
+	web        *HttpServer
 }
 
 type Controller struct {

@@ -7,54 +7,13 @@ package zigbee
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"strconv"
 	"time"
 
-	"github.com/gbatanov/zhub4/httpServer"
 	"github.com/gbatanov/zhub4/zigbee/zdo"
 	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
 )
-
-// cmdFromHttp - [<commandCode>]<parameters string>
-func (c *Controller) handleHttpQuery(cmdFromHttp map[string]string) interface{} {
-	_, keyExists := cmdFromHttp["error"]
-	if keyExists {
-		log.Println(cmdFromHttp["error"])
-		c.http.withHttp = false
-		return ""
-	}
-	_, keyExists = cmdFromHttp["device_list"]
-	if keyExists {
-		return c.createDeviceList(cmdFromHttp)
-	}
-	_, keyExists = cmdFromHttp["command_list"]
-	if keyExists {
-		return c.executeCommand(cmdFromHttp["command_list"])
-		//		return c.createCommandList(cmdFromHttp["command_list"])
-	}
-
-	return "Unknown request"
-}
-
-func (c *Controller) createDeviceList(cmdFromHttp map[string]string) map[uint16]httpServer.WebDeviceInfo {
-	/*
-	   var result string = ""
-
-	   	if c.config.WithModem {
-	   		result += "<p>Модем SIM800l подключен</p>"
-	   	}
-
-	   result += "<p>Старт программы: " + c.formatDateTime(c.startTime) + "</p>"
-	   la := c.getLastMotionSensorActivity()
-	   result += "<p>Время последнего срабатывания датчиков движения: "
-	   result += c.formatDateTime(la) + "</p>"
-	   result += c.showDeviceStatuses()
-	*/
-	result := c.showDeviceStatuses()
-	return result
-}
 
 // get URL parameters
 func (c *Controller) getParams(uri string) (url.Values, error) {
@@ -69,8 +28,8 @@ func (c *Controller) getParams(uri string) (url.Values, error) {
 
 // Исполняем пришедшую команду и отправляем ответ, включающий список команд
 func (c *Controller) executeCommand(uri string) string {
+	var result string = ""
 
-	result := c.createCommandList()
 	mapParams, err := c.getParams(uri)
 	if err == nil {
 
@@ -86,19 +45,13 @@ func (c *Controller) executeCommand(uri string) string {
 				cmnd, err := strconv.Atoi(mapParams["cmd"][0])
 				if err == nil {
 					c.switchRelay(macAddress, uint8(cmnd), 1)
-					result += "<div>" + uri + "executed</div>"
+					result += "executed"
 				}
 			} else {
-				fmt.Println(err)
+				result += fmt.Sprintf("%s", err.Error())
 			}
 		}
 	}
-	return result
-}
-
-func (c *Controller) createCommandList() string {
-
-	var result string = "<p>Relay 6 <a href=\"/command?id=0x54ef441000609dcc&cmd=1\">On</a>&nbsp;<a href=\"/command?id=0x54ef441000609dcc&cmd=0\">Off</a></p>"
 	return result
 }
 
@@ -111,9 +64,9 @@ func (c *Controller) formatDateTime(la time.Time) string {
 		fmt.Sprintf("%02d", la.Second())
 }
 
-func (c *Controller) showDeviceStatuses() map[uint16]httpServer.WebDeviceInfo {
+func (c *Controller) showDeviceStatuses() map[uint16]WebDeviceInfo {
 	//	 var result string = ""
-	var result map[uint16]httpServer.WebDeviceInfo = make(map[uint16]httpServer.WebDeviceInfo)
+	var result map[uint16]WebDeviceInfo = make(map[uint16]WebDeviceInfo)
 	ClimatSensors := []uint64{0x00124b000b1bb401}
 	WaterSensors := []uint64{0x00158d0006e469a4, 0x00158d0006f8fc61, 0x00158d0006b86b79, 0x00158d0006ea99db}
 	WaterValves := []uint64{0xa4c138d9758e1dcd, 0xa4c138373e89d731}
@@ -188,8 +141,8 @@ func (c *Controller) showDeviceStatuses() map[uint16]httpServer.WebDeviceInfo {
 	*/
 	return result
 }
-func (c *Controller) showOneType(ed *zdo.EndDevice) httpServer.WebDeviceInfo {
-	wdi := httpServer.WebDeviceInfo{}
+func (c *Controller) showOneType(ed *zdo.EndDevice) WebDeviceInfo {
+	wdi := WebDeviceInfo{}
 	wdi.ShortAddr = fmt.Sprintf("0x%04x", ed.ShortAddress)
 	wdi.Name = ed.GetHumanName()
 	wdi.State = ed.Get_current_state(1)
@@ -200,7 +153,7 @@ func (c *Controller) showOneType(ed *zdo.EndDevice) httpServer.WebDeviceInfo {
 	if ed.Get_temperature() > -90 {
 		wdi.Tmp = fmt.Sprintf("%d", ed.Get_temperature())
 	} else {
-		wdi.Tmp = "&nbsp;"
+		wdi.Tmp = " "
 	}
 	var powerSrc string = ""
 	if ed.Get_power_source() == uint8(zcl.PowerSource_BATTERY) { // battery

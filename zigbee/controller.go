@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/gbatanov/sim800l/modem"
-	"github.com/gbatanov/zhub4/httpServer"
 	"github.com/gbatanov/zhub4/telega32"
 	"github.com/gbatanov/zhub4/zigbee/clusters"
 	"github.com/gbatanov/zhub4/zigbee/zdo"
@@ -48,9 +47,8 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 	httpBlock := HttpBlock{}
 	httpBlock.answerChan = make(chan interface{}, 8)
 	httpBlock.queryChan = make(chan map[string]string, 8)
-	//	httpBlock.web, err = httpServer.HttpServerCreate(config.HttpAddress, httpBlock.answerChan, httpBlock.queryChan, config.Os, config.ProgramDir)
-	httpBlock.web, err = httpServer.NewHttpServer(config.HttpAddress, httpBlock.answerChan, httpBlock.queryChan, config.Os, config.ProgramDir)
-	httpBlock.withHttp = err == nil
+	//	httpBlock.web, err = NewHttpServer(config.HttpAddress, httpBlock.answerChan, httpBlock.queryChan, config.Os, config.ProgramDir)
+	httpBlock.withHttp = true
 
 	controller := Controller{
 		zdobj:              zdoo,
@@ -158,21 +156,14 @@ func (c *Controller) StartNetwork() error {
 		return err
 	}
 
+	// http
 	if c.http.withHttp {
-		c.http.web.Start()
-		c.http.withHttp = true
+		//	httpBlock.web, err = NewHttpServer(config.HttpAddress, httpBlock.answerChan, httpBlock.queryChan, config.Os, config.ProgramDir)
+		c.http.web, err = NewHttpServer(c)
+		c.http.withHttp = err == nil
 		if c.http.withHttp {
-			go func() {
-				for c.flag {
-					// Прием команд из HTTP и формирование ответа на команду
-					cmdFromHttp := <-c.http.queryChan
-					answer := c.handleHttpQuery(cmdFromHttp)
-					c.http.answerChan <- answer
-				}
-			}()
-			if c.http.withHttp {
-				log.Println("Web server started")
-			}
+			c.http.web.Start()
+			log.Println("Web server started")
 		}
 	}
 

@@ -5,20 +5,25 @@
 </head>
 <body>
 <div>
+<p>Старт программы: {{ .StartTime }} </p>
+<p>Время последнего срабатывания датчиков движения: {{ .LMotion }} </p>
 <table>
 <tr><th>Адрес</th><th>Название</th><th>Статус</th><th>LQ</th><th>Температура<th>Питание</th><th>Last seen/action</th></tr>
+<tr class='empty'><td colspan='8'><hr></td></tr>
    {{ range .deviceList }}
    <tr>
-    <td>{{ .ShortAddr }}</td>
+    <td class='addr'>{{ .ShortAddr }}</td>
     <td>{{ .Name }}</td>
     <td>{{ .State }}</td>
-    <td>{{ .LQ }}</td>
-    <td>{{ .Tmp }}</td>
+    <td class='lq'>{{ .LQ }}</td>
+    <td class='temp'>{{ .Tmp }}</td>
    <td>{{ .Pwr }}</td>
    <td>{{ .LSeen }}</td>
     </tr>
   {{end}}
+  <tr class='empty'><td colspan='8'><hr></td></tr>
   </table>
 </div>
+<div><a href="/command">Команды</a></div>
 </body>
 </html>

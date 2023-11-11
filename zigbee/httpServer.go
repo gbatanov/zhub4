@@ -3,7 +3,7 @@ zhub4 - Система домашней автоматизации на Go
 Copyright (c) 2022-2023 GSB, Georgii Batanov gbatanov@yandex.ru
 MIT License
 */
-package httpServer
+package zigbee
 
 import (
 	"context"
@@ -24,31 +24,31 @@ type WebDeviceInfo struct {
 	LSeen     string
 }
 type HttpServer struct {
-	srv       *http.Server
-	queryChan chan map[string]string
+	srv *http.Server
+	c   *Controller
 }
 
-func NewHttpServer(addr string,
-	answerChan chan interface{},
-	queryChan chan map[string]string,
-	os string,
-	programDir string) (*HttpServer, error) {
-
+// func NewHttpServer(addr string,
+//
+//	answerChan chan interface{},
+//	queryChan chan map[string]string,
+//	os string,
+//	programDir string) (*HttpServer, error) {
+func NewHttpServer(c *Controller) (*HttpServer, error) {
 	httpserv := HttpServer{}
-	httpserv.queryChan = queryChan
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
-	router.LoadHTMLGlob(programDir + "/html/*")
+	router.LoadHTMLGlob(c.config.ProgramDir + "/html/*")
 
-	actionHandler := NewActionHandler(answerChan, queryChan, os, programDir)
+	actionHandler := NewActionHandler(c)
 
 	router.GET("/command", actionHandler.cmdHandler)
 	router.Static("/css", "/usr/local/etc/zhub4/web")
 	router.GET("/", actionHandler.otherHandler)
 	router.NoRoute()
 	httpserv.srv = &http.Server{
-		Addr:    addr,
+		Addr:    c.config.HttpAddress,
 		Handler: router,
 	}
 
@@ -62,7 +62,7 @@ func (h *HttpServer) Start() {
 			log.Printf("listen: %s\n", err.Error())
 			errMap := make(map[string]string)
 			errMap["error"] = err.Error()
-			h.queryChan <- errMap
+			h.c.http.withHttp = false
 		}
 	}() // listen and serve
 }
