@@ -9,6 +9,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
@@ -54,7 +56,7 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	0x00124b002444d159: {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3 ", zcl.PowerSource_BATTERY, 1, 0},
 	0x00124b0009451438: {4, "Custom", "CC2530", "КухняДвижение", "Датчик присутствия 1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	0x00124b0014db2724: {4, "Custom", "CC2530", "ПрихожаяДвижение", "Датчик движение + освещение (прихожая)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x0c4314fffe17d8a8: {8, "IKEA", "E1745", "ИкеаДвижение", "Датчик движения IKEA", zcl.PowerSource_BATTERY, 0, 1},
+	0x0c4314fffe17d8a8: {8, "IKEA", "E1745", "ИкеаДвижение", "Датчик движения IKEA", zcl.PowerSource_BATTERY, 1, 1},
 	0x00124b0007246963: {4, "Custom", "CC2530", "ДетскаяДвижение", "Датчик движение + освещение (детская)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// Датчики открытия дверей
 	0x00124b0025485ee6: {3, "Sonoff", "SNZB-04", "ТуалетДатчик", "Датчик открытия 1 (туалет)", zcl.PowerSource_BATTERY, 1, 0},
@@ -101,38 +103,36 @@ var OFF_LIST []uint64 = []uint64{
 	0x54ef441000609dcc, // Relay 6
 }
 
-/*
-	doesn't use in this version
-
 // List of devices to display in Grafana
 
-	var PROM_MOTION_LIST []uint64 = []uint64{
-		0x00124b0025137475, // coridor
-		0x00124b0014db2724, // hallway
-		0x00124b0009451438, // kitchen
-		0x00124b0024455048, // room
-		0x00124b002444d159, // children's room
-		0x00124b0007246963, // balconen
-	}
+var PROM_MOTION_LIST []uint64 = []uint64{
+	0x00124b0025137475, // coridor
+	0x00124b0014db2724, // hallway
+	0x00124b0009451438, // kitchen
+	0x00124b0024455048, // room
+	0x00124b002444d159, // children's room
+	0x00124b0007246963, // balconen
+	0x0c4314fffe17d8a8, // IKEA motion sensor
+}
 
-	var PROM_DOOR_LIST []uint64 = []uint64{
-		0x00124b0025485ee6, // toilet
-	}
+var PROM_DOOR_LIST []uint64 = []uint64{
+	0x00124b0025485ee6, // toilet
+}
 
-	var PROM_RELAY_LIST []uint64 = []uint64{
-		0x00158d0009414d7e, // light/ventilation in kitchen
-		0x54ef4410001933d3, // light in coridor
-		0x54ef4410005b2639} // toilet is busy
-*/
+var PROM_RELAY_LIST []uint64 = []uint64{
+	0x00158d0009414d7e, // light/ventilation in kitchen
+	0x54ef4410001933d3, // light in coridor
+	0x54ef4410005b2639} // toilet is busy
+
 type BatteryParams struct {
 	level   uint8
-	voltage float32
+	voltage float64
 }
 type ElectricParams struct {
-	mainVoltage float32 // high voltage instant|RMS value
-	current     float32 //
-	power       float32 // instant power
-	energy      float32 // energy
+	mainVoltage float64 // high voltage instant|RMS value
+	current     float64 //
+	power       float64 // instant power
+	energy      float64 // energy
 }
 
 type EndDevice struct {
@@ -150,7 +150,7 @@ type EndDevice struct {
 	temperature     int8
 	humidity        int8
 	luminocity      int8 // high/low 1/0
-	pressure        float32
+	pressure        float64
 	motionState     int8
 }
 
@@ -215,35 +215,35 @@ func (ed *EndDevice) Set_product_code(value string) {
 func (ed *EndDevice) Set_power_source(value uint8) {
 	ed.Di.powerSource = zcl.PowerSource(value)
 }
-func (ed *EndDevice) Set_mains_voltage(value float32) {
+func (ed *EndDevice) Set_mains_voltage(value float64) {
 	ed.electric.mainVoltage = value
 }
-func (ed *EndDevice) Get_mains_voltage() float32 {
+func (ed *EndDevice) Get_mains_voltage() float64 {
 	return ed.electric.mainVoltage
 }
-func (ed *EndDevice) Set_current(value float32) {
+func (ed *EndDevice) Set_current(value float64) {
 	ed.electric.current = value
 }
-func (ed *EndDevice) Get_current() float32 {
+func (ed *EndDevice) Get_current() float64 {
 	return ed.electric.current
 }
 
-func (ed *EndDevice) Set_power(value float32) {
+func (ed *EndDevice) Set_power(value float64) {
 	ed.electric.power = value
 }
-func (ed *EndDevice) Get_power() float32 {
+func (ed *EndDevice) Get_power() float64 {
 	return ed.electric.power
 }
 
-func (ed *EndDevice) Set_energy(value float32) {
+func (ed *EndDevice) Set_energy(value float64) {
 	ed.electric.energy = value
 }
-func (ed *EndDevice) Get_energy() float32 {
+func (ed *EndDevice) Get_energy() float64 {
 	return ed.electric.energy
 }
 
 // charge level, battery voltage
-func (ed *EndDevice) Set_battery_params(value1 uint8, value2 float32) {
+func (ed *EndDevice) Set_battery_params(value1 uint8, value2 float64) {
 	if value1 > 0 {
 		ed.battery.level = value1
 	}
@@ -254,7 +254,7 @@ func (ed *EndDevice) Set_battery_params(value1 uint8, value2 float32) {
 func (ed *EndDevice) Get_battery_level() uint8 {
 	return ed.battery.level
 }
-func (ed *EndDevice) Get_battery_voltage() float32 {
+func (ed *EndDevice) Get_battery_voltage() float64 {
 	return ed.battery.voltage
 }
 func (ed *EndDevice) Set_temperature(value int8) {
@@ -275,11 +275,20 @@ func (ed *EndDevice) Set_humidity(value int8) {
 func (ed *EndDevice) Get_humidity() int8 {
 	return ed.humidity
 }
-func (ed *EndDevice) Set_pressure(value float32) {
+func (ed *EndDevice) Set_pressure(value float64) {
 	ed.pressure = value
 }
-func (ed *EndDevice) Get_pressure() float32 {
+func (ed *EndDevice) Get_pressure() float64 {
 	return ed.pressure
+}
+
+func (ed *EndDevice) GetPromPressure() string {
+	pressure := ed.Get_pressure()
+	if pressure > 0 {
+		return "zhub2_metrics{device=\"" + ed.Di.engName + "\",type=\"pressure\"} " + strconv.FormatFloat(pressure, 'f', 3, 64) + "\n"
+	} else {
+		return ""
+	}
 }
 
 func (ed EndDevice) GetHumanName() string {
@@ -305,21 +314,80 @@ func (ed EndDevice) Get_current_state(channel uint8) string {
 	}
 	return "Unknown"
 }
-func (ed EndDevice) Get_motion_state() int8 {
+func (ed EndDevice) GetMotionState() int8 {
 	return ed.motionState
 }
-func (ed EndDevice) SetMotionState(state uint8) {
+func (ed *EndDevice) SetMotionState(state uint8) {
 	if state == 0 || state == 1 {
 		ed.motionState = int8(state)
 	}
 }
+func (ed EndDevice) GetPromMotionString() string {
+	state := ed.GetMotionState()
+	if state < 0 || len(ed.Di.engName) == 0 {
+		return ""
+	}
+	return "zhub2_metrics{device=\"" + ed.Di.engName + "\",type=\"motion\"} " + strconv.Itoa(int(state)) + "\n"
+}
 
-func (ed *EndDevice) Bytes_to_float32(src []byte) (float32, error) {
+// / @brief Возвращает строку для Prometheus
+// / Чтобы линия реле не сливалась с линией датчика,
+// / искуственно отступаю на 0,1
+// / @return
+func (ed EndDevice) GetPromRelayString() string {
+	state2 := ""
+	state := ed.Get_current_state(1)
+	if ed.GetDeviceType() == 11 {
+		state2 = ed.Get_current_state(2)
+	}
+	strState := ""
+	strState2 := ""
+	if state == "On" {
+		strState = "0.9"
+	} else if state == "Off" {
+		strState = "0.1"
+	}
+	if state2 == "On" {
+		strState2 = "0.95"
+	} else if state2 == "Off" {
+		strState2 = "0.15"
+	}
+	names := strings.Split(ed.Di.engName, "/")
+	name1 := names[0]
+	name2 := ""
+	if len(names) > 1 {
+		name2 = names[1]
+	}
+	if len(strState) > 0 && len(name1) > 0 {
+		strState = "zhub2_metrics{device=\"" + name1 + "\",type=\"relay\"} " + strState + "\n"
+	}
+	if len(strState2) > 0 && len(name2) > 0 {
+		strState2 = "zhub2_metrics{device=\"" + name2 + "\",type=\"relay\"} " + strState2 + "\n"
+	}
+	return strState + strState2
+}
+
+// / @brief Возвращает строку для Prometheus
+// / @return
+func (ed *EndDevice) GetPromDoorString() string {
+	state := ed.Get_current_state(1)
+	strState := ""
+	if state == "Opened" {
+		strState = "0.95"
+	} else if state == "Closed" {
+		strState = "0.05"
+	} else {
+		return ""
+	}
+	return "zhub2_metrics{device=\"" + ed.Di.engName + "\",type=\"door\"} " + strState + "\n"
+}
+
+func (ed *EndDevice) Bytes_to_float64(src []byte) (float64, error) {
 
 	if len(src) != 4 {
 		return 0.0, errors.New("bad source slice")
 	}
-	var value float32
+	var value float64
 	buff := bytes.NewReader(src)
 	err := binary.Read(buff, binary.LittleEndian, &value)
 	if err != nil {

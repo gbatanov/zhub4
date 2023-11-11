@@ -20,7 +20,7 @@ type AnalogInputCluster struct {
 }
 
 func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	var value float32 = -100.0
+	var value float64 = -100.0
 	var unit string
 	log.Printf("AnalogInputCluster::%s, endpoint address: 0x%04x number = %d \n", a.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
 
@@ -29,7 +29,7 @@ func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes 
 		switch zcl.AnalogInputAttribute(attribute.Id) {
 		case zcl.AnalogInput_0055: // value
 			//
-			value = float32(attribute.Value[0])
+			value = float64(attribute.Value[0])
 			if a.Ed.GetDeviceType() == 9 { // relay
 				fmt.Printf("Analog Input Value =  %0.3f \n", value)
 			} else {

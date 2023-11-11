@@ -14,15 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type WebDeviceInfo struct {
-	ShortAddr string
-	Name      string
-	State     string
-	LQ        string
-	Tmp       string
-	Pwr       string
-	LSeen     string
-}
 type HttpServer struct {
 	srv *http.Server
 	c   *Controller
@@ -43,6 +34,7 @@ func NewHttpServer(c *Controller) (*HttpServer, error) {
 
 	actionHandler := NewActionHandler(c)
 
+	router.GET("/metrics", actionHandler.metrics)
 	router.GET("/command", actionHandler.cmdHandler)
 	router.Static("/css", "/usr/local/etc/zhub4/web")
 	router.GET("/", actionHandler.otherHandler)

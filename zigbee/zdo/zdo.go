@@ -562,7 +562,7 @@ func (zdo *Zdo) Bind(shortAddress uint16, macAddress uint64, endpoint uint8, clu
 
 // handler the specific command
 func (zdo *Zdo) handle_command(command Command) {
-	log.Printf("zdo.handle_command:: input_command cmd.id: 0x%04x %s \n", uint16(command.Id), Command_to_string(command.Id))
+	// log.Printf("zdo.handle_command:: input_command cmd.id: 0x%04x %s \n", uint16(command.Id), Command_to_string(command.Id))
 	switch command.Id {
 	case AF_INCOMING_MSG: // 0x4481 Incomming message from device
 		if !zdo.isReady {

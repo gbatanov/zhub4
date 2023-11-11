@@ -433,6 +433,7 @@ func (c *Controller) getDeviceByShortAddr(shortAddres uint16) *zdo.EndDevice {
 }
 
 func (c *Controller) getDeviceByMac(macAddress uint64) *zdo.EndDevice {
+
 	_, keyExists := c.devices[macAddress]
 	if keyExists {
 		return c.devices[macAddress]

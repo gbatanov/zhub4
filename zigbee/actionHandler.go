@@ -7,9 +7,11 @@ package zigbee
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
+	"github.com/gbatanov/zhub4/zigbee/zdo"
 	"github.com/gin-gonic/gin"
 )
 
@@ -69,11 +71,45 @@ func (ah *ActionHandler) otherHandler(c *gin.Context) {
 	la := ah.con.getLastMotionSensorActivity()
 	lMotion := ah.con.formatDateTime(la)
 
+	weather := ah.con.showWeather()
+
 	// HTML ответ на основе шаблона
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
 		"title":      "GSB Smart Home",
 		"deviceList": answer,
 		"StartTime":  sTime,
-		"LMotion":    lMotion})
+		"LMotion":    lMotion,
+		"Weather":    weather})
 
+}
+
+func (ah *ActionHandler) metrics(c *gin.Context) {
+	answer := ""
+	// Получим давление
+	di := ah.con.getDeviceByMac(0x00124b000b1bb401) // датчик климата в детской
+	if di != nil {
+		answer = answer + di.GetPromPressure()
+	}
+	for _, li := range zdo.PROM_MOTION_LIST {
+		log.Printf("0x%08x \n", li)
+		di = ah.con.getDeviceByMac(li)
+		if di != nil {
+			answer = answer + di.GetPromMotionString()
+			log.Println(di.GetPromMotionString())
+		}
+	}
+	for _, li := range zdo.PROM_RELAY_LIST {
+		// для сдвоенного реле показываем по отдельности
+		di = ah.con.getDeviceByMac(li)
+		if di != nil {
+			answer = answer + di.GetPromRelayString()
+		}
+	}
+	for _, li := range zdo.PROM_DOOR_LIST {
+		di = ah.con.getDeviceByMac(li)
+		if di != nil {
+			answer = answer + di.GetPromDoorString()
+		}
+	}
+	c.String(http.StatusOK, "%s", answer)
 }

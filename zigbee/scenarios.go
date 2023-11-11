@@ -16,10 +16,10 @@ import (
 
 // scenarios
 func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
-	fmt.Println("handleMotion")
+	log.Println("handleMotion")
 
 	state := "No motion"
-	cur_motion := ed.Get_motion_state()
+	cur_motion := ed.GetMotionState()
 	// Fix the last activity of the motion sensor
 	// I fix in the activity only the activation of the sensor
 	// Since the motion sensor is also in custom, which send messages periodically,
@@ -59,7 +59,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 			}
 		} else if cmd == 0 {
 			if custom2.ShortAddress > 0 {
-				cur_motion = custom2.Get_motion_state()
+				cur_motion = custom2.GetMotionState()
 			}
 			if cur_motion != 1 {
 				log.Printf("Motion sensor in coridor. Turn off light relay. \n")
@@ -87,7 +87,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 		} else if cmd == 0 && relayCurrentState != "Off" {
 			motion1 := c.getDeviceByMac(0x00124b0025137475)
 			if motion1.ShortAddress > 0 {
-				cur_motion = motion1.Get_motion_state()
+				cur_motion = motion1.GetMotionState()
 			}
 			if cur_motion != 1 {
 				log.Printf("Motion sensor in hallway. Turn off light relay. \n")

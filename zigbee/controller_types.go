@@ -71,3 +71,19 @@ type Controller struct {
 	startTime          time.Time
 	mdm                *modem.GsmModem
 }
+type WebDeviceInfo struct {
+	ShortAddr string
+	Name      string
+	State     string
+	LQ        string
+	Tmp       string
+	Pwr       string
+	LSeen     string
+}
+
+type WebWeatherInfo struct {
+	Room     string
+	Temp     string
+	Humidity string
+	Pressure string
+}
