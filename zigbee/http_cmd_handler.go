@@ -38,7 +38,7 @@ func (c *Controller) showDeviceStatuses() map[uint16]WebDeviceInfo {
 	for _, di := range allDevices {
 		for _, addr := range di {
 			ed := c.getDeviceByMac(addr)
-			if ed.ShortAddress != 0 && ed.Di.Test == 1 {
+			if ed.ShortAddress != 0 && ed.Di.Available == 1 {
 				result[ed.ShortAddress] = c.showOneType(ed)
 			}
 		}

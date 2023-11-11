@@ -30,11 +30,12 @@ func NewHttpServer(c *Controller) (*HttpServer, error) {
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
-	router.LoadHTMLGlob(c.config.ProgramDir + "/html/*")
+	router.LoadHTMLGlob("/usr/local/etc/zhub4/web/*")
 
 	actionHandler := NewActionHandler(c)
 
 	router.GET("/metrics", actionHandler.metrics)
+	router.GET("/join", actionHandler.join)
 	router.GET("/command", actionHandler.cmdHandler)
 	router.Static("/css", "/usr/local/etc/zhub4/web")
 	router.GET("/", actionHandler.otherHandler)

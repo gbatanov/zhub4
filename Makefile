@@ -12,5 +12,6 @@ zhub4:
 install:
 	cp ./bin/zhub4 /usr/local/bin 
 	cp config.txt /usr/local/etc/zhub4/
-	cp map_addr_test.cfg /usr/local/etc/zhub4/
-	cp html/gsb_style.css /usr/local/etc/zhub4/web/
+#	cp map_addr_test.cfg /usr/local/etc/zhub4/
+#	cp map_addr.cfg /usr/local/etc/zhub4/
+	cp html/* /usr/local/etc/zhub4/web/

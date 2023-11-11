@@ -217,8 +217,10 @@ func ParseAttributesPayload(payload []byte, wStatus bool) []Attribute {
 			hi := payload[i]
 			i++
 			size = UINT16_(lo, hi)
-			attribute.Value = payload[i : i+size]
-			attribute.Size = size
+			if i+size < maxI {
+				attribute.Value = payload[i : i+size]
+				attribute.Size = size
+			}
 
 		case DataType_OCT_STRING,
 			DataType_CHARACTER_STRING:

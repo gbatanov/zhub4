@@ -328,7 +328,7 @@ func (zdo *Zdo) WriteRfChannels(new RF_Channels) error {
 		ch := byte(channelBitMask >> (i * 8))
 		chann[i] = ch
 	}
-	//	log.Printf("write channels: %q\n", chann)
+	log.Printf("write RF channels: %q\n", chann)
 
 	return zdo.write_nvram(zcl.CHANNEL_LIST, chann) // старший байт последний
 

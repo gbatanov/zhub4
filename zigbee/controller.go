@@ -34,9 +34,9 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 	// Modem block
 	config.WithModem = false
 	var mdm *modem.GsmModem
-	//mdm := modem.GsmModemCreate(config.ModemPort, 9600, config.MyPhoneNumber)
+	//	mdm := modem.GsmModemCreate(config.ModemPort, 9600, config.MyPhoneNumber)
 	//	err = mdm.Open()
-	//config.WithModem = err == nil
+	//	config.WithModem = err == nil
 
 	// telegram bot block
 	tlgMsgChan := make(chan telega32.Message, 16)
@@ -139,6 +139,7 @@ func (c *Controller) StartNetwork() error {
 			return err
 		}
 	}
+
 	err = c.GetZdo().FinishConfiguration()
 	if err != nil {
 		return err
@@ -248,17 +249,17 @@ func (c *Controller) writeMapToFile() error {
 
 // read map from file on start the program
 func (c *Controller) readMapFromFile() error {
-	fmt.Println("ReadMap")
+
 	m := sync.Mutex{}
 	m.Lock()
 	defer m.Unlock()
 	c.devicessAddressMap = map[uint16]uint64{}
 
 	filename := c.config.MapPath
-	fmt.Println(filename)
+
 	fd, err := os.OpenFile(filename, os.O_RDONLY, 0755)
 	if err != nil {
-		fmt.Println("ReadMap:: OpenFile error: ", err)
+		log.Println("ReadMap:: OpenFile error: ", err)
 	} else {
 
 		var shortAddr uint16
@@ -274,10 +275,10 @@ func (c *Controller) readMapFromFile() error {
 		fd.Close()
 		if true {
 			for a, b := range c.devicessAddressMap {
-				fmt.Printf("0x%04x : 0x%016x \n", a, b)
+				log.Printf("0x%04x : 0x%016x \n", a, b)
 			}
 		}
-		fmt.Printf("\n")
+		log.Printf("\n")
 	}
 
 	return nil

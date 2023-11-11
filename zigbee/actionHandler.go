@@ -7,9 +7,9 @@ package zigbee
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gbatanov/zhub4/zigbee/zdo"
 	"github.com/gin-gonic/gin"
@@ -91,11 +91,11 @@ func (ah *ActionHandler) metrics(c *gin.Context) {
 		answer = answer + di.GetPromPressure()
 	}
 	for _, li := range zdo.PROM_MOTION_LIST {
-		log.Printf("0x%08x \n", li)
+		//		log.Printf("0x%08x \n", li)
 		di = ah.con.getDeviceByMac(li)
 		if di != nil {
 			answer = answer + di.GetPromMotionString()
-			log.Println(di.GetPromMotionString())
+			//			log.Println(di.GetPromMotionString())
 		}
 	}
 	for _, li := range zdo.PROM_RELAY_LIST {
@@ -112,4 +112,8 @@ func (ah *ActionHandler) metrics(c *gin.Context) {
 		}
 	}
 	c.String(http.StatusOK, "%s", answer)
+}
+func (ah *ActionHandler) join(c *gin.Context) {
+	ah.con.GetZdo().PermitJoin(60 * time.Second)
+	ah.otherHandler(c)
 }
