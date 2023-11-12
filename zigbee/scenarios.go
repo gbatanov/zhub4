@@ -196,6 +196,8 @@ func (c *Controller) onOffCommand(ed *zdo.EndDevice, message zdo.Message) {
 			}
 		case 2:
 			ed.SetCurrentState("Single click", 1)
+			// toogle relay 0x54ef441000609dcc
+			c.switchRelay(0x54ef441000609dcc, 2, 1)
 		}
 	}
 }

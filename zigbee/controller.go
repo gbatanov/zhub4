@@ -483,7 +483,7 @@ func (c *Controller) messageHandler(command zdo.Command) {
 
 	ed := c.getDeviceByShortAddr(message.Source.Address)
 	if ed.MacAddress == 0 {
-		log.Printf("message handler: device not found\n")
+		log.Printf("message handler: device 0x%04x not found\n", message.Source.Address)
 		return
 	}
 
