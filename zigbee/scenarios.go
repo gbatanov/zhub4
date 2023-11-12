@@ -44,23 +44,25 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 
 	if macAddress == 0x00124b0025137475 { //Sonoff motion sensor 1 (coridor)
 		lum := int8(-1)
-
-		//  on/off  light in coridor 0x54ef4410001933d3
-		//  works in couple with custom2
-		custom2 := c.getDeviceByMac(0x00124b0014db2724)
-		if custom2.ShortAddress > 0 {
-			lum = custom2.Get_luminocity()
-		}
-		log.Printf("Motion sensor in coridor. cmd = %d, lum = %d\n", cmd, lum)
+		/*
+			//  on/off  light in coridor 0x54ef4410001933d3
+			//  works in couple with custom2
+			custom2 := c.getDeviceByMac(0x00124b0014db2724)
+			if custom2.ShortAddress > 0 {
+				lum = custom2.Get_luminocity()
+			}
+			log.Printf("Motion sensor in coridor. cmd = %d, lum = %d\n", cmd, lum)
+		*/
 		if cmd == 1 {
 			if lum != 1 {
 				log.Printf("Motion sensor in coridor. Turn on light relay. \n")
 				c.switchRelay(0x54ef4410001933d3, 1, 1)
 			}
 		} else if cmd == 0 {
-			if custom2.ShortAddress > 0 {
-				cur_motion = custom2.GetMotionState()
-			}
+			cur_motion := -1
+			//			if custom2.ShortAddress > 0 {
+			//				cur_motion = custom2.GetMotionState()
+			//			}
 			if cur_motion != 1 {
 				log.Printf("Motion sensor in coridor. Turn off light relay. \n")
 				c.switchRelay(0x54ef4410001933d3, 0, 1)

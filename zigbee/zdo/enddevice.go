@@ -40,12 +40,12 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	0x54ef44100018b523: {9, "Aqara", "SSM-U01", "ШкафСвет", "Реле3(Шкаф, подсветка)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	0x54ef4410001933d3: {9, "Aqara", "SSM-U01", "КоридорСвет", "Реле4(Свет в коридоре)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	0x54ef4410005b2639: {9, "Aqara", "SSM-U01", "ТулетЗанят", "Реле5(Туалет занят)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef441000609dcc: {9, "Aqara", "SSM-U01", "Реле6", "Реле6", zcl.PowerSource_SINGLE_PHASE, 1, 1},
+	0x54ef441000609dcc: {9, "Aqara", "SSM-U01", "Реле6", "Реле6 (Свет комната)", zcl.PowerSource_SINGLE_PHASE, 1, 1},
 	0x00158d0009414d7e: {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// Умные розетки
 	0x70b3d52b6001b4a4: {10, "Girier", "TS011F", "Розетка1", "Розетка 1", zcl.PowerSource_SINGLE_PHASE, 1, 1},
 	0x70b3d52b6001b5d9: {10, "Girier", "TS011F", "Розетка2", "Розетка 2(Зарядники)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x70b3d52b60022ac9: {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Лампы в десткой)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x70b3d52b60022ac9: {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Лампы в детской)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	0x70b3d52b60022cfd: {10, "Girier", "TS011F", "Розетка3", "Розетка 4(Паяльник)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// краны
 	0xa4c138d9758e1dcd: {6, "TUYA", "Valve", "КранГВ", "Кран1 ГВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
@@ -159,8 +159,8 @@ func EndDeviceCreate(macAddress uint64, shortAddress uint16) *EndDevice {
 	ed.Di = KNOWN_DEVICES[macAddress]
 	ed.modelIdentifier = ""
 	ed.linkQuality = 0
-	ed.lastSeen = time.Now() // time.isZero - time is not initialized
-	ed.lastAction = time.Now()
+	ed.lastSeen = time.Time{} // time.isZero - time is not initialized
+	ed.lastAction = time.Time{}
 	ed.state = "Unknown"
 	ed.state2 = "Unknown"
 	ed.electric = ElectricParams{
@@ -387,11 +387,11 @@ func (ed *EndDevice) Bytes_to_float64(src []byte) (float64, error) {
 	if len(src) != 4 {
 		return 0.0, errors.New("bad source slice")
 	}
-	var value float64
+	var value float32
 	buff := bytes.NewReader(src)
 	err := binary.Read(buff, binary.LittleEndian, &value)
 	if err != nil {
 		return 0.0, err
 	}
-	return value, nil
+	return float64(value), nil
 }

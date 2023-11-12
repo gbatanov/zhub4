@@ -24,14 +24,14 @@ func (p PowerConfigurationCluster) HandlerAttributes(endpoint zcl.Endpoint, attr
 		//		log.Printf("attribute id =0x%04x \n", attribute.Id)
 		switch zcl.PowerConfigurationAttribute(attribute.Id) {
 		case zcl.PowerConfiguration_MAINS_VOLTAGE:
-			val := float64(attribute.Value[0])
+			val := float32(attribute.Value[0])
 			fmt.Printf("Mains voltage: %2.2fV \n", val/10)
-			p.Ed.Set_mains_voltage(val)
+			p.Ed.Set_mains_voltage(float64(val))
 
 		case zcl.PowerConfiguration_BATTERY_VOLTAGE:
-			val := float64(attribute.Value[0])
+			val := float32(attribute.Value[0])
 			fmt.Printf("Battery voltage: %2.1fV ", val/10)
-			p.Ed.Set_battery_params(0, val/10)
+			p.Ed.Set_battery_params(0, float64(val/10))
 
 		case zcl.PowerConfiguration_BATTERY_REMAIN:
 			val := attribute.Value[0] // 0x00-0x30 0x30-0x60 0x60-0x90 0x90-0xc8

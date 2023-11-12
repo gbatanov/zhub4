@@ -98,9 +98,9 @@ func (b BasicCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 			for i := 0; i < len(attribute.Value); i++ {
 				switch attribute.Value[i] {
 				case 0x01: // battery voltage
-					bat := float64(zcl.UINT16_(attribute.Value[i+2], attribute.Value[i+3]))
+					bat := float32(zcl.UINT16_(attribute.Value[i+2], attribute.Value[i+3]))
 					i = i + 3
-					b.Ed.Set_battery_params(0, bat/1000)
+					b.Ed.Set_battery_params(0, float64(bat/1000))
 
 				case 0x03: // temperature
 					i = i + 2
@@ -151,15 +151,15 @@ func (b BasicCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 					i = i + 5
 
 				case 0x96: // voltage
-					value := float64(uint32(attribute.Value[i+2]) + uint32(attribute.Value[i+3])<<8 + uint32(attribute.Value[i+4])<<16 + uint32(attribute.Value[i+5])<<24)
+					value := float32(uint32(attribute.Value[i+2]) + uint32(attribute.Value[i+3])<<8 + uint32(attribute.Value[i+4])<<16 + uint32(attribute.Value[i+5])<<24)
 					b.Ed.Set_power_source(0x01)
-					b.Ed.Set_mains_voltage(value / 10)
+					b.Ed.Set_mains_voltage(float64(value / 10))
 					fmt.Printf("Voltage:  %0.2fV\n", value/10)
 					i = i + 5
 
 				case 0x97: // current
-					value := float64(uint32(attribute.Value[i+2]) + uint32(attribute.Value[i+3])<<8 + uint32(attribute.Value[i+4])<<16 + uint32(attribute.Value[i+5])<<24)
-					b.Ed.Set_current(value)
+					value := float32(uint32(attribute.Value[i+2]) + uint32(attribute.Value[i+3])<<8 + uint32(attribute.Value[i+4])<<16 + uint32(attribute.Value[i+5])<<24)
+					b.Ed.Set_current(float64(value))
 					fmt.Printf("Current: %0.3fA\n", value)
 					i = i + 5
 

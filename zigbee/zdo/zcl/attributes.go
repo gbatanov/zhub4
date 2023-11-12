@@ -180,7 +180,7 @@ func ParseAttributesPayload(payload []byte, wStatus bool) []Attribute {
 	valid := true
 	maxI := uint16(len(payload))
 
-	for i < maxI {
+	for i < maxI-2 {
 		var attribute Attribute
 		valid = true
 

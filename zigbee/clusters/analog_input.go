@@ -20,7 +20,7 @@ type AnalogInputCluster struct {
 }
 
 func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	var value float64 = -100.0
+	var value float32 = -100.0
 	var unit string
 	log.Printf("AnalogInputCluster::%s, endpoint address: 0x%04x number = %d \n", a.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
 
@@ -29,7 +29,7 @@ func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes 
 		switch zcl.AnalogInputAttribute(attribute.Id) {
 		case zcl.AnalogInput_0055: // value
 			//
-			value = float64(attribute.Value[0])
+			value = float32(attribute.Value[0])
 			if a.Ed.GetDeviceType() == 9 { // relay
 				fmt.Printf("Analog Input Value =  %0.3f \n", value)
 			} else {
@@ -59,16 +59,16 @@ func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes 
 		} else if unit == "C" {
 			a.Ed.Set_temperature(int8(value))
 		} else if unit == "V" {
-			a.Ed.Set_battery_params(0, value) // TODO ???
+			a.Ed.Set_battery_params(0, float64(value)) // TODO ???
 		} else if unit == "Pa" {
-			a.Ed.Set_pressure(value)
+			a.Ed.Set_pressure(float64(value))
 		} else {
 			log.Printf("Device 0x%04x endpoint %d Analog Input Unit =  %s \n", endpoint.Address, endpoint.Number, unit)
 		}
 		value = -100.0
 		unit = ""
 	} else if (a.Ed.GetDeviceType() == 11 || a.Ed.GetDeviceType() == 9 || a.Ed.GetDeviceType() == 10) && (value > -100.0) {
-		a.Ed.Set_current(value / 100)
+		a.Ed.Set_current(float64(value / 100))
 	}
 	fmt.Println("")
 }

@@ -33,10 +33,10 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 
 	// Modem block
 	config.WithModem = false
-	var mdm *modem.GsmModem
-	//	mdm := modem.GsmModemCreate(config.ModemPort, 9600, config.MyPhoneNumber)
-	//	err = mdm.Open()
-	//	config.WithModem = err == nil
+	//var mdm *modem.GsmModem
+	mdm := modem.GsmModemCreate(config.ModemPort, 9600, config.MyPhoneNumber)
+	err = mdm.Open()
+	config.WithModem = err == nil
 
 	// telegram bot block
 	tlgMsgChan := make(chan telega32.Message, 16)

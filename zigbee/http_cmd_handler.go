@@ -7,6 +7,7 @@ package zigbee
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gbatanov/zhub4/zigbee/zdo"
@@ -14,17 +15,21 @@ import (
 )
 
 func (c *Controller) formatDateTime(la time.Time) string {
-	return fmt.Sprintf("%d", la.Year()) + "-" +
+	dt := fmt.Sprintf("%d", la.Year()) + "-" +
 		fmt.Sprintf("%02d", la.Month()) + "-" +
 		fmt.Sprintf("%02d", la.Day()) + "  " +
 		fmt.Sprintf("%02d", la.Hour()) + ":" +
 		fmt.Sprintf("%02d", la.Minute()) + ":" +
 		fmt.Sprintf("%02d", la.Second())
+	if strings.Contains(dt, "1-01-01") {
+		dt = ""
+	}
+	return dt
 }
 
-func (c *Controller) showDeviceStatuses() map[uint16]WebDeviceInfo {
+func (c *Controller) showDeviceStatuses() map[int]map[uint16]WebDeviceInfo {
 	//	 var result string = ""
-	var result map[uint16]WebDeviceInfo = make(map[uint16]WebDeviceInfo)
+	var result map[int]map[uint16]WebDeviceInfo = make(map[int]map[uint16]WebDeviceInfo)
 	ClimatSensors := []uint64{0x00124b000b1bb401}
 	WaterSensors := []uint64{0x00158d0006e469a4, 0x00158d0006f8fc61, 0x00158d0006b86b79, 0x00158d0006ea99db}
 	WaterValves := []uint64{0xa4c138d9758e1dcd, 0xa4c138373e89d731}
@@ -35,13 +40,15 @@ func (c *Controller) showDeviceStatuses() map[uint16]WebDeviceInfo {
 	Buttons := []uint64{0x00124b0028928e8a, 0x00124b00253ba75f, 0x8cf681fffe0656ef}
 	allDevices := [][]uint64{ClimatSensors, MotionSensors, WaterSensors, DoorSensors, Relays, SmartPlugs, WaterValves, Buttons}
 
-	for _, di := range allDevices {
+	for ind, di := range allDevices {
+		var resultTmp map[uint16]WebDeviceInfo = make(map[uint16]WebDeviceInfo, 0)
 		for _, addr := range di {
 			ed := c.getDeviceByMac(addr)
 			if ed.ShortAddress != 0 && ed.Di.Available == 1 {
-				result[ed.ShortAddress] = c.showOneType(ed)
+				resultTmp[ed.ShortAddress] = c.showOneType(ed)
 			}
 		}
+		result[ind] = resultTmp
 	}
 	return result
 }
