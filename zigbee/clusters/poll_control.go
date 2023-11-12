@@ -18,10 +18,10 @@ type PollControlCluster struct {
 }
 
 func (i PollControlCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	log.Printf("PollControlCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
+	//	log.Printf("PollControlCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
 
 	for _, attribute := range attributes {
-		log.Printf("PollControlCluster: attribute id =0x%04x \n", attribute.Id)
+		//		log.Printf("PollControlCluster: attribute id =0x%04x \n", attribute.Id)
 		switch zcl.PowerConfigurationAttribute(attribute.Id) {
 
 		default:

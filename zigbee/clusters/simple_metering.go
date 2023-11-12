@@ -20,7 +20,7 @@ type SimpleMeteringCluster struct {
 }
 
 func (s SimpleMeteringCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	log.Printf("SimpleMeteringCluster:: %s, endpoint address: 0x%04x number = %d \n", s.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
+	//	log.Printf("SimpleMeteringCluster:: %s, endpoint address: 0x%04x number = %d \n", s.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
 	a0000 := false
 	for _, attribute := range attributes {
 		switch attribute.Id {
@@ -31,10 +31,10 @@ func (s SimpleMeteringCluster) HandlerAttributes(endpoint zcl.Endpoint, attribut
 				val := binary.LittleEndian.Uint64(val64)
 				s.Ed.Set_energy(float64(val) / 1000)
 				//CurrentSummationDelivered represents the most recent summed value of Energy, Gas, or Water delivered and consumed in the premises.
-				fmt.Printf("SimpleMeteringCluster attribute id =0x%04x val = %0.2fkWh\n", attribute.Id, float64(val)/100)
+				log.Printf("SimpleMeteringCluster attribute id =0x%04x val = %0.2fkWh\n", attribute.Id, float64(val)/100)
 			}
 		default:
-			fmt.Printf("SimpleMeteringCluster unattended attribute id =0x%04x \n", attribute.Id)
+			log.Printf("SimpleMeteringCluster unattended attribute id =0x%04x \n", attribute.Id)
 		}
 	}
 

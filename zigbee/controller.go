@@ -462,7 +462,7 @@ func (c *Controller) messageHandler(command zdo.Command) {
 	}
 
 	//	var ts uint32 = uint32(command.Payload[11]) + uint32(command.Payload[12])<<8 + uint32(command.Payload[13])<<16 + uint32(command.Payload[14])<<24
-	log.Printf("Cluster %s (0x%04X) device: %s \n", zcl.ClusterToString(message.Cluster), message.Cluster, ed.GetHumanName())
+	//	log.Printf("Cluster %s (0x%04X) device: %s \n", zcl.ClusterToString(message.Cluster), message.Cluster, ed.GetHumanName())
 	if message.Cluster != zcl.TIME { // too often
 		fmt.Printf("source endpoint shortAddr: 0x%04x ", message.Source.Address)
 		fmt.Printf("number: %d \n", message.Source.Number)
@@ -480,6 +480,7 @@ func (c *Controller) messageHandler(command zdo.Command) {
 		}
 		fmt.Print("\n\n")
 	}
+
 	if message.LinkQuality > 0 {
 		ed.Set_linkquality(message.LinkQuality)
 	}
@@ -489,6 +490,7 @@ func (c *Controller) messageHandler(command zdo.Command) {
 	withStatus := message.Cluster != zcl.ANALOG_INPUT &&
 		message.Cluster != zcl.XIAOMI_SWITCH &&
 		message.ZclFrame.Command != uint8(zcl.REPORT_ATTRIBUTES)
+
 	if message.ZclFrame.FrameControl.Ftype == zcl.FrameType_GLOBAL {
 		// commands requiring attribute parsing
 		if message.ZclFrame.Command == uint8(zcl.READ_ATTRIBUTES_RESPONSE) ||
@@ -505,13 +507,13 @@ func (c *Controller) messageHandler(command zdo.Command) {
 		// custom does not come here, they always have AttributeReport, even when activated
 		switch message.Cluster {
 		case zcl.ON_OFF:
-			log.Printf("message handler::ON_OFF: command 0x%02x \n", message.ZclFrame.Command)
+			//			log.Printf("message handler::ON_OFF: command 0x%02x \n", message.ZclFrame.Command)
 			// commands from the IKEA motion sensor also come here
 			c.onOffCommand(ed, message)
 			c.getPower(ed) // TODO: by timer
 
 		case zcl.LEVEL_CONTROL:
-			log.Printf("message handler::LEVEL_CONTROL: command 0x%02x \n", message.ZclFrame.Command)
+			//			log.Printf("message handler::LEVEL_CONTROL: command 0x%02x \n", message.ZclFrame.Command)
 			c.level_command(ed, message)
 			c.getPower(ed) // TODO: by timer
 
@@ -545,13 +547,13 @@ func (c *Controller) messageHandler(command zdo.Command) {
 
 			}
 		case zcl.IDENTIFY:
-			log.Printf("Cluster IDENTIFY:: command 0x%02x \n", message.ZclFrame.Command)
+			//			log.Printf("Cluster IDENTIFY:: command 0x%02x \n", message.ZclFrame.Command)
 		case zcl.ALARMS:
-			log.Printf("Cluster ALARMS:: command 0x%02x payload %q \n", message.ZclFrame.Command, message.ZclFrame.Payload)
+			//			log.Printf("Cluster ALARMS:: command 0x%02x payload %q \n", message.ZclFrame.Command, message.ZclFrame.Payload)
 		case zcl.TIME:
 			//fmt.Println("")
 			// Approximately 30 seconds pass with the Aqara relay, no useful information
-			log.Printf("Cluster TIME:: command 0x%02x \n\n", message.ZclFrame.Command)
+			//			log.Printf("Cluster TIME:: command 0x%02x \n\n", message.ZclFrame.Command)
 		} //switch
 	}
 	c.afterMessageAction(ed)

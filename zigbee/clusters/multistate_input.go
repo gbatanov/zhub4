@@ -14,9 +14,9 @@ type MultistateInputCluster struct {
 }
 
 func (m MultistateInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	log.Printf("MultistateInputCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
+	//	log.Printf("MultistateInputCluster::endpoint address: 0x%04x number = %d \n", endpoint.Address, endpoint.Number)
 	for _, attribute := range attributes {
-		log.Printf("MULTISTATE_INPUT attribute id =0x%04x \n", attribute.Id)
+		//		log.Printf("MULTISTATE_INPUT attribute id =0x%04x \n", attribute.Id)
 		switch zcl.MultiStateInputAttribute(attribute.Id) {
 		case zcl.MultiStateInput_000E,
 			zcl.MultiStateInput_001C,

@@ -29,7 +29,8 @@ func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes 
 		switch zcl.AnalogInputAttribute(attribute.Id) {
 		case zcl.AnalogInput_0055: // value
 			//
-			value = float32(attribute.Value[0])
+			val64, _ := a.Ed.Bytes_to_float64(attribute.Value)
+			value = float32(val64)
 			if a.Ed.GetDeviceType() == 9 { // relay
 				fmt.Printf("Analog Input Value =  %0.3f \n", value)
 			} else {
@@ -43,7 +44,7 @@ func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes 
 		case zcl.AnalogInput_001c: // unit
 			// duochannel relay hasn't unit
 			unit = string(attribute.Value)
-			if strings.Index(unit, ",") > 0 {
+			if strings.Contains(unit, ",") {
 				unit = strings.Split(unit, ",")[0]
 			}
 
@@ -53,6 +54,8 @@ func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes 
 
 	} //for
 	if len(unit) > 0 && value > -100.0 {
+		log.Printf("Analog Input Device 0x%04x endpoint %d  Unit =  %s  Value %f \n", endpoint.Address, endpoint.Number, unit, value)
+
 		if unit == "%" {
 			a.Ed.Set_humidity(int8(value))
 			a.Ed.SetCurrentState("On", endpoint.Number)
