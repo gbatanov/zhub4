@@ -24,6 +24,7 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 	chn1 := make(chan zdo.Command, 16)
 	chn2 := make(chan []byte, 12) // chan for join command shortAddr + macAddrj
 	chn3 := make(chan clusters.MotionMsg, 16)
+	chn4 := make(chan clusters.MotionMsg, 1)
 	ts := time.Now()
 
 	zdoo, err := zdo.ZdoCreate(config.Port, config.Os, chn1, chn2)
@@ -56,6 +57,7 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 		devices:            map[uint64]*zdo.EndDevice{},
 		devicessAddressMap: map[uint16]uint64{},
 		flag:               true,
+		chargerChan:        chn4,
 		msgChan:            chn1,
 		joinChan:           chn2,
 		motionMsgChan:      chn3,
@@ -120,7 +122,27 @@ func (c *Controller) StartNetwork() error {
 	go func() {
 		for c.flag {
 			msg := <-c.motionMsgChan
+			if msg.Cmd == 2 {
+				break
+			}
 			c.handleMotion(msg.Ed, msg.Cmd)
+		}
+	}()
+
+	// Message handler from charger
+	go func() {
+		for c.flag {
+			msg := <-c.chargerChan
+			if msg.Cmd == 2 {
+				break
+			} else if msg.Cmd == 1 {
+				outMsg := telega32.Message{ChatId: c.config.MyId, Msg: "Заряд включен"}
+				c.tlg.tlgMsgChan <- outMsg
+			} else if msg.Cmd == 0 {
+				c.switchRelay(msg.Ed.MacAddress, 0, 1)
+				outMsg := telega32.Message{ChatId: c.config.MyId, Msg: "Заряд выключен"}
+				c.tlg.tlgMsgChan <- outMsg
+			}
 		}
 	}()
 
@@ -174,10 +196,12 @@ func (c *Controller) StartNetwork() error {
 	c.GetZdo().PermitJoin(60 * time.Second)
 
 	// we will get SmurtPlug parameters  every 30 seconds
+	// and check valves state
 	go func() {
 		for c.flag {
 			time.Sleep(30 * time.Second)
 			c.getSmartPlugParams()
+			c.getCheckValves()
 		}
 	}()
 	if c.config.WithTlg {
@@ -211,6 +235,8 @@ func (c *Controller) Stop() {
 	}
 	// release channels
 	c.msgChan <- *zdo.NewCommand(0)
+	c.chargerChan <- clusters.MotionMsg{Ed: &zdo.EndDevice{}, Cmd: 2}
+	c.motionMsgChan <- clusters.MotionMsg{Ed: &zdo.EndDevice{}, Cmd: 2}
 	c.joinChan <- []byte{}
 }
 
@@ -463,24 +489,25 @@ func (c *Controller) messageHandler(command zdo.Command) {
 
 	//	var ts uint32 = uint32(command.Payload[11]) + uint32(command.Payload[12])<<8 + uint32(command.Payload[13])<<16 + uint32(command.Payload[14])<<24
 	//	log.Printf("Cluster %s (0x%04X) device: %s \n", zcl.ClusterToString(message.Cluster), message.Cluster, ed.GetHumanName())
-	if message.Cluster != zcl.TIME { // too often
-		fmt.Printf("source endpoint shortAddr: 0x%04x ", message.Source.Address)
-		fmt.Printf("number: %d \n", message.Source.Number)
-		fmt.Printf("linkQuality: %d \n", message.LinkQuality)
-		//	fmt.Printf("ts %d \n", uint32(ts/1000))
-		fmt.Printf("length of ZCL data %d \n", length)
-		if message.ZclFrame.ManufacturerCode != 0xffff { // Manufacturer Code absent
-			fmt.Printf(" zcl_frame.manufacturer_code: %04x \n", message.ZclFrame.ManufacturerCode)
+	/*
+		if message.Cluster != zcl.TIME { // too often
+			fmt.Printf("source endpoint shortAddr: 0x%04x ", message.Source.Address)
+			fmt.Printf("number: %d \n", message.Source.Number)
+			fmt.Printf("linkQuality: %d \n", message.LinkQuality)
+			//	fmt.Printf("ts %d \n", uint32(ts/1000))
+			fmt.Printf("length of ZCL data %d \n", length)
+			if message.ZclFrame.ManufacturerCode != 0xffff { // Manufacturer Code absent
+				fmt.Printf(" zcl_frame.manufacturer_code: %04x \n", message.ZclFrame.ManufacturerCode)
+			}
+			fmt.Printf("zclFrame.FrameControl.Ftype: %02x ", message.ZclFrame.FrameControl.Ftype)
+			fmt.Printf("message.ZclFrame.Command: 0x%02x \n", message.ZclFrame.Command)
+			fmt.Printf("message.ZclFrame.Payload: ")
+			for _, b := range message.ZclFrame.Payload {
+				fmt.Printf("0x%02x ", b)
+			}
+			fmt.Print("\n\n")
 		}
-		fmt.Printf("zclFrame.FrameControl.Ftype: %02x ", message.ZclFrame.FrameControl.Ftype)
-		fmt.Printf("message.ZclFrame.Command: 0x%02x \n", message.ZclFrame.Command)
-		fmt.Printf("message.ZclFrame.Payload: ")
-		for _, b := range message.ZclFrame.Payload {
-			fmt.Printf("0x%02x ", b)
-		}
-		fmt.Print("\n\n")
-	}
-
+	*/
 	if message.LinkQuality > 0 {
 		ed.Set_linkquality(message.LinkQuality)
 	}
@@ -563,76 +590,76 @@ func (c *Controller) onAttributeReport(ed *zdo.EndDevice, ep zcl.Endpoint, clust
 
 	switch cluster {
 	case zcl.BASIC:
-		c := clusters.BasicCluster{Ed: ed}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.BasicCluster{Ed: ed}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.POWER_CONFIGURATION:
-		c := clusters.PowerConfigurationCluster{Ed: ed}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.PowerConfigurationCluster{Ed: ed}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.IDENTIFY:
-		c := clusters.IdentifyCluster{Ed: ed}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.IdentifyCluster{Ed: ed}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.ON_OFF:
-		c := clusters.OnOffCluster{Ed: ed, MsgChan: c.motionMsgChan}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.OnOffCluster{Ed: ed, MsgChan: c.motionMsgChan}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.ANALOG_INPUT:
-		c := clusters.AnalogInputCluster{Ed: ed}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.AnalogInputCluster{Ed: ed}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.MULTISTATE_INPUT:
-		c := clusters.MultistateInputCluster{}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.MultistateInputCluster{}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.XIAOMI_SWITCH:
-		c := clusters.XiaomiCluster{Ed: ed}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.XiaomiCluster{Ed: ed}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.SIMPLE_METERING:
-		c := clusters.SimpleMeteringCluster{Ed: ed}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.SimpleMeteringCluster{Ed: ed}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.ELECTRICAL_MEASUREMENTS:
-		c := clusters.ElectricalMeasurementCluster{Ed: ed}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.ElectricalMeasurementCluster{Ed: ed, ChargerChan: c.chargerChan}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.TUYA_ELECTRICIAN_PRIVATE_CLUSTER:
-		c := clusters.TuyaCluster{}
-		c.HandlerAttributes1(ep, attributes)
+		cl := clusters.TuyaCluster{}
+		cl.HandlerAttributes1(ep, attributes)
 
 	case zcl.TUYA_SWITCH_MODE_0:
-		c := clusters.TuyaCluster{}
-		c.HandlerAttributes2(ep, attributes)
+		cl := clusters.TuyaCluster{}
+		cl.HandlerAttributes2(ep, attributes)
 
 	case zcl.IAS_ZONE:
-		c := clusters.IasZoneCluster{}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.IasZoneCluster{}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.ALARMS:
-		c := clusters.AlarmsCluster{}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.AlarmsCluster{}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.POLL_CONTROL:
-		c := clusters.PollControlCluster{}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.PollControlCluster{}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.LIGHT_LINK:
-		c := clusters.LightLinkCluster{}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.LightLinkCluster{}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.IKEA_BUTTON:
-		c := clusters.IkeaCluster{}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.IkeaCluster{}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.GROUPS:
-		c := clusters.GroupsCluster{}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.GroupsCluster{}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.TIME:
-		c := clusters.TimeCluster{}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.TimeCluster{}
+		cl.HandlerAttributes(ep, attributes)
 
 	default: // unattended clusters
 
@@ -645,32 +672,42 @@ func (c *Controller) onAttributeReport(ed *zdo.EndDevice, ep zcl.Endpoint, clust
 
 }
 
+// call every 30 sec - SmartPlugs
 func (c *Controller) getSmartPlugParams() {
-	ed := c.getDeviceByMac(0x70b3d52b6001b4a4) // SmartPlug
-	if ed.ShortAddress == 0 {
+	ed := c.getDeviceByMac(0x70b3d52b6001b5d9) // SmartPlug charger
+	if ed == nil || ed.ShortAddress == 0 {
 		return
 	}
-	// request current,voltage and instant power for every 5 minutes
-	interval := float64(300)
-	if c.config.Mode == "test" {
-		interval = 30.0
+
+	var idsAV []uint16 = []uint16{0x0505, 0x0508, 0x050B} // Voltage, Current, Energy
+	c.readAttribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
+
+	var idsAVSM []uint16 = []uint16{0x0000} // Power
+	c.readAttribute(ed.ShortAddress, zcl.SIMPLE_METERING, idsAVSM)
+
+	// if the state has not yet been received
+	if ed.GetCurrentState(1) != "On" && ed.GetCurrentState(1) != "Off" {
+		var idsAV []uint16 = []uint16{0x0000} // state On / Off
+		c.readAttribute(ed.ShortAddress, zcl.ON_OFF, idsAV)
 	}
-	diff := time.Since(c.smartPlugTS)
-	if diff.Seconds() > interval {
-		c.smartPlugTS = time.Now()
-		var idsAV []uint16 = []uint16{0x0505, 0x0508, 0x050B} // Voltage, Current, Energy
-		c.readAttribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
 
-		var idsAVSM []uint16 = []uint16{0x0000} // Power
-		c.readAttribute(ed.ShortAddress, zcl.SIMPLE_METERING, idsAVSM)
+}
 
+// call every 30 sec - Valves check
+func (c *Controller) getCheckValves() {
+
+	valves := []uint64{0xa4c138d9758e1dcd, 0xa4c138373e89d731, 0x70b3d52b60024ac9}
+	for _, di := range valves {
+		ed := c.getDeviceByMac(di) // valves
+		if ed == nil || ed.ShortAddress == 0 {
+			continue
+		}
 		// if the state has not yet been received
-		if ed.Get_current_state(1) != "On" && ed.Get_current_state(1) != "Off" {
+		if ed.GetCurrentState(1) != "On" && ed.GetCurrentState(1) != "Off" {
 			var idsAV []uint16 = []uint16{0x0000} // state On / Off
 			c.readAttribute(ed.ShortAddress, zcl.ON_OFF, idsAV)
 		}
 	}
-
 }
 
 // action after any message (they happen quite often, I use them as a timer)
@@ -689,10 +726,11 @@ func (c *Controller) afterMessageAction(ed *zdo.EndDevice) {
 		c.switchOffWithList()
 		log.Printf("There is no one at home\n")
 		if c.config.WithTlg {
-			alarmMsg := "There is no one at home "
+			alarmMsg := "Никого нет дома 20 минут "
 			c.tlg.tlgMsgChan <- telega32.Message{ChatId: c.config.MyId, Msg: alarmMsg}
 		}
 	}
+
 }
 
 // make a request to read an attribute (attributes)

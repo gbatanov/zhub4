@@ -5,13 +5,16 @@ Copyright (c) 2023 GSB, Georgii Batanov gbatanov @ yandex.ru
 package clusters
 
 import (
+	"log"
+
 	"github.com/gbatanov/zhub4/zigbee/zdo"
 
 	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
 )
 
 type ElectricalMeasurementCluster struct {
-	Ed *zdo.EndDevice
+	Ed          *zdo.EndDevice
+	ChargerChan chan MotionMsg
 }
 
 // SmartPlug
@@ -29,6 +32,9 @@ func (e ElectricalMeasurementCluster) HandlerAttributes(endpoint zcl.Endpoint, a
 		case zcl.ElectricalMeasurement_0508: // RMS Current mA
 			val := zcl.UINT16_(attribute.Value[0], attribute.Value[1])
 			e.Ed.Set_current(float64(val) / 1000)
+			if e.Ed.MacAddress == 0x70b3d52b6001b5d9 {
+				e.checkCharger(val)
+			}
 			//			fmt.Printf(" Current %0.3fA ", e.Ed.Get_current())
 
 		case zcl.ElectricalMeasurement_050B: // Active Power
@@ -47,4 +53,29 @@ func (e ElectricalMeasurementCluster) HandlerAttributes(endpoint zcl.Endpoint, a
 
 	} //for
 	// fmt.Println("")
+}
+
+// Current in millampers
+func (e ElectricalMeasurementCluster) checkCharger(val uint16) {
+	// Розетка должна быть включена
+	// если chargerOn == false и ток больше 20 мА, значит зарядник включен. Ставим признак chargerOn = true
+	// если chargerOn == true и ток больше 20 мА, продолжаем зарядку
+	// если chargerOn == true и ток меньше 20 мА, выключаем розетку
+	if e.Ed.GetCurrentState(1) == "On" {
+		if !e.Ed.ChargerOn && val > 12 {
+			msg := MotionMsg{Ed: e.Ed, Cmd: 1} // для отправки в телеграм
+			e.ChargerChan <- msg
+			log.Println("Заряд включен")
+			e.Ed.ChargerOn = true
+		} else if e.Ed.ChargerOn && val < 6 {
+			log.Println("Заряд выключен")
+			msg := MotionMsg{Ed: e.Ed, Cmd: 0}
+			e.ChargerChan <- msg
+			e.Ed.ChargerOn = false
+		}
+	}
+	if e.Ed.GetCurrentState(1) == "Off" {
+		e.Ed.ChargerOn = false
+	}
+
 }

@@ -59,6 +59,7 @@ type Controller struct {
 	devices            map[uint64]*zdo.EndDevice
 	devicessAddressMap map[uint16]uint64
 	flag               bool
+	chargerChan        chan clusters.MotionMsg // channel for end charge indication
 	msgChan            chan zdo.Command        // chanel for receive incoming message command from zdo
 	joinChan           chan []byte             // chanel for receive command join device from zdo
 	motionMsgChan      chan clusters.MotionMsg // chanel for get message from motion sensors

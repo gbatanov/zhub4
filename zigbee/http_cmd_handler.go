@@ -27,11 +27,12 @@ func (c *Controller) formatDateTime(la time.Time) string {
 	return dt
 }
 
+// Output devices state on display
 func (c *Controller) showDeviceStatuses() map[int]map[uint16]WebDeviceInfo {
-	//	 var result string = ""
+
 	var result map[int]map[uint16]WebDeviceInfo = make(map[int]map[uint16]WebDeviceInfo)
 	ClimatSensors := []uint64{0x00124b000b1bb401}
-	MotionSensors := []uint64{0x00124b0007246963, 0x00124b0014db2724, 0x00124b0025137475, 0x00124b0024455048, 0x00124b002444d159, 0x00124b0009451438, 0x0c4314fffe17d8a8, 0x00124b002a507fe2}
+	MotionSensors := []uint64{0x00124b0007246963, 0x00124b0014db2724, 0x00124b0025137475, 0x00124b0024455048, 0x00124b002a535b66, 0x00124b002444d159, 0x00124b0009451438, 0x0c4314fffe17d8a8, 0x00124b002a507fe2}
 	WaterSensors := []uint64{0x00158d0006e469a4, 0x00158d0006f8fc61, 0x00158d0006b86b79, 0x00158d0006ea99db}
 	WaterValves := []uint64{0xa4c138d9758e1dcd, 0xa4c138373e89d731}
 	DoorSensors := []uint64{0x00124b0025485ee6, 0x00124b002512a60b, 0x00124b00250bba63}
@@ -91,9 +92,9 @@ func (c *Controller) showOneType(ed *zdo.EndDevice) WebDeviceInfo {
 	wdi := WebDeviceInfo{}
 	wdi.ShortAddr = fmt.Sprintf("0x%04x", ed.ShortAddress)
 	wdi.Name = ed.GetHumanName()
-	wdi.State = ed.Get_current_state(1)
+	wdi.State = ed.GetCurrentState(1)
 	if ed.GetDeviceType() == 11 {
-		wdi.State += "/" + ed.Get_current_state(2)
+		wdi.State += "/" + ed.GetCurrentState(2)
 	}
 	wdi.LQ = fmt.Sprintf("%d", ed.Get_linkquality())
 	if ed.Get_temperature() > -90 {

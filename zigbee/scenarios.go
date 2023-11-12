@@ -75,7 +75,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 		log.Printf("Motion sensor in custom2. cmd = %d, lum = %d\n", cmd, lum)
 
 		relay := c.getDeviceByMac(0x54ef4410001933d3)
-		relayCurrentState := relay.Get_current_state(1)
+		relayCurrentState := relay.GetCurrentState(1)
 
 		if cmd == 1 && relayCurrentState != "On" {
 			// since the sensor sometimes falsely triggers, we ignore its triggering at night
@@ -98,7 +98,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 		}
 	} else if macAddress == 0x00124b0009451438 {
 		relay := c.getDeviceByMac(0x00158d0009414d7e)
-		relayCurrentState := relay.Get_current_state(1)
+		relayCurrentState := relay.GetCurrentState(1)
 		// presence sensor 1, on/off light in kitchen - relay 7 endpoint 1
 		if cmd == 1 && relayCurrentState != "On" {
 			log.Printf("Turn on light in kitchen")

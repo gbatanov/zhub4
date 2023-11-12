@@ -76,7 +76,7 @@ func (o OnOffCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 
 				}
 			} else if o.Ed.GetDeviceType() == 10 { // SmartPlug
-				currentState := o.Ed.Get_current_state(1)
+				currentState := o.Ed.GetCurrentState(1)
 				newState := "Off"
 				if b_val {
 					newState = "On"
@@ -88,7 +88,7 @@ func (o OnOffCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 					o.Ed.SetCurrentState(newState, 1)
 				}
 			} else if o.Ed.GetDeviceType() == 11 { // duochannel relay has EP1 and EP2
-				currentState := o.Ed.Get_current_state(endpoint.Number)
+				currentState := o.Ed.GetCurrentState(endpoint.Number)
 
 				newState := "Off"
 				if b_val {
@@ -101,7 +101,7 @@ func (o OnOffCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 					o.Ed.SetCurrentState(newState, endpoint.Number)
 				}
 			} else {
-				currentState := o.Ed.Get_current_state(1)
+				currentState := o.Ed.GetCurrentState(1)
 				newState := "Off"
 				if b_val {
 					newState = "On"

@@ -6,7 +6,6 @@ Copyright (c) 2023 GSB, Georgii Batanov gbatanov @ yandex.ru
 package clusters
 
 import (
-	"fmt"
 	"log"
 	"strings"
 
@@ -22,7 +21,7 @@ type AnalogInputCluster struct {
 func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
 	var value float32 = -100.0
 	var unit string
-	log.Printf("AnalogInputCluster::%s, endpoint address: 0x%04x number = %d \n", a.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
+	//	log.Printf("AnalogInputCluster::%s, endpoint address: 0x%04x number = %d \n", a.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
 
 	for _, attribute := range attributes {
 
@@ -31,12 +30,13 @@ func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes 
 			//
 			val64, _ := a.Ed.Bytes_to_float64(attribute.Value)
 			value = float32(val64)
-			if a.Ed.GetDeviceType() == 9 { // relay
-				fmt.Printf("Analog Input Value =  %0.3f \n", value)
-			} else {
-				fmt.Printf("Analog Input Value =  %f \n", value)
-			}
-
+			/*
+				if a.Ed.GetDeviceType() == 9 { // relay
+					fmt.Printf("Analog Input Value =  %0.3f \n", value)
+				} else {
+					fmt.Printf("Analog Input Value =  %f \n", value)
+				}
+			*/
 		case zcl.AnalogInput_006f:
 			{
 			}
@@ -54,7 +54,7 @@ func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes 
 
 	} //for
 	if len(unit) > 0 && value > -100.0 {
-		log.Printf("Analog Input Device 0x%04x endpoint %d  Unit =  %s  Value %f \n", endpoint.Address, endpoint.Number, unit, value)
+		//		log.Printf("Analog Input Device 0x%04x endpoint %d  Unit =  %s  Value %f \n", endpoint.Address, endpoint.Number, unit, value)
 
 		if unit == "%" {
 			a.Ed.Set_humidity(int8(value))
@@ -66,12 +66,12 @@ func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes 
 		} else if unit == "Pa" {
 			a.Ed.Set_pressure(float64(value))
 		} else {
-			log.Printf("Device 0x%04x endpoint %d Analog Input Unit =  %s \n", endpoint.Address, endpoint.Number, unit)
+			//			log.Printf("Device 0x%04x endpoint %d Analog Input Unit =  %s \n", endpoint.Address, endpoint.Number, unit)
 		}
 		value = -100.0
 		unit = ""
 	} else if (a.Ed.GetDeviceType() == 11 || a.Ed.GetDeviceType() == 9 || a.Ed.GetDeviceType() == 10) && (value > -100.0) {
 		a.Ed.Set_current(float64(value / 100))
 	}
-	fmt.Println("")
+
 }

@@ -54,6 +54,7 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	0x00124b0025137475: {2, "Sonoff", "SNZB-03", "КоридорДвижение", "Датчик движения 1 (коридор)", zcl.PowerSource_BATTERY, 1, 0},
 	0x00124b0024455048: {2, "Sonoff", "SNZB-03", "КомнатаДвижение", "Датчик движения 2 (комната)", zcl.PowerSource_BATTERY, 1, 0},
 	0x00124b002444d159: {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3(коридор) ", zcl.PowerSource_BATTERY, 1, 0},
+	0x00124b002a535b66: {2, "Sonoff", "SNZB-03", "ДетскаяДвижение4", "Датчик движения 4 (детская)", zcl.PowerSource_BATTERY, 1, 0},
 	0x00124b002a507fe2: {2, "Sonoff", "SNZB-03", "КухняДвижение5", "Датчик движения 5 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
 	0x00124b0009451438: {4, "Custom", "CC2530", "КухняДвижение", "Датчик присутствия 1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	0x00124b0014db2724: {4, "Custom", "CC2530", "ПрихожаяДвижение", "Датчик движение + освещение (прихожая)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
@@ -153,6 +154,7 @@ type EndDevice struct {
 	luminocity      int8 // high/low 1/0
 	pressure        float64
 	motionState     int8
+	ChargerOn       bool
 }
 
 func EndDeviceCreate(macAddress uint64, shortAddress uint16) *EndDevice {
@@ -175,6 +177,7 @@ func EndDeviceCreate(macAddress uint64, shortAddress uint16) *EndDevice {
 	ed.luminocity = -100
 	ed.pressure = -100
 	ed.motionState = -1
+	ed.ChargerOn = false
 
 	return &ed
 }
@@ -308,7 +311,7 @@ func (ed *EndDevice) SetCurrentState(state string, channel uint8) {
 		ed.state2 = state
 	}
 }
-func (ed EndDevice) Get_current_state(channel uint8) string {
+func (ed EndDevice) GetCurrentState(channel uint8) string {
 	if channel == 1 {
 		return ed.state
 	} else if channel == 2 {
@@ -338,9 +341,9 @@ func (ed EndDevice) GetPromMotionString() string {
 // / @return
 func (ed EndDevice) GetPromRelayString() string {
 	state2 := ""
-	state := ed.Get_current_state(1)
+	state := ed.GetCurrentState(1)
 	if ed.GetDeviceType() == 11 {
-		state2 = ed.Get_current_state(2)
+		state2 = ed.GetCurrentState(2)
 	}
 	strState := ""
 	strState2 := ""
@@ -372,7 +375,7 @@ func (ed EndDevice) GetPromRelayString() string {
 // / @brief Возвращает строку для Prometheus
 // / @return
 func (ed *EndDevice) GetPromDoorString() string {
-	state := ed.Get_current_state(1)
+	state := ed.GetCurrentState(1)
 	strState := ""
 	if state == "Opened" {
 		strState = "0.95"
