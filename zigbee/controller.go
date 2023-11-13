@@ -329,8 +329,14 @@ func (c *Controller) joinDevice() {
 		if c.flag && len(FullAddr) > 5 { // TODO: ??
 			var shortAddress uint16 = zcl.UINT16_(FullAddr[0], FullAddr[1])
 			var macAddress uint64 = binary.LittleEndian.Uint64(FullAddr[2:])
-			log.Printf("Controller::joinDevice: macAddress: 0x%016x \n", macAddress)
-			log.Printf("Controller::joinDevice: new shortAddress: 0x%04x\n", shortAddress)
+
+			_, deviceInList := zdo.KNOWN_DEVICES[macAddress]
+			if !deviceInList {
+				log.Printf("Controller::joinDevice: macAddress: 0x%016x is not in KNOWN_DEVICES\n", macAddress)
+				continue
+			} else {
+				log.Printf("Controller::joinDevice: macAddress: 0x%016x new shortAddress: 0x%04x\n", macAddress, shortAddress)
+			}
 
 			_, keyExists := c.devices[macAddress]
 			if keyExists {
@@ -338,7 +344,7 @@ func (c *Controller) joinDevice() {
 				_, keyExists := c.devicessAddressMap[shortAddress]
 				if keyExists {
 					// self rejoin
-					return
+					continue
 				} else {
 					// rejoin
 					// remove old shortAddress

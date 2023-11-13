@@ -217,7 +217,7 @@ func ParseAttributesPayload(payload []byte, wStatus bool) []Attribute {
 			hi := payload[i]
 			i++
 			size = UINT16_(lo, hi)
-			if i+size < maxI {
+			if i+size <= maxI {
 				attribute.Value = payload[i : i+size]
 			} else {
 				valid = false
@@ -228,10 +228,11 @@ func ParseAttributesPayload(payload []byte, wStatus bool) []Attribute {
 			DataType_CHARACTER_STRING:
 			size = uint16(payload[i])
 			i++
-			if i+size < maxI {
+			if i+size <= maxI {
 				attribute.Value = payload[i : i+size]
 			} else {
 				valid = false
+				//				log.Printf("DataType_CHARACTER_STRING size %d payload %v ", size, payload[i:])
 			}
 
 			attribute.Size = size

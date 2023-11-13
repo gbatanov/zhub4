@@ -22,7 +22,7 @@ type DeviceInfo struct {
 	productCode  string // model
 	engName      string // name for Grafana
 	humanName    string
-	powerSource  zcl.PowerSource
+	PowerSource  zcl.PowerSource
 	Available    uint8 // include in prod configuration
 	Test         uint8 //include in test configuration
 }
@@ -55,8 +55,8 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	0x00124b0024455048: {2, "Sonoff", "SNZB-03", "КомнатаДвижение", "Датчик движения 2 (комната)", zcl.PowerSource_BATTERY, 1, 0},
 	0x00124b002444d159: {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3(коридор) ", zcl.PowerSource_BATTERY, 1, 0},
 	0x00124b002a535b66: {2, "Sonoff", "SNZB-03", "ДетскаяДвижение4", "Датчик движения 4 (детская)", zcl.PowerSource_BATTERY, 1, 0},
-	0x00124b002a507fe2: {2, "Sonoff", "SNZB-03", "КухняДвижение5", "Датчик движения 5 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
-	0x00124b0009451438: {4, "Custom", "CC2530", "КухняДвижение", "Датчик присутствия 1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	0x00124b002a507fe2: {2, "Sonoff", "SNZB-03", "КухняДвижение", "Датчик движения 5 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
+	0x00124b0009451438: {4, "Custom", "CC2530", "КухняПрисутствие", "Датчик присутствия 1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	0x00124b0014db2724: {4, "Custom", "CC2530", "ПрихожаяДвижение", "Датчик движение + освещение (прихожая)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	0x0c4314fffe17d8a8: {8, "IKEA", "E1745", "ИкеаДвижение", "Датчик движения IKEA", zcl.PowerSource_BATTERY, 1, 1},
 	0x00124b0007246963: {4, "Custom", "CC2530", "ДетскаяДвижение", "Датчик движение + освещение (детская)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
@@ -110,7 +110,8 @@ var OFF_LIST []uint64 = []uint64{
 var PROM_MOTION_LIST []uint64 = []uint64{
 	0x00124b0025137475, // coridor
 	0x00124b0014db2724, // hallway
-	0x00124b0009451438, // kitchen
+	0x00124b0009451438, // kitchen presence sensor
+	0x00124b002a507fe2, // kitchen onoff sensor
 	0x00124b0024455048, // room
 	0x00124b002444d159, // children's room
 	0x00124b0007246963, // balconen
@@ -182,8 +183,8 @@ func EndDeviceCreate(macAddress uint64, shortAddress uint16) *EndDevice {
 	return &ed
 }
 
-func (ed EndDevice) Get_power_source() uint8 {
-	return uint8(ed.Di.powerSource)
+func (ed EndDevice) GetPowerSource() uint8 {
+	return uint8(ed.Di.PowerSource)
 }
 func (ed EndDevice) Get_mac_address() uint64 {
 	return ed.MacAddress
@@ -216,16 +217,16 @@ func (ed *EndDevice) Set_model_identifier(value string) {
 func (ed *EndDevice) Set_product_code(value string) {
 	ed.Di.productCode = value
 }
-func (ed *EndDevice) Set_power_source(value uint8) {
-	ed.Di.powerSource = zcl.PowerSource(value)
+func (ed *EndDevice) SetPowerSource(value uint8) {
+	ed.Di.PowerSource = zcl.PowerSource(value)
 }
-func (ed *EndDevice) Set_mains_voltage(value float64) {
+func (ed *EndDevice) SetMainsVoltage(value float64) {
 	ed.electric.mainVoltage = value
 }
-func (ed *EndDevice) Get_mains_voltage() float64 {
+func (ed *EndDevice) GetMainsVoltage() float64 {
 	return ed.electric.mainVoltage
 }
-func (ed *EndDevice) Set_current(value float64) {
+func (ed *EndDevice) SetCurrent(value float64) {
 	ed.electric.current = value
 }
 func (ed *EndDevice) Get_current() float64 {

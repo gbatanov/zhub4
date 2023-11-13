@@ -16,6 +16,7 @@ type XiaomiCluster struct {
 	Ed *zdo.EndDevice
 }
 
+// Умные розетки
 func (x XiaomiCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
 	//	log.Printf("XiaomiCluster:: %s, endpoint address: 0x%04x number = %d \n", x.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
 	for _, attribute := range attributes {
@@ -81,9 +82,9 @@ func (x XiaomiCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl
 				case 0x96: // voltage
 					value, err := x.Ed.Bytes_to_float64(attribute.Value[i+2 : i+6])
 					if err == nil {
-						x.Ed.Set_power_source(0x01)
-						x.Ed.Set_mains_voltage(value / 10)
-						//						log.Printf("Voltage %0.2fV\n", value/10)
+						x.Ed.SetPowerSource(0x01)
+						x.Ed.SetMainsVoltage(value / 10)
+						//						log.Printf("Xiaomi Voltage %0.2fV\n", value/10)
 					}
 					i = i + 5
 
@@ -91,8 +92,8 @@ func (x XiaomiCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl
 					value, err := x.Ed.Bytes_to_float64(attribute.Value[i+2 : i+6])
 					if err == nil {
 						val := value / 1000
-						x.Ed.Set_current(val)
-						//						log.Printf("Current %0.3fA\n\n", val)
+						x.Ed.SetCurrent(val)
+						//						log.Printf("Xiaomi Current %0.3fA\n\n", val)
 					}
 					i = i + 5
 

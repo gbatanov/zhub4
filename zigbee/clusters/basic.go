@@ -60,7 +60,7 @@ func (b BasicCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 			val := attribute.Value[0]
 			//		log.Printf("Device 0x%04x POWER_SOURCE: %d \n", endpoint.Address, val)
 			if val > 0 && val < 0x8f {
-				b.Ed.Set_power_source(val)
+				b.Ed.SetPowerSource(val)
 			}
 
 		case zcl.Basic_FF01: // string
@@ -150,16 +150,16 @@ func (b BasicCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 					i = i + 5
 
 				case 0x96: // voltage
-					value := float32(uint32(attribute.Value[i+2]) + uint32(attribute.Value[i+3])<<8 + uint32(attribute.Value[i+4])<<16 + uint32(attribute.Value[i+5])<<24)
-					b.Ed.Set_power_source(0x01)
-					b.Ed.Set_mains_voltage(float64(value / 10))
-					//					fmt.Printf("Voltage:  %0.2fV\n", value/10)
+					value, _ := b.Ed.Bytes_to_float64(attribute.Value[i+2 : i+6])
+					b.Ed.SetPowerSource(0x01)
+					b.Ed.SetMainsVoltage(value / 10)
+					fmt.Printf("Dual channel relay Voltage:  %0.2fV\n", value/10)
 					i = i + 5
 
 				case 0x97: // current
-					value := float32(uint32(attribute.Value[i+2]) + uint32(attribute.Value[i+3])<<8 + uint32(attribute.Value[i+4])<<16 + uint32(attribute.Value[i+5])<<24)
-					b.Ed.Set_current(float64(value))
-					//					fmt.Printf("Current: %0.3fA\n", value)
+					value, _ := b.Ed.Bytes_to_float64(attribute.Value[i+2 : i+6])
+					b.Ed.SetCurrent(value)
+					fmt.Printf("Dual channel Current: %0.3fA\n", value)
 					i = i + 5
 
 				case 0x9b:

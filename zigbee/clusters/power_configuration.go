@@ -25,7 +25,7 @@ func (p PowerConfigurationCluster) HandlerAttributes(endpoint zcl.Endpoint, attr
 		case zcl.PowerConfiguration_MAINS_VOLTAGE:
 			val := float32(attribute.Value[0])
 			//		log.Printf("Mains voltage: %2.2fV \n", val/10)
-			p.Ed.Set_mains_voltage(float64(val))
+			p.Ed.SetMainsVoltage(float64(val))
 
 		case zcl.PowerConfiguration_BATTERY_VOLTAGE:
 			val := float32(attribute.Value[0])

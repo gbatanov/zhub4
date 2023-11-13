@@ -103,7 +103,7 @@ func (c *Controller) showOneType(ed *zdo.EndDevice) WebDeviceInfo {
 		wdi.Tmp = " "
 	}
 	var powerSrc string = ""
-	if ed.Get_power_source() == uint8(zcl.PowerSource_BATTERY) { // battery
+	if ed.GetPowerSource() == uint8(zcl.PowerSource_BATTERY) { // battery
 		batL := ed.Get_battery_level()
 		batV := ed.Get_battery_voltage()
 		if batV > 0 {
@@ -115,8 +115,8 @@ func (c *Controller) showOneType(ed *zdo.EndDevice) WebDeviceInfo {
 		if len(powerSrc) == 0 {
 			powerSrc = "Battery"
 		}
-	} else if ed.Get_power_source() == uint8(zcl.PowerSource_SINGLE_PHASE) { // 220V
-		voltage := ed.Get_mains_voltage()
+	} else if ed.GetPowerSource() == uint8(zcl.PowerSource_SINGLE_PHASE) { // 220V
+		voltage := ed.GetMainsVoltage()
 		current := ed.Get_current()
 		if voltage > 0 {
 			powerSrc += fmt.Sprintf("%0.1fV", voltage)

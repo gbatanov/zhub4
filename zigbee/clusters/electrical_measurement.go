@@ -26,12 +26,12 @@ func (e ElectricalMeasurementCluster) HandlerAttributes(endpoint zcl.Endpoint, a
 
 		case zcl.ElectricalMeasurement_0505: // RMS Voltage V
 			val := zcl.UINT16_(attribute.Value[0], attribute.Value[1])
-			e.Ed.Set_mains_voltage(float64(val))
-			//			fmt.Printf(" Voltage %0.2fV ", e.Ed.Get_mains_voltage())
+			e.Ed.SetMainsVoltage(float64(val))
+			//			fmt.Printf(" Voltage %0.2fV ", e.Ed.GetMainsVoltage())
 
 		case zcl.ElectricalMeasurement_0508: // RMS Current mA
 			val := zcl.UINT16_(attribute.Value[0], attribute.Value[1])
-			e.Ed.Set_current(float64(val) / 1000)
+			e.Ed.SetCurrent(float64(val) / 1000)
 			if e.Ed.MacAddress == 0x70b3d52b6001b5d9 {
 				e.checkCharger(val)
 			}
@@ -44,7 +44,7 @@ func (e ElectricalMeasurementCluster) HandlerAttributes(endpoint zcl.Endpoint, a
 			/*
 				case zcl.ElectricalMeasurement_050F: // Apparent Power, not supported by coordinator
 					val := zcl.UINT16_(attribute.Value[0], attribute.Value[1])
-					//			e.Ed.Set_current(float32(val) / 1000)
+					//			e.Ed.SetCurrent(float32(val) / 1000)
 					fmt.Printf("Device %s Apparent Power %0.3fA \n", e.Ed.GetHumanName(), float32(val))
 			*/
 		default:
