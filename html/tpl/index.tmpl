@@ -1,10 +1,8 @@
-<html>
-<head> 
+{{define "head"}}
 <title>{{ .title }}</title>
-<link href="/css/gsb_style.css" rel="stylesheet" type="text/css">
-<meta http-equiv='refresh' content='60'>
-</head>
-<body>
+{{end}}
+
+{{define "content"}}
 <div>
 <p>Старт программы: {{ .StartTime }} </p>
 <p>Время последнего срабатывания датчиков движения: {{ .LMotion }} </p>
@@ -42,6 +40,4 @@
 {{ end }}
 </table>
 </div>
-<div><a href="/command">Команды</a></div>
-</body>
-</html>
+{{end}}

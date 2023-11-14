@@ -11,15 +11,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/foolin/goview/supports/ginview"
 	"github.com/gbatanov/zhub4/zigbee/zdo"
 	"github.com/gin-gonic/gin"
 )
 
 type ActionHandler struct {
-	// answerChan chan interface{}
-	// queryChan  chan map[string]string
-	// os         string
-	// programDir string
 	con *Controller
 }
 
@@ -28,23 +25,23 @@ func NewActionHandler(con *Controller) *ActionHandler {
 	return &ah
 }
 
-func (ah *ActionHandler) page404(c *gin.Context) {
-	c.HTML(http.StatusNotFound, "page404.tmpl", gin.H{"code": "PAGE_NOT_FOUND", "message": "Page not found"})
+func (ah *ActionHandler) page404(ctx *gin.Context) {
+	ginview.HTML(ctx, http.StatusNotFound, "page404.tmpl", gin.H{"code": "PAGE_NOT_FOUND", "message": "Page not found"})
 }
 
 // Обработчик команд из web
-func (ah *ActionHandler) cmdHandler(c *gin.Context) {
+func (ah *ActionHandler) cmdHandler(ctx *gin.Context) {
 	cmnd := -1
-	id := c.Query("off")
+	id := ctx.Query("off")
 	if id == "" {
-		id = c.Query("on")
+		id = ctx.Query("on")
 		if id != "" {
 			cmnd = 1
 		}
 	} else {
 		cmnd = 0
 	}
-	eps := c.Query("ep") //c.Params.ByName("cmd")
+	eps := ctx.Query("ep") //c.Params.ByName("cmd")
 	result := ""
 
 	if len(eps) > 0 && cmnd > -1 {
@@ -56,15 +53,15 @@ func (ah *ActionHandler) cmdHandler(c *gin.Context) {
 				result += fmt.Sprintf("Cmd %d to device 0x%08x executed", cmnd, macAddress)
 			}
 		} else {
-			result += fmt.Sprintf("%s", err.Error())
+			result += err.Error()
 		}
 	}
 	// HTML ответ на основе шаблона
-	c.HTML(http.StatusOK, "command.tmpl", gin.H{"Result": result})
+	ginview.HTML(ctx, http.StatusOK, "command.tmpl", gin.H{"Result": result})
 }
 
 // Главная страница
-func (ah *ActionHandler) otherHandler(c *gin.Context) {
+func (ah *ActionHandler) otherHandler(ctx *gin.Context) {
 
 	answer := ah.con.showDeviceStatuses()
 	sTime := ah.con.formatDateTime(ah.con.startTime)
@@ -73,8 +70,8 @@ func (ah *ActionHandler) otherHandler(c *gin.Context) {
 
 	weather := ah.con.showWeather()
 
-	// HTML ответ на основе шаблона
-	c.HTML(http.StatusOK, "index.tmpl", gin.H{
+	// HTML ответ на основе шаблона с использованием layouts
+	ginview.HTML(ctx, http.StatusOK, "index", gin.H{
 		"title":      "GSB Smart Home",
 		"deviceList": answer,
 		"StartTime":  sTime,
@@ -83,7 +80,7 @@ func (ah *ActionHandler) otherHandler(c *gin.Context) {
 
 }
 
-func (ah *ActionHandler) metrics(c *gin.Context) {
+func (ah *ActionHandler) metrics(ctx *gin.Context) {
 	answer := ""
 	// Получим давление
 	di := ah.con.getDeviceByMac(0x00124b000b1bb401) // датчик климата в детской
@@ -111,9 +108,9 @@ func (ah *ActionHandler) metrics(c *gin.Context) {
 			answer = answer + di.GetPromDoorString()
 		}
 	}
-	c.String(http.StatusOK, "%s", answer)
+	ctx.String(http.StatusOK, "%s", answer)
 }
-func (ah *ActionHandler) join(c *gin.Context) {
+func (ah *ActionHandler) join(ctx *gin.Context) {
 	ah.con.GetZdo().PermitJoin(60 * time.Second)
-	ah.otherHandler(c)
+	ctx.Redirect(http.StatusPermanentRedirect, "/")
 }

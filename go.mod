@@ -37,6 +37,7 @@ require (
 )
 
 require (
+	github.com/foolin/goview v0.3.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	golang.org/x/sys v0.14.0 // indirect
