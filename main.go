@@ -23,7 +23,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.6.56"
+const Version string = "v0.6.57"
 
 func init() {
 	fmt.Println("Init in zhub")
@@ -94,7 +94,6 @@ func main() {
 				} //switch
 			}
 		} //for
-		log.Println("Flag is false")
 		wg.Done()
 	}()
 	wg.Wait()

@@ -32,13 +32,16 @@ func (c *Controller) showDeviceStatuses() map[int]map[uint16]WebDeviceInfo {
 
 	var result map[int]map[uint16]WebDeviceInfo = make(map[int]map[uint16]WebDeviceInfo)
 	ClimatSensors := []uint64{0x00124b000b1bb401}
-	MotionSensors := []uint64{0x00124b0007246963, 0x00124b0014db2724, 0x00124b0025137475, 0x00124b0024455048, 0x00124b002a535b66, 0x00124b002444d159, 0x00124b0009451438, 0x0c4314fffe17d8a8, 0x00124b002a507fe2}
-	WaterSensors := []uint64{0x00158d0006e469a4, 0x00158d0006f8fc61, 0x00158d0006b86b79, 0x00158d0006ea99db}
-	WaterValves := []uint64{0xa4c138d9758e1dcd, 0xa4c138373e89d731}
-	DoorSensors := []uint64{0x00124b0025485ee6, 0x00124b002512a60b, 0x00124b00250bba63}
-	Relays := []uint64{0x54ef44100019335b, 0x54ef441000193352, 0x54ef4410001933d3, 0x54ef44100018b523, 0x54ef4410005b2639, 0x54ef441000609dcc, 0x00158d0009414d7e}
-	SmartPlugs := []uint64{0x70b3d52b6001b4a4, 0x70b3d52b6001b5d9, 0x70b3d52b60022ac9, 0x70b3d52b60022cfd}
-	Buttons := []uint64{0x00124b0028928e8a, 0x00124b00253ba75f, 0x8cf681fffe0656ef}
+	MotionSensors := zdo.GetDevicesByType(uint8(2)) // sonoff sensors
+	MotionSensors = append(MotionSensors, []uint64{0x00124b0007246963, 0x00124b0014db2724, 0x00124b0009451438, 0x0c4314fffe17d8a8}...)
+	WaterSensors := zdo.GetDevicesByType(uint8(5))
+	WaterValves := zdo.GetDevicesByType(uint8(6))
+	DoorSensors := zdo.GetDevicesByType(uint8(3))
+	Relays := zdo.GetDevicesByType(uint8(9))
+	Relays = append(Relays, zdo.GetDevicesByType(uint8(11))...)
+	SmartPlugs := zdo.GetDevicesByType(uint8(10))
+	Buttons := zdo.GetDevicesByType(uint8(1))
+	Buttons = append(Buttons, zdo.GetDevicesByType(uint8(7))...)
 	allDevices := [][]uint64{ClimatSensors, MotionSensors, WaterSensors, DoorSensors, Relays, SmartPlugs, WaterValves, Buttons}
 
 	for ind, di := range allDevices {

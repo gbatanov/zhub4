@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -41,8 +42,9 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 
 	// telegram bot block
 	tlgMsgChan := make(chan telega32.Message, 16)
-	tlg32 := telega32.Tlg32Create(config.BotName, config.Mode, config.TokenPath, config.MyId, tlgMsgChan) //your bot name
-	tlgBlock := TlgBlock{tlg32: tlg32, tlgMsgChan: tlgMsgChan}
+	tlgCmdChan := make(chan string, 2)
+	tlg32 := telega32.Tlg32Create(config.BotName, config.Mode, config.TokenPath, config.MyId, tlgMsgChan, tlgCmdChan) //your bot name
+	tlgBlock := TlgBlock{tlg32, tlgMsgChan, tlgCmdChan}
 
 	// http server block
 	httpBlock := HttpBlock{}
@@ -203,11 +205,19 @@ func (c *Controller) StartNetwork() error {
 			c.getCheckValves()
 		}
 	}()
+
 	if c.config.WithTlg {
 		outMsg := telega32.Message{ChatId: c.config.MyId, Msg: "Zhub4 start"}
 		c.tlg.tlgMsgChan <- outMsg
+		go func() {
+			for c.flag {
+				cmd := <-c.tlg.tlgCmdChan
+				c.executeCmd(cmd)
+			}
+		}()
 	}
 
+	// Обработка команд с модема
 	if c.config.WithModem {
 		go func() {
 			for c.flag {
@@ -690,18 +700,23 @@ func (c *Controller) getSmartPlugParams() {
 	var idsAVSM []uint16 = []uint16{0x0000} // Power
 	c.readAttribute(ed.ShortAddress, zcl.SIMPLE_METERING, idsAVSM)
 
-	// if the state has not yet been received
-	if ed.GetCurrentState(1) != "On" && ed.GetCurrentState(1) != "Off" {
-		var idsAV []uint16 = []uint16{0x0000} // state On / Off
-		c.readAttribute(ed.ShortAddress, zcl.ON_OFF, idsAV)
+	plugs := zdo.GetDevicesByType(uint8(10))
+	for _, di := range plugs {
+		ed := c.getDeviceByMac(di)
+		if ed.ShortAddress != 0 {
+			// if the state has not yet been received
+			if ed.GetCurrentState(1) != "On" && ed.GetCurrentState(1) != "Off" {
+				var idsAV []uint16 = []uint16{0x0000} // state On / Off
+				c.readAttribute(ed.ShortAddress, zcl.ON_OFF, idsAV)
+			}
+		}
 	}
-
 }
 
 // call every 30 sec - Valves check
 func (c *Controller) getCheckValves() {
 
-	valves := []uint64{0xa4c138d9758e1dcd, 0xa4c138373e89d731, 0x70b3d52b60024ac9}
+	valves := zdo.GetDevicesByType(uint8(6))
 	for _, di := range valves {
 		ed := c.getDeviceByMac(di) // valves
 		if ed == nil || ed.ShortAddress == 0 {
@@ -873,8 +888,31 @@ func (c *Controller) setLastMotionSensorActivity(lastTime time.Time) {
 }
 func (c *Controller) getLastMotionSensorActivity() time.Time { return c.lastMotion }
 
-func (c *Controller) executeCmd(cmd string) {
-	log.Println("Execute cmd ", cmd)
+// Исполнение команд из СМС и от телеграм-бота
+// Ответ отправляем в СМС и в телеграм
+// Команды могут быть информационные - /balance и управляющие /cmnd
+func (c *Controller) executeCmd(cmnd string) {
+	log.Println("Execute cmd ", cmnd)
+	cmnd = strings.Trim(cmnd, " ")
+	if strings.HasPrefix(cmnd, "/cmnd") {
+		var cmd int
+		n, err := fmt.Sscanf(cmnd, "/cmnd %d", &cmd)
+		if n == 0 || err != nil || cmd < 400 || cmd > 499 {
+			return
+		}
+
+		switch cmd {
+		case 401: // Запрос баланса сим-карты
+			c.mdm.GetBalance()
+		case 412: // Запрос состояния датчиков протечек
+		case 423: // Запрос состояния датчиков движения
+		}
+	} else if strings.HasPrefix(cmnd, "/balance") {
+		// Пришел ответ на запрос баланса, отправим СМС и в телеграм
+		cmnd = strings.Replace(cmnd, "/balance ", "", 1)
+		c.mdm.SendSms(cmnd)
+		c.tlg.tlgMsgChan <- telega32.Message{ChatId: c.config.MyId, Msg: cmnd}
+	}
 }
 
 func Mapkey(m map[uint16]uint64, value uint64) (key uint16, ok bool) {

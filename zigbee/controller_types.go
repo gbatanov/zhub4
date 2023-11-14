@@ -44,6 +44,7 @@ type GlobalConfig struct {
 type TlgBlock struct {
 	tlg32      *telega32.Tlg32
 	tlgMsgChan chan telega32.Message
+	tlgCmdChan chan string // команды из телеграм
 }
 
 type HttpBlock struct {

@@ -16,6 +16,47 @@ import (
 	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
 )
 
+const RELAY_1 = uint64(0x54ef44100019335b)
+const RELAY_2_WASH = uint64(0x54ef441000193352)
+const RELAY_3_CAB_LIGHT = uint64(0x54ef44100018b523)
+const RELAY_4_CORIDOR_LIGHT = uint64(0x54ef4410001933d3)
+const RELAY_5_TOILET = uint64(0x54ef4410005b2639)
+const RELAY_6_ROOM_LIGHT = uint64(0x54ef441000609dcc)
+const RELAY_7_KITCHEN = uint64(0x00158d0009414d7e)
+
+const PLUG_1 = uint64(0x70b3d52b6001b4a4)
+const PLUG_2_CHARGER = uint64(0x70b3d52b6001b5d9)
+const PLUG_3_NURSERY_LIGHT = uint64(0x70b3d52b60022ac9)
+const PLUG_4_SOLDER = uint64(0x70b3d52b60022cfd)
+
+const VALVE_HOT_WATER = uint64(0xa4c138d9758e1dcd)
+const VALVE_COLD_WATER = uint64(0xa4c138373e89d731)
+
+const MOTION_1_CORIDOR = uint64(0x00124b0025137475)
+const MOTION_2_ROOM = uint64(0x00124b0024455048)
+const MOTION_3_CORIDOR = uint64(0x00124b002444d159)
+const MOTION_4_NURSERY = uint64(0x00124b002a535b66)
+const MOTION_5_KITCHEN = uint64(0x00124b002a507fe2)
+const PRESENCE_1_KITCHEN = uint64(0x00124b0009451438)
+const MOTION_LIGHT_CORIDOR = uint64(0x00124b0014db2724)
+const MOTION_IKEA = uint64(0x0c4314fffe17d8a8)
+const MOTION_LIGHT_NURSERY = uint64(0x00124b0007246963)
+
+const DOOR_1_TOILET = uint64(0x00124b0025485ee6)
+const DOOR_2_CAB = uint64(0x00124b002512a60b)
+const DOOR_3_BOX = uint64(0x00124b00250bba63)
+
+const BUTTON_IKEA = uint64(0x8cf681fffe0656ef)
+const BUTTON_SONOFF_1 = uint64(0x00124b0028928e8a)
+const BUTTON_SONOFF_2 = uint64(0x00124b00253ba75f)
+
+const CLIMAT_BALCON = uint64(0x00124b000b1bb401)
+
+const WATER_LEAK_1 = uint64(0x00158d0006e469a4)
+const WATER_LEAK_2 = uint64(0x00158d0006f8fc61)
+const WATER_LEAK_3 = uint64(0x00158d0006b86b79)
+const WATER_LEAK_4 = uint64(0x00158d0006ea99db)
+
 type DeviceInfo struct {
 	deviceType   uint8
 	manufacturer string
@@ -30,46 +71,46 @@ type DeviceInfo struct {
 // MAC Address,Type, Vendor,Model, GrafanaName, Human name, Power source,available,test
 var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	// Датчики протечки воды
-	0x00158d0006e469a4: {5, "Aqara", "SJCGQ11LM", "Протечка1", "Датчик протечки 1 (туалет)", zcl.PowerSource_BATTERY, 1, 0},
-	0x00158d0006f8fc61: {5, "Aqara", "SJCGQ11LM", "Протечка2", "Датчик протечки 2 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
-	0x00158d0006b86b79: {5, "Aqara", "SJCGQ11LM", "Протечка3", "Датчик протечки 3 (ванна)", zcl.PowerSource_BATTERY, 1, 0},
-	0x00158d0006ea99db: {5, "Aqara", "SJCGQ11LM", "Протечка4", "Датчик протечки 4 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
+	WATER_LEAK_1: {5, "Aqara", "SJCGQ11LM", "Протечка1", "Датчик протечки 1 (туалет)", zcl.PowerSource_BATTERY, 1, 0},
+	WATER_LEAK_2: {5, "Aqara", "SJCGQ11LM", "Протечка2", "Датчик протечки 2 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
+	WATER_LEAK_3: {5, "Aqara", "SJCGQ11LM", "Протечка3", "Датчик протечки 3 (ванна)", zcl.PowerSource_BATTERY, 1, 0},
+	WATER_LEAK_4: {5, "Aqara", "SJCGQ11LM", "Протечка4", "Датчик протечки 4 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
 	// реле
-	0x54ef44100019335b: {9, "Aqara", "SSM-U01", "Реле1", "Реле1", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef441000193352: {9, "Aqara", "SSM-U01", "Стиралка", "Реле2(Стиральная машина)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef44100018b523: {9, "Aqara", "SSM-U01", "ШкафСвет", "Реле3(Шкаф, подсветка)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef4410001933d3: {9, "Aqara", "SSM-U01", "КоридорСвет", "Реле4(Свет в коридоре)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef4410005b2639: {9, "Aqara", "SSM-U01", "ТулетЗанят", "Реле5(Туалет занят)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x54ef441000609dcc: {9, "Aqara", "SSM-U01", "Реле6", "Реле6 (Свет комната)", zcl.PowerSource_SINGLE_PHASE, 1, 1},
-	0x00158d0009414d7e: {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	RELAY_1:               {9, "Aqara", "SSM-U01", "Реле1", "Реле1", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	RELAY_2_WASH:          {9, "Aqara", "SSM-U01", "Стиралка", "Реле2(Стиральная машина)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	RELAY_3_CAB_LIGHT:     {9, "Aqara", "SSM-U01", "ШкафСвет", "Реле3(Шкаф, подсветка)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	RELAY_4_CORIDOR_LIGHT: {9, "Aqara", "SSM-U01", "КоридорСвет", "Реле4(Свет в коридоре)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	RELAY_5_TOILET:        {9, "Aqara", "SSM-U01", "ТулетЗанят", "Реле5(Туалет занят)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	RELAY_6_ROOM_LIGHT:    {9, "Aqara", "SSM-U01", "Реле6", "Реле6 (Свет комната)", zcl.PowerSource_SINGLE_PHASE, 1, 1},
+	RELAY_7_KITCHEN:       {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// Умные розетки
-	0x70b3d52b6001b4a4: {10, "Girier", "TS011F", "Розетка1", "Розетка 1", zcl.PowerSource_SINGLE_PHASE, 1, 1},
-	0x70b3d52b6001b5d9: {10, "Girier", "TS011F", "Розетка2", "Розетка 2(Зарядники)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x70b3d52b60022ac9: {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Лампы в детской)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x70b3d52b60022cfd: {10, "Girier", "TS011F", "Розетка3", "Розетка 4(Паяльник)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	PLUG_1:               {10, "Girier", "TS011F", "Розетка1", "Розетка 1", zcl.PowerSource_SINGLE_PHASE, 1, 1},
+	PLUG_2_CHARGER:       {10, "Girier", "TS011F", "Розетка2", "Розетка 2(Зарядники)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	PLUG_3_NURSERY_LIGHT: {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Лампы в детской)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	PLUG_4_SOLDER:        {10, "Girier", "TS011F", "Розетка4", "Розетка 4(Паяльник)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// краны
-	0xa4c138d9758e1dcd: {6, "TUYA", "Valve", "КранГВ", "Кран1 ГВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0xa4c138373e89d731: {6, "TUYA", "Valve", "КранХВ", "Кран2 ХВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	VALVE_HOT_WATER:  {6, "TUYA", "Valve", "КранГВ", "Кран1 ГВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	VALVE_COLD_WATER: {6, "TUYA", "Valve", "КранХВ", "Кран2 ХВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// датчики движения и/или освещения
-	0x00124b0025137475: {2, "Sonoff", "SNZB-03", "КоридорДвижение", "Датчик движения 1 (коридор)", zcl.PowerSource_BATTERY, 1, 0},
-	0x00124b0024455048: {2, "Sonoff", "SNZB-03", "КомнатаДвижение", "Датчик движения 2 (комната)", zcl.PowerSource_BATTERY, 1, 0},
-	0x00124b002444d159: {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3(коридор) ", zcl.PowerSource_BATTERY, 1, 0},
-	0x00124b002a535b66: {2, "Sonoff", "SNZB-03", "ДетскаяДвижение4", "Датчик движения 4 (детская)", zcl.PowerSource_BATTERY, 1, 0},
-	0x00124b002a507fe2: {2, "Sonoff", "SNZB-03", "КухняДвижение", "Датчик движения 5 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
-	0x00124b0009451438: {4, "Custom", "CC2530", "КухняПрисутствие", "Датчик присутствия 1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x00124b0014db2724: {4, "Custom", "CC2530", "ПрихожаяДвижение", "Датчик движение + освещение (прихожая)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	0x0c4314fffe17d8a8: {8, "IKEA", "E1745", "ИкеаДвижение", "Датчик движения IKEA", zcl.PowerSource_BATTERY, 1, 1},
-	0x00124b0007246963: {4, "Custom", "CC2530", "ДетскаяДвижение", "Датчик движение + освещение (детская)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	MOTION_1_CORIDOR:     {2, "Sonoff", "SNZB-03", "КоридорДвижение", "Датчик движения 1 (коридор)", zcl.PowerSource_BATTERY, 1, 0},
+	MOTION_2_ROOM:        {2, "Sonoff", "SNZB-03", "КомнатаДвижение", "Датчик движения 2 (комната)", zcl.PowerSource_BATTERY, 1, 0},
+	MOTION_3_CORIDOR:     {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3(коридор) ", zcl.PowerSource_BATTERY, 1, 0},
+	MOTION_4_NURSERY:     {2, "Sonoff", "SNZB-03", "ДетскаяДвижение4", "Датчик движения 4 (детская)", zcl.PowerSource_BATTERY, 1, 0},
+	MOTION_5_KITCHEN:     {2, "Sonoff", "SNZB-03", "КухняДвижение", "Датчик движения 5 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
+	PRESENCE_1_KITCHEN:   {4, "Custom", "CC2530", "КухняПрисутствие", "Датчик присутствия 1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	MOTION_LIGHT_CORIDOR: {4, "Custom", "CC2530", "ПрихожаяДвижение", "Датчик движение + освещение (прихожая)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	MOTION_IKEA:          {8, "IKEA", "E1745", "ИкеаДвижение", "Датчик движения IKEA", zcl.PowerSource_BATTERY, 1, 1},
+	MOTION_LIGHT_NURSERY: {4, "Custom", "CC2530", "ДетскаяДвижение", "Датчик движение + освещение (детская)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// Датчики открытия дверей
-	0x00124b0025485ee6: {3, "Sonoff", "SNZB-04", "ТуалетДатчик", "Датчик открытия 1 (туалет)", zcl.PowerSource_BATTERY, 1, 0},
-	0x00124b002512a60b: {3, "Sonoff", "SNZB-04", "ШкафДатчик", "Датчик открытия 2 (шкаф, подсветка)", zcl.PowerSource_BATTERY, 1, 0},
-	0x00124b00250bba63: {3, "Sonoff", "SNZB-04", "ЯщикДатчик", "Датчик открытия 3 (ящик)", zcl.PowerSource_BATTERY, 1, 0},
+	DOOR_1_TOILET: {3, "Sonoff", "SNZB-04", "ТуалетДатчик", "Датчик открытия 1 (туалет)", zcl.PowerSource_BATTERY, 1, 0},
+	DOOR_2_CAB:    {3, "Sonoff", "SNZB-04", "ШкафДатчик", "Датчик открытия 2 (шкаф, подсветка)", zcl.PowerSource_BATTERY, 1, 0},
+	DOOR_3_BOX:    {3, "Sonoff", "SNZB-04", "ЯщикДатчик", "Датчик открытия 3 (ящик)", zcl.PowerSource_BATTERY, 1, 0},
 	// Кнопки
-	0x8cf681fffe0656ef: {7, "IKEA", "E1743", "КнопкаИкеа", "Кнопка ИКЕА", zcl.PowerSource_BATTERY, 1, 1},
-	0x00124b0028928e8a: {1, "Sonoff", "SNZB-01", "Кнопка1", "Кнопка Sonoff 1", zcl.PowerSource_BATTERY, 1, 0},
-	0x00124b00253ba75f: {1, "Sonoff", "SNZB-01", "Кнопка2", "Кнопка Sonoff 2", zcl.PowerSource_BATTERY, 1, 0},
+	BUTTON_IKEA:     {7, "IKEA", "E1743", "КнопкаИкеа", "Кнопка ИКЕА", zcl.PowerSource_BATTERY, 1, 1},
+	BUTTON_SONOFF_1: {1, "Sonoff", "SNZB-01", "Кнопка1", "Кнопка Sonoff 1", zcl.PowerSource_BATTERY, 1, 0},
+	BUTTON_SONOFF_2: {1, "Sonoff", "SNZB-01", "Кнопка2", "Кнопка Sonoff 2", zcl.PowerSource_BATTERY, 1, 0},
 	// Датчики климата
-	0x00124b000b1bb401: {4, "GSB", "CC2530", "КлиматБалкон", "Датчик климата (балкон)", zcl.PowerSource_BATTERY, 1, 0},
+	CLIMAT_BALCON: {4, "GSB", "CC2530", "КлиматБалкон", "Датчик климата (балкон)", zcl.PowerSource_BATTERY, 1, 0},
 }
 
 // Input clusters can have commands sent to them to perform actions, where as output clusters instead send these commands to a bound device.
@@ -95,37 +136,37 @@ var DEVICE_TYPES map[uint8]string = map[uint8]string{
 // List of devices that are turned off by long pressing the Sonoff1 button
 // I use the same list for forced shutdown in the mode "No one is at home"
 var OFF_LIST []uint64 = []uint64{
-	0x54ef4410001933d3, // light in coridor
-	0x00158d0009414d7e, // light and ventilation in kitchen
-	0x54ef44100018b523, // cabinet in room(backlighting)
-	0x54ef4410005b2639, // toilet is busy
-	0x70b3d52b6001b4a4, // SmartPlug 1
-	0x70b3d52b60022ac9, // SmartPlug 3
-	0x70b3d52b60022cfd, // SmartPlug 4
-	0x54ef441000609dcc, // Relay 6
+	RELAY_4_CORIDOR_LIGHT, // light in coridor
+	RELAY_7_KITCHEN,       // light and ventilation in kitchen
+	RELAY_3_CAB_LIGHT,     // cabinet in room(backlighting)
+	RELAY_5_TOILET,        // toilet is busy
+	PLUG_1,                // SmartPlug 1
+	PLUG_3_NURSERY_LIGHT,  // SmartPlug 3
+	PLUG_4_SOLDER,         // SmartPlug 4
+	RELAY_6_ROOM_LIGHT,    // Relay 6 room light
 }
 
 // List of devices to display in Grafana
 
 var PROM_MOTION_LIST []uint64 = []uint64{
-	0x00124b0025137475, // coridor
-	0x00124b0014db2724, // hallway
-	0x00124b0009451438, // kitchen presence sensor
-	0x00124b002a507fe2, // kitchen onoff sensor
-	0x00124b0024455048, // room
-	0x00124b002444d159, // children's room
-	0x00124b0007246963, // balconen
-	0x0c4314fffe17d8a8, // IKEA motion sensor
+	MOTION_1_CORIDOR,     // coridor
+	MOTION_LIGHT_CORIDOR, // hallway
+	PRESENCE_1_KITCHEN,   // kitchen presence sensor
+	MOTION_5_KITCHEN,     // kitchen onoff sensor
+	MOTION_2_ROOM,        // room
+	MOTION_3_CORIDOR,     // coridor
+	MOTION_LIGHT_NURSERY, // nursery
+	MOTION_IKEA,          // IKEA motion sensor
 }
 
 var PROM_DOOR_LIST []uint64 = []uint64{
-	0x00124b0025485ee6, // toilet
+	DOOR_1_TOILET, // toilet
 }
 
 var PROM_RELAY_LIST []uint64 = []uint64{
-	0x00158d0009414d7e, // light/ventilation in kitchen
-	0x54ef4410001933d3, // light in coridor
-	0x54ef4410005b2639} // toilet is busy
+	RELAY_7_KITCHEN,       // light/ventilation in kitchen
+	RELAY_4_CORIDOR_LIGHT, // light in coridor
+	RELAY_5_TOILET}        // toilet is busy
 
 type BatteryParams struct {
 	level   uint8
@@ -400,4 +441,16 @@ func (ed *EndDevice) Bytes_to_float64(src []byte) (float64, error) {
 		return 0.0, err
 	}
 	return float64(value), nil
+}
+
+func GetDevicesByType(tp uint8) []uint64 {
+	var devicesList []uint64 = make([]uint64, 0)
+
+	for adr, di := range KNOWN_DEVICES {
+		if di.deviceType == tp {
+			devicesList = append(devicesList, adr)
+		}
+	}
+
+	return devicesList
 }

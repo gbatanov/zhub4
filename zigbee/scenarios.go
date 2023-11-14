@@ -45,7 +45,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 	if macAddress == 0x00124b0025137475 { //Sonoff motion sensor 1 (coridor)
 		lum := int8(-1)
 		/*
-			//  on/off  light in coridor 0x54ef4410001933d3
+			//  on/off  light in coridor zdo.RELAY_4_CORIDOR_LIGHT
 			//  works in couple with custom2
 			custom2 := c.getDeviceByMac(0x00124b0014db2724)
 			if custom2.ShortAddress > 0 {
@@ -56,7 +56,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 		if cmd == 1 {
 			if lum != 1 {
 				log.Printf("Motion sensor in coridor. Turn on light relay. \n")
-				c.switchRelay(0x54ef4410001933d3, 1, 1)
+				c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
 			}
 		} else if cmd == 0 {
 			cur_motion := -1
@@ -65,7 +65,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 			//			}
 			if cur_motion != 1 {
 				log.Printf("Motion sensor in coridor. Turn off light relay. \n")
-				c.switchRelay(0x54ef4410001933d3, 0, 1)
+				c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 0, 1)
 			}
 		}
 	} else if macAddress == 0x00124b0014db2724 {
@@ -74,7 +74,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 		lum := ed.Get_luminocity()
 		log.Printf("Motion sensor in custom2. cmd = %d, lum = %d\n", cmd, lum)
 
-		relay := c.getDeviceByMac(0x54ef4410001933d3)
+		relay := c.getDeviceByMac(zdo.RELAY_4_CORIDOR_LIGHT)
 		relayCurrentState := relay.GetCurrentState(1)
 
 		if cmd == 1 && relayCurrentState != "On" {
@@ -83,7 +83,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 			if h > 7 && h < 23 {
 				if lum != 1 {
 					log.Printf("Motion sensor in hallway. Turn on light relay. \n")
-					c.switchRelay(0x54ef4410001933d3, 1, 1)
+					c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
 				}
 			}
 		} else if cmd == 0 && relayCurrentState != "Off" {
@@ -93,7 +93,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 			}
 			if cur_motion != 1 {
 				log.Printf("Motion sensor in hallway. Turn off light relay. \n")
-				c.switchRelay(0x54ef4410001933d3, 0, 1)
+				c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 0, 1)
 			}
 		}
 	} else if macAddress == 0x00124b0009451438 {
