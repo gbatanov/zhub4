@@ -44,14 +44,17 @@ func NewHttpServer(c *Controller) (*HttpServer, error) {
 		Delims:       goview.Delims{Left: "{{", Right: "}}"},
 	}
 	router.HTMLRender = ginview.New(vConfig)
-	router.LoadHTMLGlob("/usr/local/etc/zhub4/web/tpl/*")
-
+	if c.config.Os == "windows" {
+		router.Static("/css", "C:/work/my/zhub4/html/css")
+	} else {
+		router.Static("/css", "/usr/local/etc/zhub4/web/css")
+	}
 	actionHandler := NewActionHandler(c)
 
 	router.GET("/metrics", actionHandler.metrics)
 	router.GET("/join", actionHandler.join)
 	router.GET("/command", actionHandler.cmdHandler)
-	router.Static("/css", "/usr/local/etc/zhub4/web/css")
+
 	router.GET("/", actionHandler.otherHandler)
 	router.NoRoute(actionHandler.page404)
 

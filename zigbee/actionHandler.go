@@ -41,7 +41,7 @@ func (ah *ActionHandler) cmdHandler(ctx *gin.Context) {
 	} else {
 		cmnd = 0
 	}
-	eps := ctx.Query("ep") //c.Params.ByName("cmd")
+	eps := ctx.Query("ep")
 	result := ""
 
 	if len(eps) > 0 && cmnd > -1 {
@@ -50,7 +50,7 @@ func (ah *ActionHandler) cmdHandler(ctx *gin.Context) {
 			ep, err := strconv.Atoi(eps)
 			if err == nil {
 				ah.con.switchRelay(macAddress, uint8(cmnd), uint8(ep))
-				result += fmt.Sprintf("Cmd %d to device 0x%08x executed", cmnd, macAddress)
+				result += fmt.Sprintf("Cmd %d to device 0x%08x endpoint %d executed", cmnd, macAddress, ep)
 			}
 		} else {
 			result += err.Error()

@@ -181,16 +181,16 @@ func (bot *Tlg32) handle_msg_in(msg string, chatId int64, firstName string) (str
 		return fmt.Sprintf("Привет, %s!", firstName), nil
 	}
 	if strings.Contains(msg, "/stop") {
-		bot.Flag = false
+		//		bot.Flag = false
 		return fmt.Sprintf("Good bye, %s!", firstName), nil
 	}
-
-	// "/lwreg" add in chatIds
-	if strings.Contains(msg, "/lwreg") {
-		bot.chatIds = append(bot.chatIds, chatId)
-		return "Ok", nil
-	}
-
+	/*
+		// "/lwreg" add in chatIds
+		if strings.Contains(msg, "/lwreg") {
+			bot.chatIds = append(bot.chatIds, chatId)
+			return "Ok", nil
+		}
+	*/
 	if found {
 
 		//"/lwunreg" remove from chatIds

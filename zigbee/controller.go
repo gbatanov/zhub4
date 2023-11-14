@@ -48,7 +48,6 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 	httpBlock := HttpBlock{}
 	httpBlock.answerChan = make(chan interface{}, 8)
 	httpBlock.queryChan = make(chan map[string]string, 8)
-	//	httpBlock.web, err = NewHttpServer(config.HttpAddress, httpBlock.answerChan, httpBlock.queryChan, config.Os, config.ProgramDir)
 	httpBlock.withHttp = true
 
 	controller := Controller{
