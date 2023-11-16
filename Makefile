@@ -14,4 +14,4 @@ install:
 	cp config.txt /usr/local/etc/zhub4/
 #	cp map_addr_test.cfg /usr/local/etc/zhub4/
 #	cp map_addr.cfg /usr/local/etc/zhub4/
-	cp html/* /usr/local/etc/zhub4/web/
+	cp -r html/* /usr/local/etc/zhub4/web/

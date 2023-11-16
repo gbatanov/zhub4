@@ -17,13 +17,13 @@ type AnalogInputCluster struct {
 	Ed *zdo.EndDevice
 }
 
-// Датчик климата
+// Кастомные прошивки (Датчик климата, датчик движения/освещеения в детской)
 func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
 	var value float32 = -100.0
 	var val64 float64 = -100.0
 	var unit []byte = make([]byte, 0)
 	var err error
-	//	log.Printf("AnalogInputCluster::%s, endpoint address: 0x%04x number = %d \n", a.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
+	log.Printf("AnalogInputCluster::%s, endpoint address: 0x%04x number = %d \n", a.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
 
 	for _, attribute := range attributes {
 
@@ -55,7 +55,7 @@ func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes 
 		} //switch
 
 	} //for
-	//	log.Printf("Analog Input Device 0x%04x endpoint %d  Unit =  %s  Value %f \n", endpoint.Address, endpoint.Number, unit, value)
+	log.Printf("Analog Input Device 0x%04x endpoint %d  Unit =  %s  Value %f \n", endpoint.Address, endpoint.Number, unit, value)
 	if len(unit) > 0 && value > -100.0 {
 		//		log.Printf("Analog Input Device 0x%04x endpoint %d  Unit =  %s  Value %f \n", endpoint.Address, endpoint.Number, unit, value)
 
@@ -66,7 +66,7 @@ func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes 
 			a.Ed.Set_temperature(int8(value))
 		} else if unit[0] == 'V' {
 			if a.Ed.Di.PowerSource == zcl.PowerSource_BATTERY {
-				a.Ed.Set_battery_params(0, val64)
+				a.Ed.SetBatteryParams(0, val64)
 			} else {
 				a.Ed.SetMainsVoltage(val64)
 			}

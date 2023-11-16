@@ -14,7 +14,7 @@ h4{
     font-size: 13px;
 }
 p {
-    font-size: 12px;
+    font-size: 13px;
 }
 td {
     font-size: 14px;
@@ -42,4 +42,18 @@ th.temp{
 }
 td.addr{
     min-width: 50px;
+}
+div.command{
+    margin: 40px;
+    padding: 40px;
+    width: 400px;
+}
+div.command h3{
+    font-size: 15px;
+}
+div.command h4{
+    font-size: 14px;
+}
+div.command p {
+    font-size: 13px;
 }

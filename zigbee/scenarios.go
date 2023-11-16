@@ -42,7 +42,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 
 	macAddress := ed.MacAddress
 
-	if macAddress == 0x00124b0025137475 { //Sonoff motion sensor 1 (coridor)
+	if macAddress == zdo.MOTION_1_CORIDOR { //Sonoff motion sensor 1 (coridor)
 		lum := int8(-1)
 		/*
 			//  on/off  light in coridor zdo.RELAY_4_CORIDOR_LIGHT
@@ -170,7 +170,7 @@ func (c *Controller) onOffCommand(ed *zdo.EndDevice, message zdo.Message) {
 	} else if macAddress == 0x0c4314fffe17d8a8 {
 		// IKEA motion sensor
 		c.handleMotion(ed, 1) // switch off with timer
-	} else if macAddress == 0x00124b0028928e8a {
+	} else if macAddress == zdo.BUTTON_SONOFF_1 {
 		// button Sonoff1
 		switch cmd { // 1 - double , 2 - single, 0 - long press
 		case 0:
@@ -181,7 +181,7 @@ func (c *Controller) onOffCommand(ed *zdo.EndDevice, message zdo.Message) {
 		case 2:
 			ed.SetCurrentState("Single click", 1)
 		} //switch
-	} else if macAddress == 0x00124b00253ba75f {
+	} else if macAddress == zdo.BUTTON_SONOFF_2 {
 		// button Sonoff 2 call ringer with double click
 		// switch off relays by list with long press
 		switch cmd {

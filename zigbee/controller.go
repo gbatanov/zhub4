@@ -689,7 +689,7 @@ func (c *Controller) onAttributeReport(ed *zdo.EndDevice, ep zcl.Endpoint, clust
 
 // call every 30 sec - SmartPlugs
 func (c *Controller) getSmartPlugParams() {
-	ed := c.getDeviceByMac(0x70b3d52b6001b5d9) // SmartPlug charger
+	ed := c.getDeviceByMac(zdo.PLUG_2_CHARGER) // SmartPlug charger
 	if ed == nil || ed.ShortAddress == 0 {
 		return
 	}
@@ -807,7 +807,7 @@ func (c *Controller) switchOffWithList() {
 
 	for _, macAddr := range zdo.OFF_LIST {
 		c.switchRelay(macAddr, 0, 1)
-		if macAddr == 0x00158d0009414d7e { // the relay in the kitchen has two channel
+		if macAddr == zdo.RELAY_7_KITCHEN { // the relay in the kitchen has two channel
 			c.switchRelay(macAddr, 0, 2)
 		}
 	}

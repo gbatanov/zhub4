@@ -30,7 +30,7 @@ func (p PowerConfigurationCluster) HandlerAttributes(endpoint zcl.Endpoint, attr
 		case zcl.PowerConfiguration_BATTERY_VOLTAGE:
 			val := float32(attribute.Value[0])
 			//			log.Printf("Battery voltage: %2.1fV ", val/10)
-			p.Ed.Set_battery_params(0, float64(val/10))
+			p.Ed.SetBatteryParams(0, float64(val/10))
 
 		case zcl.PowerConfiguration_BATTERY_REMAIN:
 			val := attribute.Value[0] // 0x00-0x30 0x30-0x60 0x60-0x90 0x90-0xc8
@@ -39,7 +39,7 @@ func (p PowerConfigurationCluster) HandlerAttributes(endpoint zcl.Endpoint, attr
 			}
 			value := val / 2
 			//		log.Printf(" remain: %d%% (0x%02x) \n\n", value, val)
-			p.Ed.Set_battery_params(value, 0.0)
+			p.Ed.SetBatteryParams(value, 0.0)
 
 		default:
 			log.Printf("PowerConfigurationCluste unknown attribute 0x%04x \n", attribute.Id)

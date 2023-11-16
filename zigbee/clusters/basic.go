@@ -99,7 +99,7 @@ func (b BasicCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 				case 0x01: // battery voltage
 					bat := float32(zcl.UINT16_(attribute.Value[i+2], attribute.Value[i+3]))
 					i = i + 3
-					b.Ed.Set_battery_params(0, float64(bat/1000))
+					b.Ed.SetBatteryParams(0, float64(bat/1000))
 
 				case 0x03: // temperature
 					i = i + 2
