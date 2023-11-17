@@ -198,11 +198,17 @@ func (c *Controller) StartNetwork() error {
 
 	// we will get SmurtPlug parameters  every 30 seconds
 	// and check valves state
+	// chek rely every 60 seconds
 	go func() {
 		for c.flag {
 			time.Sleep(30 * time.Second)
 			c.getSmartPlugParams()
 			c.getCheckValves()
+			time.Sleep(30 * time.Second)
+			c.getSmartPlugParams()
+			c.getCheckValves()
+			c.getCheckRelay()
+
 		}
 	}()
 
@@ -538,6 +544,9 @@ func (c *Controller) messageHandler(command zdo.Command) {
 		if message.ZclFrame.Command == uint8(zcl.READ_ATTRIBUTES_RESPONSE) ||
 			message.ZclFrame.Command == uint8(zcl.REPORT_ATTRIBUTES) {
 			if len(message.ZclFrame.Payload) > 0 {
+				//				if ed.MacAddress == zdo.RELAY_7_KITCHEN {
+				//					log.Println(message.ZclFrame.Payload)
+				//				}
 				attributes := zcl.ParseAttributesPayload(message.ZclFrame.Payload, withStatus)
 				if len(attributes) > 0 {
 					c.onAttributeReport(ed, message.Source, message.Cluster, attributes)
@@ -711,6 +720,19 @@ func (c *Controller) getSmartPlugParams() {
 			}
 		}
 	}
+}
+
+// call every 30 sec - Relay check
+// отдаются "левые" параметры
+func (c *Controller) getCheckRelay() {
+	ed := c.getDeviceByMac(zdo.RELAY_7_KITCHEN) // Relay in kitchen
+	if ed == nil || ed.ShortAddress == 0 {
+		return
+	}
+	c.getPower(ed)
+	//	var idsAV []uint16 = []uint16{0x0505, 0x0508} // Voltage, Current
+	//	c.readAttribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
+
 }
 
 // call every 30 sec - Valves check

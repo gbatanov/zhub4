@@ -168,7 +168,7 @@ const (
 type Attribute struct {
 	Id       uint16
 	Value    []byte
-	dataType DataType
+	Datatype DataType
 	Size     uint16
 }
 
@@ -197,16 +197,16 @@ func ParseAttributesPayload(payload []byte, wStatus bool) []Attribute {
 				continue
 			}
 		}
-		attribute.dataType = DataType(payload[i])
+		attribute.Datatype = DataType(payload[i])
 		i++
 
-		if attribute.dataType == 0 || attribute.dataType == 0xff {
+		if attribute.Datatype == 0 || attribute.Datatype == 0xff {
 			return attributes
 		}
 
 		size := uint16(0) //in this var will be current attribute size
 
-		switch attribute.dataType {
+		switch attribute.Datatype {
 
 		case DataType_ARRAY, // the implementation is conditional, theoretically there can be nested objects
 			DataType_STRUCTURE,
@@ -387,7 +387,7 @@ func ParseAttributesPayload(payload []byte, wStatus bool) []Attribute {
 			attribute.Size = size
 
 		default:
-			log.Printf("Unknown attribute data type: 0x%02x for attribute 0x%04x\n", uint8(attribute.dataType), attribute.Id)
+			log.Printf("Unknown attribute data type: 0x%02x for attribute 0x%04x\n", uint8(attribute.Datatype), attribute.Id)
 			valid = false
 			return attributes
 		} // switch

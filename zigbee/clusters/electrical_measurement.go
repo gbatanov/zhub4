@@ -17,17 +17,21 @@ type ElectricalMeasurementCluster struct {
 	ChargerChan chan MotionMsg
 }
 
-// SmartPlug
+// SmartPlug, double relay
 func (e ElectricalMeasurementCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	//	log.Printf("ElectricalMeasurementCluster:: %s, endpoint address: 0x%04x number = %d \n", e.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
-	//	fmt.Printf("Device %s ", e.Ed.GetHumanName())
+	log.Printf("ElectricalMeasurementCluster:: %s, endpoint address: 0x%04x number = %d \n", e.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
+
 	for _, attribute := range attributes {
+		log.Printf("ElectricalMeasurementCluster:: Datatype: 0x%02x, Value: 0x%04x", attribute.Datatype, attribute.Value)
+		if attribute.Value[0] == 0xff && attribute.Value[1] == 0xff {
+			continue
+		}
 		switch zcl.ElectricalMeasurementAttribute(attribute.Id) {
 
 		case zcl.ElectricalMeasurement_0505: // RMS Voltage V
 			val := zcl.UINT16_(attribute.Value[0], attribute.Value[1])
 			e.Ed.SetMainsVoltage(float64(val))
-			//			fmt.Printf(" Voltage %0.2fV ", e.Ed.GetMainsVoltage())
+			log.Printf(" Voltage %0.2fV ", e.Ed.GetMainsVoltage())
 
 		case zcl.ElectricalMeasurement_0508: // RMS Current mA
 			val := zcl.UINT16_(attribute.Value[0], attribute.Value[1])
@@ -35,7 +39,7 @@ func (e ElectricalMeasurementCluster) HandlerAttributes(endpoint zcl.Endpoint, a
 			if e.Ed.MacAddress == 0x70b3d52b6001b5d9 {
 				e.checkCharger(val)
 			}
-			//			fmt.Printf(" Current %0.3fA ", e.Ed.Get_current())
+			log.Printf(" Current %0.3fA ", e.Ed.Get_current())
 
 		case zcl.ElectricalMeasurement_050B: // Active Power
 			val := zcl.UINT16_(attribute.Value[0], attribute.Value[1])

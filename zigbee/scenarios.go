@@ -16,7 +16,6 @@ import (
 
 // scenarios
 func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
-	log.Println("handleMotion")
 
 	state := "No motion"
 	cur_motion := ed.GetMotionState()
@@ -33,6 +32,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 			ed.SetLastAction(ts)
 			c.switchOffTS = false
 		}
+		log.Println("handleMotion")
 	}
 	ed.SetMotionState(cmd) // numeric value
 	if cmd == 1 {
@@ -68,7 +68,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 				c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 0, 1)
 			}
 		}
-	} else if macAddress == 0x00124b0014db2724 {
+	} else if macAddress == zdo.MOTION_LIGHT_CORIDOR {
 		// motion sensor in custom2 (hallway)
 		// it is necessary to take into account the illumination when turned on and the state of the motion sensor in the corridor
 		lum := ed.Get_luminocity()
@@ -152,7 +152,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 // 0x41 On with recall global scene
 // 0x42 On with timed off  payload:0x00 (исполняем безусловно) 0x08 0x07(ON на 0x0708 (180,0)секунд) 0x00 0x00
 func (c *Controller) onOffCommand(ed *zdo.EndDevice, message zdo.Message) {
-	fmt.Println("onOffCommand")
+	//log.Println("onOffCommand")
 
 	macAddress := ed.MacAddress
 	cmd := message.ZclFrame.Command
@@ -164,10 +164,10 @@ func (c *Controller) onOffCommand(ed *zdo.EndDevice, message zdo.Message) {
 	ts := time.Now() // get time now
 	ed.SetLastAction(ts)
 
-	if macAddress == 0x8cf681fffe0656ef {
+	if macAddress == zdo.BUTTON_IKEA {
 		// IKEA button on/off only
 		c.ikea_button_action(cmd)
-	} else if macAddress == 0x0c4314fffe17d8a8 {
+	} else if macAddress == zdo.MOTION_IKEA {
 		// IKEA motion sensor
 		c.handleMotion(ed, 1) // switch off with timer
 	} else if macAddress == zdo.BUTTON_SONOFF_1 {

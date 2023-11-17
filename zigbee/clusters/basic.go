@@ -6,6 +6,7 @@ package clusters
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/gbatanov/zhub4/zigbee/zdo"
 
@@ -153,13 +154,13 @@ func (b BasicCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 					value, _ := b.Ed.Bytes_to_float64(attribute.Value[i+2 : i+6])
 					b.Ed.SetPowerSource(0x01)
 					b.Ed.SetMainsVoltage(value / 10)
-					fmt.Printf("Dual channel relay Voltage:  %0.2fV\n", value/10)
+					log.Printf("Dual channel relay Voltage:  %0.2fV\n", value/10)
 					i = i + 5
 
 				case 0x97: // current
 					value, _ := b.Ed.Bytes_to_float64(attribute.Value[i+2 : i+6])
 					b.Ed.SetCurrent(value)
-					fmt.Printf("Dual channel Current: %0.3fA\n", value)
+					log.Printf("Dual channel Current: %0.3fA\n", value)
 					i = i + 5
 
 				case 0x9b:
