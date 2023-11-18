@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	fmt.Println("init in telega32")
+
 }
 
 // Сообщения снаружи боту

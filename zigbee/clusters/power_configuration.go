@@ -23,9 +23,10 @@ func (p PowerConfigurationCluster) HandlerAttributes(endpoint zcl.Endpoint, attr
 		//		log.Printf("attribute id =0x%04x \n", attribute.Id)
 		switch zcl.PowerConfigurationAttribute(attribute.Id) {
 		case zcl.PowerConfiguration_MAINS_VOLTAGE:
-			val := float32(attribute.Value[0])
-			//		log.Printf("Mains voltage: %2.2fV \n", val/10)
-			p.Ed.SetMainsVoltage(float64(val))
+			value := zcl.UINT16_(attribute.Value[0], attribute.Value[1])
+			val := float64(value)
+			//			log.Printf("Mains voltage: %2.2fV \n", val/10)
+			p.Ed.SetMainsVoltage(val)
 
 		case zcl.PowerConfiguration_BATTERY_VOLTAGE:
 			val := float32(attribute.Value[0])
@@ -40,9 +41,10 @@ func (p PowerConfigurationCluster) HandlerAttributes(endpoint zcl.Endpoint, attr
 			value := val / 2
 			//		log.Printf(" remain: %d%% (0x%02x) \n\n", value, val)
 			p.Ed.SetBatteryParams(value, 0.0)
-
+		case 0x0010:
+			// ignore - MainsAlarmMask
 		default:
-			log.Printf("PowerConfigurationCluste unknown attribute 0x%04x \n", attribute.Id)
+			log.Printf("PowerConfigurationCluster unknown attribute 0x%04x \n", attribute.Id)
 		} //switch
 	} //for
 }

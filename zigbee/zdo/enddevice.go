@@ -94,8 +94,8 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	// датчики движения и/или освещения
 	MOTION_1_CORIDOR: {2, "Sonoff", "SNZB-03", "КоридорДвижение", "Датчик движения 1 (коридор)", zcl.PowerSource_BATTERY, 1, 0},
 	MOTION_2_ROOM:    {2, "Sonoff", "SNZB-03", "КомнатаДвижение", "Датчик движения 2 (комната)", zcl.PowerSource_BATTERY, 1, 0},
-	//	MOTION_3_CORIDOR:     {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3(коридор) ", zcl.PowerSource_BATTERY, 1, 0},
-	//	MOTION_4_NURSERY:     {2, "Sonoff", "SNZB-03", "ДетскаяДвижение4", "Датчик движения 4 (детская)", zcl.PowerSource_BATTERY, 1, 0},
+	MOTION_3_CORIDOR: {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3(коридор) ", zcl.PowerSource_BATTERY, 1, 0},
+	MOTION_4_NURSERY: {2, "Sonoff", "SNZB-03", "ДетскаяДвижение4", "Датчик движения 4 (детская)", zcl.PowerSource_BATTERY, 1, 0},
 	//	MOTION_5_KITCHEN:     {2, "Sonoff", "SNZB-03", "КухняДвижение", "Датчик движения 5 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
 	PRESENCE_1_KITCHEN: {4, "Custom", "CC2530", "КухняПрисутствие", "Датчик присутствия 1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	//	MOTION_LIGHT_CORIDOR: {4, "Custom", "CC2530", "ПрихожаяДвижение", "Датчик движение + освещение (прихожая)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
@@ -155,6 +155,7 @@ var PROM_MOTION_LIST []uint64 = []uint64{
 	MOTION_5_KITCHEN,     // kitchen onoff sensor
 	MOTION_2_ROOM,        // room
 	MOTION_3_CORIDOR,     // coridor
+	MOTION_4_NURSERY,     // nursery
 	MOTION_LIGHT_NURSERY, // nursery
 	MOTION_IKEA,          // IKEA motion sensor
 }

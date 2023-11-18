@@ -924,9 +924,14 @@ func (c *Controller) executeCmd(cmnd string) {
 		}
 
 		switch cmd {
-		case 401: // Запрос баланса сим-карты
+		case 401: // Запрос баланса сим-карты (ответ придет позднее)
 			c.mdm.GetBalance()
+
 		case 412: // Запрос состояния датчиков протечек
+			state := c.checkWaterLeak()
+			c.mdm.SendSms(state)
+			c.tlg.tlgMsgChan <- telega32.Message{ChatId: c.config.MyId, Msg: state}
+
 		case 423: // Запрос состояния датчиков движения
 		}
 	} else if strings.HasPrefix(cmnd, "/balance") {
@@ -935,6 +940,24 @@ func (c *Controller) executeCmd(cmnd string) {
 		c.mdm.SendSms(cmnd)
 		c.tlg.tlgMsgChan <- telega32.Message{ChatId: c.config.MyId, Msg: cmnd}
 	}
+}
+
+// Верну состояние датчиков протечек, неопределенное состояние считается нормой - датчик не срабатывал
+func (c *Controller) checkWaterLeak() string {
+	leaks := zdo.GetDevicesByType(uint8(5))
+	result := "Water: "
+	for _, di := range leaks {
+		ed := c.getDeviceByMac(di)
+		if ed != nil && ed.ShortAddress != 0 {
+			state := ed.GetMotionState()
+			if state == 0 || state == -1 {
+				result += "Norma "
+			} else if state == 1 {
+				result += "Alarm "
+			}
+		}
+	}
+	return result
 }
 
 func Mapkey(m map[uint16]uint64, value uint64) (key uint16, ok bool) {

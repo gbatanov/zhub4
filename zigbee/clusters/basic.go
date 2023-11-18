@@ -5,7 +5,6 @@ Copyright (c) 2023 GSB, Georgii Batanov gbatanov @ yandex.ru
 package clusters
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/gbatanov/zhub4/zigbee/zdo"
@@ -66,7 +65,9 @@ func (b BasicCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 
 		case zcl.Basic_FF01: // string
 			// water leak sensor Xiaomi. duochannel relay Aqara.
-
+			log.Printf("BasicCluster:: %s, endpoint address: 0x%04x number = %d \n", b.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
+			log.Printf("0x%04x 0x%02x %d", attribute.Id, attribute.Datatype, attribute.Size)
+			log.Printf("%v", attribute.Value)
 			// датчик протечек
 			// 0x01 21 d1 0b // battery 3.025
 			// 0x03 28 1e // температура 29 град
@@ -111,7 +112,7 @@ func (b BasicCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 
 				case 0x05: // RSSI  val - 90
 					rssi := int16(zcl.UINT16_(attribute.Value[i+2], attribute.Value[i+3]) - 90)
-					fmt.Printf("device 0x%04x RSSI:  %d dBm \n", endpoint.Address, rssi)
+					log.Printf("device 0x%04x RSSI:  %d dBm \n", endpoint.Address, rssi)
 					i = i + 3
 
 				case 0x06: // ?
@@ -169,7 +170,7 @@ func (b BasicCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 				case 0x9c:
 					i = i + 2
 				} // switch
-				if i >= len(attributes) {
+				if i >= len(attribute.Value) {
 					break
 				}
 			} //
