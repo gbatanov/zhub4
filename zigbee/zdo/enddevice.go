@@ -263,10 +263,16 @@ func (ed *EndDevice) SetPowerSource(value uint8) {
 	ed.Di.PowerSource = zcl.PowerSource(value)
 }
 func (ed *EndDevice) SetMainsVoltage(value float64) {
-	ed.electric.mainVoltage = value
+	if value > 0 {
+		ed.electric.mainVoltage = value
+	}
 }
 func (ed *EndDevice) GetMainsVoltage() float64 {
-	return ed.electric.mainVoltage
+	if ed.electric.mainVoltage > 0 {
+		return ed.electric.mainVoltage
+	} else {
+		return -100.0
+	}
 }
 func (ed *EndDevice) SetCurrent(value float64) {
 	ed.electric.current = value

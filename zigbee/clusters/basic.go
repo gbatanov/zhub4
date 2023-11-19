@@ -65,9 +65,9 @@ func (b BasicCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 
 		case zcl.Basic_FF01: // string
 			// water leak sensor Xiaomi. duochannel relay Aqara.
-			log.Printf("BasicCluster:: %s, endpoint address: 0x%04x number = %d \n", b.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
-			log.Printf("0x%04x 0x%02x %d", attribute.Id, attribute.Datatype, attribute.Size)
-			log.Printf("%v", attribute.Value)
+			//			log.Printf("BasicCluster:: %s, endpoint address: 0x%04x number = %d \n", b.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
+			//			log.Printf("0x%04x 0x%02x %d", attribute.Id, attribute.Datatype, attribute.Size)
+			//			log.Printf("%v", attribute.Value)
 			// датчик протечек
 			// 0x01 21 d1 0b // battery 3.025
 			// 0x03 28 1e // температура 29 град
@@ -155,13 +155,13 @@ func (b BasicCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 					value, _ := b.Ed.Bytes_to_float64(attribute.Value[i+2 : i+6])
 					b.Ed.SetPowerSource(0x01)
 					b.Ed.SetMainsVoltage(value / 10)
-					log.Printf("Dual channel relay Voltage:  %0.2fV\n", value/10)
+					//					log.Printf("Dual channel relay Voltage:  %0.2fV\n", value/10)
 					i = i + 5
 
 				case 0x97: // current
 					value, _ := b.Ed.Bytes_to_float64(attribute.Value[i+2 : i+6])
 					b.Ed.SetCurrent(value)
-					log.Printf("Dual channel Current: %0.3fA\n", value)
+					//					log.Printf("Dual channel Current: %0.3fA\n", value)
 					i = i + 5
 
 				case 0x9b:

@@ -698,21 +698,24 @@ func (c *Controller) onAttributeReport(ed *zdo.EndDevice, ep zcl.Endpoint, clust
 
 // call every 30 sec - SmartPlugs
 func (c *Controller) getSmartPlugParams() {
-	ed := c.getDeviceByMac(zdo.PLUG_2_CHARGER) // SmartPlug charger
-	if ed == nil || ed.ShortAddress == 0 {
-		return
-	}
+	//	ed := c.getDeviceByMac(zdo.PLUG_2_CHARGER) // SmartPlug charger
+	//	if ed == nil || ed.ShortAddress == 0 {
+	//		return
+	//	}
 
-	var idsAV []uint16 = []uint16{0x0505, 0x0508, 0x050B} // Voltage, Current, Energy
-	c.readAttribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
+	//	var idsAV []uint16 = []uint16{0x0505, 0x0508} // Voltage, Current, Energy- 0x050B
+	//	c.readAttribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
 
-	var idsAVSM []uint16 = []uint16{0x0000} // Power
-	c.readAttribute(ed.ShortAddress, zcl.SIMPLE_METERING, idsAVSM)
+	//	var idsAVSM []uint16 = []uint16{0x0000} // Power
+	//	c.readAttribute(ed.ShortAddress, zcl.SIMPLE_METERING, idsAVSM)
 
 	plugs := zdo.GetDevicesByType(uint8(10))
 	for _, di := range plugs {
 		ed := c.getDeviceByMac(di)
 		if ed.ShortAddress != 0 {
+			var idsAV []uint16 = []uint16{0x0505, 0x0508} // Voltage, Current, Energy- 0x050B
+			c.readAttribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
+
 			// if the state has not yet been received
 			if ed.GetCurrentState(1) != "On" && ed.GetCurrentState(1) != "Off" {
 				var idsAV []uint16 = []uint16{0x0000} // state On / Off
@@ -723,13 +726,12 @@ func (c *Controller) getSmartPlugParams() {
 }
 
 // call every 30 sec - Relay check
-// отдаются "левые" параметры
 func (c *Controller) getCheckRelay() {
 	ed := c.getDeviceByMac(zdo.RELAY_7_KITCHEN) // Relay in kitchen
 	if ed == nil || ed.ShortAddress == 0 {
 		return
 	}
-	c.getPower(ed)
+	//	c.getPower(ed)
 	//	var idsAV []uint16 = []uint16{0x0505, 0x0508} // Voltage, Current
 	//	c.readAttribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
 
