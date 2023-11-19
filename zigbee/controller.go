@@ -162,7 +162,6 @@ func (c *Controller) StartNetwork() error {
 			return err
 		}
 	}
-
 	err = c.GetZdo().FinishConfiguration()
 	if err != nil {
 		return err
@@ -290,7 +289,6 @@ func (c *Controller) writeMapToFile() error {
 
 // read map from file on start the program
 func (c *Controller) readMapFromFile() error {
-
 	m := sync.Mutex{}
 	m.Lock()
 	defer m.Unlock()
@@ -481,7 +479,6 @@ func (c *Controller) getDeviceByShortAddr(shortAddres uint16) *zdo.EndDevice {
 }
 
 func (c *Controller) getDeviceByMac(macAddress uint64) *zdo.EndDevice {
-
 	_, keyExists := c.devices[macAddress]
 	if keyExists {
 		return c.devices[macAddress]
@@ -538,7 +535,6 @@ func (c *Controller) messageHandler(command zdo.Command) {
 	withStatus := message.Cluster != zcl.ANALOG_INPUT &&
 		message.Cluster != zcl.XIAOMI_SWITCH &&
 		message.ZclFrame.Command != uint8(zcl.REPORT_ATTRIBUTES)
-
 	if message.ZclFrame.FrameControl.Ftype == zcl.FrameType_GLOBAL {
 		// commands requiring attribute parsing
 		if message.ZclFrame.Command == uint8(zcl.READ_ATTRIBUTES_RESPONSE) ||
