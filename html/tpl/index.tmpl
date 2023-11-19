@@ -1,0 +1,43 @@
+{{define "head"}}
+<title>{{ .title }}</title>
+{{end}}
+
+{{define "content"}}
+<div>
+<p>Старт программы: {{ .StartTime }} </p>
+<p>Время последнего срабатывания датчиков движения: {{ .LMotion }} </p>
+<p><a href="/join">Join</a></p>
+<table>
+<tr><th>Адрес</th><th>Название</th><th>Статус</th><th>LQ</th><th>Температура<th>Питание</th><th>Last seen/action</th></tr>
+
+   {{ range $dl := .deviceList }}
+   <tr class='empty'><td colspan='8'><hr></td></tr>
+   {{ range $dl  }}
+   <tr>
+    <td class='addr'>{{ .ShortAddr }}</td>
+    <td>{{ .Name }}</td>
+    <td>{{ .State }}</td>
+    <td class='lq'>{{ .LQ }}</td>
+    <td class='temp'>{{ .Tmp }}</td>
+   <td>{{ .Pwr }}</td>
+   <td>{{ .LSeen }}</td>
+    </tr>
+    {{ end }}
+  {{end}}
+  <tr class='empty'><td colspan='8'><hr></td></tr>
+  </table>
+</div>
+<div>
+<table>
+<tr><th>Комната</th><th>Температура</th><th>Влажность</th><th>Давление</th></tr>
+{{ range .Weather }}
+<tr>
+<td> {{ .Room }} </td>
+<td> {{ .Temp }} </td>
+<td> {{ .Humidity }} </td>
+<td> {{ .Pressure }} </td>
+</tr>
+{{ end }}
+</table>
+</div>
+{{end}}

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gbatanov/sim800l/modem"
-	"github.com/gbatanov/zhub4/httpServer"
 	"github.com/gbatanov/zhub4/telega32"
 	"github.com/gbatanov/zhub4/zigbee/clusters"
 	"github.com/gbatanov/zhub4/zigbee/zdo"
@@ -45,13 +44,14 @@ type GlobalConfig struct {
 type TlgBlock struct {
 	tlg32      *telega32.Tlg32
 	tlgMsgChan chan telega32.Message
+	tlgCmdChan chan string // команды из телеграм
 }
 
 type HttpBlock struct {
-	answerChan chan string
+	answerChan chan interface{}
 	queryChan  chan map[string]string
 	withHttp   bool
-	web        *httpServer.HttpServer
+	web        *HttpServer
 }
 
 type Controller struct {
@@ -60,6 +60,7 @@ type Controller struct {
 	devices            map[uint64]*zdo.EndDevice
 	devicessAddressMap map[uint16]uint64
 	flag               bool
+	chargerChan        chan clusters.MotionMsg // channel for end charge indication
 	msgChan            chan zdo.Command        // chanel for receive incoming message command from zdo
 	joinChan           chan []byte             // chanel for receive command join device from zdo
 	motionMsgChan      chan clusters.MotionMsg // chanel for get message from motion sensors
@@ -71,4 +72,20 @@ type Controller struct {
 	http               HttpBlock
 	startTime          time.Time
 	mdm                *modem.GsmModem
+}
+type WebDeviceInfo struct {
+	ShortAddr string
+	Name      string
+	State     string
+	LQ        string
+	Tmp       string
+	Pwr       string
+	LSeen     string
+}
+
+type WebWeatherInfo struct {
+	Room     string
+	Temp     string
+	Humidity string
+	Pressure string
 }

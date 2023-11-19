@@ -5,7 +5,6 @@ gbatanov@yandex.ru
 package clusters
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/gbatanov/zhub4/zigbee/zdo"
@@ -17,10 +16,11 @@ type XiaomiCluster struct {
 	Ed *zdo.EndDevice
 }
 
+// Умные розетки
 func (x XiaomiCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.Attribute) {
-	log.Printf("XiaomiCluster:: %s, endpoint address: 0x%04x number = %d \n", x.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
+	//	log.Printf("XiaomiCluster:: %s, endpoint address: 0x%04x number = %d \n", x.Ed.GetHumanName(), endpoint.Address, endpoint.Number)
 	for _, attribute := range attributes {
-		log.Printf("XiaomiCluster::attribute id =0x%04x \n", attribute.Id)
+		//		log.Printf("XiaomiCluster::attribute id =0x%04x \n", attribute.Id)
 		switch zcl.XiaomiAttribute(attribute.Id) {
 		case zcl.Xiaomi_0x00F7:
 			// 03 28 1e          int8                 Device_temperature
@@ -45,7 +45,7 @@ func (x XiaomiCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl
 
 				case 0x03: // temperature
 					i = i + 2
-					fmt.Printf("Temperature: %d \n", int8(attribute.Value[i]))
+					//					log.Printf("Temperature: %d \n", int8(attribute.Value[i]))
 					x.Ed.Set_temperature(int8(attribute.Value[i]))
 
 				case 0x05: // Power outages
@@ -65,7 +65,7 @@ func (x XiaomiCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl
 						state = "On"
 					}
 					x.Ed.SetCurrentState(state, 1)
-					fmt.Printf("State %s\n", state)
+					//					log.Printf("State %s\n", state)
 
 				case 0x65: // status2
 					i = i + 2
@@ -74,34 +74,34 @@ func (x XiaomiCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl
 						state = "On"
 					}
 					x.Ed.SetCurrentState(state, 2)
-					fmt.Printf("State2 %s\n", state)
+					//					log.Printf("State2 %s\n", state)
 
 				case 0x95: // energy
 					i = i + 5
 
 				case 0x96: // voltage
-					value, err := x.Ed.Bytes_to_float32(attribute.Value[i+2 : i+6])
+					value, err := x.Ed.Bytes_to_float64(attribute.Value[i+2 : i+6])
 					if err == nil {
-						x.Ed.Set_power_source(0x01)
-						x.Ed.Set_mains_voltage(value / 10)
-						fmt.Printf("Voltage %0.2fV\n", value/10)
+						x.Ed.SetPowerSource(0x01)
+						x.Ed.SetMainsVoltage(value / 10)
+						//						log.Printf("Xiaomi Voltage %0.2fV\n", value/10)
 					}
 					i = i + 5
 
 				case 0x97: // current
-					value, err := x.Ed.Bytes_to_float32(attribute.Value[i+2 : i+6])
+					value, err := x.Ed.Bytes_to_float64(attribute.Value[i+2 : i+6])
 					if err == nil {
 						val := value / 1000
-						x.Ed.Set_current(val)
-						fmt.Printf("Current %0.3fA\n\n", val)
+						x.Ed.SetCurrent(val)
+						//						log.Printf("Xiaomi Current %0.3fA\n\n", val)
 					}
 					i = i + 5
 
 				case 0x98: // instant power
-					value, err := x.Ed.Bytes_to_float32(attribute.Value[i+2 : i+6])
-					if err == nil {
-						fmt.Printf("Instant power %0.6f\n", value)
-					}
+					//					value, err := x.Ed.Bytes_to_float64(attribute.Value[i+2 : i+6])
+					//					if err == nil {
+					//						log.Printf("Instant power %0.6f\n", value)
+					//					}
 					i = i + 5
 
 				case 0x9a: // uint8
@@ -111,7 +111,7 @@ func (x XiaomiCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl
 					i = i + 2
 
 				default:
-					fmt.Printf("Unknown tag 0x%02x type 0x%02x \n ", attId, attribute.Value[i+1])
+					log.Printf("Unknown tag 0x%02x type 0x%02x \n ", attId, attribute.Value[i+1])
 					i = 1000 // big value for break
 				} // switch
 				if i >= len(attribute.Value) {
@@ -131,7 +131,7 @@ func (x XiaomiCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl
 				}
 			} //for
 		default:
-			fmt.Printf("Cluster::XIAOMI_SWITCH unknown attribute Id 0x%04x\n", attribute.Id)
+			log.Printf("Cluster::XIAOMI_SWITCH unknown attribute Id 0x%04x\n", attribute.Id)
 		} //switch
 	} //for
 

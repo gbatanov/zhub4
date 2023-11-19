@@ -1,7 +1,6 @@
 bin/
 .DS_Store
 config.txt
-.token*
-map_addr_test.cfg
-map_addr.cfg
+.tokens
 *.exe
+zhub4

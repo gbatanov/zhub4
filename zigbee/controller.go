@@ -10,11 +10,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/gbatanov/sim800l/modem"
-	"github.com/gbatanov/zhub4/httpServer"
 	"github.com/gbatanov/zhub4/telega32"
 	"github.com/gbatanov/zhub4/zigbee/clusters"
 	"github.com/gbatanov/zhub4/zigbee/zdo"
@@ -25,6 +25,7 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 	chn1 := make(chan zdo.Command, 16)
 	chn2 := make(chan []byte, 12) // chan for join command shortAddr + macAddrj
 	chn3 := make(chan clusters.MotionMsg, 16)
+	chn4 := make(chan clusters.MotionMsg, 1)
 	ts := time.Now()
 
 	zdoo, err := zdo.ZdoCreate(config.Port, config.Os, chn1, chn2)
@@ -33,21 +34,23 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 	}
 
 	// Modem block
+	config.WithModem = false
+	//var mdm *modem.GsmModem
 	mdm := modem.GsmModemCreate(config.ModemPort, 9600, config.MyPhoneNumber)
 	err = mdm.Open()
 	config.WithModem = err == nil
 
 	// telegram bot block
 	tlgMsgChan := make(chan telega32.Message, 16)
-	tlg32 := telega32.Tlg32Create(config.BotName, config.Mode, config.TokenPath, config.MyId, tlgMsgChan) //your bot name
-	tlgBlock := TlgBlock{tlg32: tlg32, tlgMsgChan: tlgMsgChan}
+	tlgCmdChan := make(chan string, 2)
+	tlg32 := telega32.Tlg32Create(config.BotName, config.Mode, config.TokenPath, config.MyId, tlgMsgChan, tlgCmdChan) //your bot name
+	tlgBlock := TlgBlock{tlg32, tlgMsgChan, tlgCmdChan}
 
 	// http server block
 	httpBlock := HttpBlock{}
-	httpBlock.answerChan = make(chan string, 8)
+	httpBlock.answerChan = make(chan interface{}, 8)
 	httpBlock.queryChan = make(chan map[string]string, 8)
-	httpBlock.web, err = httpServer.HttpServerCreate(config.HttpAddress, httpBlock.answerChan, httpBlock.queryChan, config.Os, config.ProgramDir)
-	httpBlock.withHttp = err == nil
+	httpBlock.withHttp = true
 
 	controller := Controller{
 		zdobj:              zdoo,
@@ -55,6 +58,7 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 		devices:            map[uint64]*zdo.EndDevice{},
 		devicessAddressMap: map[uint16]uint64{},
 		flag:               true,
+		chargerChan:        chn4,
 		msgChan:            chn1,
 		joinChan:           chn2,
 		motionMsgChan:      chn3,
@@ -119,7 +123,27 @@ func (c *Controller) StartNetwork() error {
 	go func() {
 		for c.flag {
 			msg := <-c.motionMsgChan
+			if msg.Cmd == 2 {
+				break
+			}
 			c.handleMotion(msg.Ed, msg.Cmd)
+		}
+	}()
+
+	// Message handler from charger
+	go func() {
+		for c.flag {
+			msg := <-c.chargerChan
+			if msg.Cmd == 2 {
+				break
+			} else if msg.Cmd == 1 {
+				outMsg := telega32.Message{ChatId: c.config.MyId, Msg: "Заряд включен"}
+				c.tlg.tlgMsgChan <- outMsg
+			} else if msg.Cmd == 0 {
+				c.switchRelay(msg.Ed.MacAddress, 0, 1)
+				outMsg := telega32.Message{ChatId: c.config.MyId, Msg: "Заряд выключен"}
+				c.tlg.tlgMsgChan <- outMsg
+			}
 		}
 	}()
 
@@ -155,21 +179,14 @@ func (c *Controller) StartNetwork() error {
 		return err
 	}
 
+	// http
 	if c.http.withHttp {
-		err = c.http.web.Start()
+		//	httpBlock.web, err = NewHttpServer(config.HttpAddress, httpBlock.answerChan, httpBlock.queryChan, config.Os, config.ProgramDir)
+		c.http.web, err = NewHttpServer(c)
 		c.http.withHttp = err == nil
 		if c.http.withHttp {
-			go func() {
-				for c.flag {
-					// Прием команд из HTTP и формирование ответа на команду
-					cmdFromHttp := <-c.http.queryChan
-					answer := c.handleHttpQuery(cmdFromHttp)
-					c.http.answerChan <- answer
-				}
-			}()
-			if c.http.withHttp {
-				log.Println("Web server started")
-			}
+			c.http.web.Start()
+			log.Println("Web server started")
 		}
 	}
 
@@ -179,17 +196,33 @@ func (c *Controller) StartNetwork() error {
 	c.GetZdo().PermitJoin(60 * time.Second)
 
 	// we will get SmurtPlug parameters  every 30 seconds
+	// and check valves state
+	// chek rely every 60 seconds
 	go func() {
 		for c.flag {
 			time.Sleep(30 * time.Second)
 			c.getSmartPlugParams()
+			c.getCheckValves()
+			time.Sleep(30 * time.Second)
+			c.getSmartPlugParams()
+			c.getCheckValves()
+			c.getCheckRelay()
+
 		}
 	}()
+
 	if c.config.WithTlg {
 		outMsg := telega32.Message{ChatId: c.config.MyId, Msg: "Zhub4 start"}
 		c.tlg.tlgMsgChan <- outMsg
+		go func() {
+			for c.flag {
+				cmd := <-c.tlg.tlgCmdChan
+				c.executeCmd(cmd)
+			}
+		}()
 	}
 
+	// Обработка команд с модема
 	if c.config.WithModem {
 		go func() {
 			for c.flag {
@@ -216,6 +249,8 @@ func (c *Controller) Stop() {
 	}
 	// release channels
 	c.msgChan <- *zdo.NewCommand(0)
+	c.chargerChan <- clusters.MotionMsg{Ed: &zdo.EndDevice{}, Cmd: 2}
+	c.motionMsgChan <- clusters.MotionMsg{Ed: &zdo.EndDevice{}, Cmd: 2}
 	c.joinChan <- []byte{}
 }
 
@@ -254,17 +289,16 @@ func (c *Controller) writeMapToFile() error {
 
 // read map from file on start the program
 func (c *Controller) readMapFromFile() error {
-	fmt.Println("ReadMap")
 	m := sync.Mutex{}
 	m.Lock()
 	defer m.Unlock()
 	c.devicessAddressMap = map[uint16]uint64{}
 
 	filename := c.config.MapPath
-	fmt.Println(filename)
+
 	fd, err := os.OpenFile(filename, os.O_RDONLY, 0755)
 	if err != nil {
-		fmt.Println("ReadMap:: OpenFile error: ", err)
+		log.Println("ReadMap:: OpenFile error: ", err)
 	} else {
 
 		var shortAddr uint16
@@ -280,10 +314,10 @@ func (c *Controller) readMapFromFile() error {
 		fd.Close()
 		if true {
 			for a, b := range c.devicessAddressMap {
-				fmt.Printf("0x%04x : 0x%016x \n", a, b)
+				log.Printf("0x%04x : 0x%016x \n", a, b)
 			}
 		}
-		fmt.Printf("\n")
+		log.Printf("\n")
 	}
 
 	return nil
@@ -308,8 +342,14 @@ func (c *Controller) joinDevice() {
 		if c.flag && len(FullAddr) > 5 { // TODO: ??
 			var shortAddress uint16 = zcl.UINT16_(FullAddr[0], FullAddr[1])
 			var macAddress uint64 = binary.LittleEndian.Uint64(FullAddr[2:])
-			log.Printf("Controller::joinDevice: macAddress: 0x%016x \n", macAddress)
-			log.Printf("Controller::joinDevice: new shortAddress: 0x%04x\n", shortAddress)
+
+			_, deviceInList := zdo.KNOWN_DEVICES[macAddress]
+			if !deviceInList {
+				log.Printf("Controller::joinDevice: macAddress: 0x%016x is not in KNOWN_DEVICES\n", macAddress)
+				continue
+			} else {
+				log.Printf("Controller::joinDevice: macAddress: 0x%016x new shortAddress: 0x%04x\n", macAddress, shortAddress)
+			}
 
 			_, keyExists := c.devices[macAddress]
 			if keyExists {
@@ -317,7 +357,7 @@ func (c *Controller) joinDevice() {
 				_, keyExists := c.devicessAddressMap[shortAddress]
 				if keyExists {
 					// self rejoin
-					return
+					continue
 				} else {
 					// rejoin
 					// remove old shortAddress
@@ -461,29 +501,31 @@ func (c *Controller) messageHandler(command zdo.Command) {
 
 	ed := c.getDeviceByShortAddr(message.Source.Address)
 	if ed.MacAddress == 0 {
-		log.Printf("message handler: device not found\n")
+		log.Printf("message handler: device 0x%04x not found\n", message.Source.Address)
 		return
 	}
 
 	//	var ts uint32 = uint32(command.Payload[11]) + uint32(command.Payload[12])<<8 + uint32(command.Payload[13])<<16 + uint32(command.Payload[14])<<24
-	log.Printf("Cluster %s (0x%04X) device: %s \n", zcl.ClusterToString(message.Cluster), message.Cluster, ed.GetHumanName())
-	if message.Cluster != zcl.TIME { // too often
-		fmt.Printf("source endpoint shortAddr: 0x%04x ", message.Source.Address)
-		fmt.Printf("number: %d \n", message.Source.Number)
-		fmt.Printf("linkQuality: %d \n", message.LinkQuality)
-		//	fmt.Printf("ts %d \n", uint32(ts/1000))
-		fmt.Printf("length of ZCL data %d \n", length)
-		if message.ZclFrame.ManufacturerCode != 0xffff { // Manufacturer Code absent
-			fmt.Printf(" zcl_frame.manufacturer_code: %04x \n", message.ZclFrame.ManufacturerCode)
+	//	log.Printf("Cluster %s (0x%04X) device: %s \n", zcl.ClusterToString(message.Cluster), message.Cluster, ed.GetHumanName())
+	/*
+		if message.Cluster != zcl.TIME { // too often
+			fmt.Printf("source endpoint shortAddr: 0x%04x ", message.Source.Address)
+			fmt.Printf("number: %d \n", message.Source.Number)
+			fmt.Printf("linkQuality: %d \n", message.LinkQuality)
+			//	fmt.Printf("ts %d \n", uint32(ts/1000))
+			fmt.Printf("length of ZCL data %d \n", length)
+			if message.ZclFrame.ManufacturerCode != 0xffff { // Manufacturer Code absent
+				fmt.Printf(" zcl_frame.manufacturer_code: %04x \n", message.ZclFrame.ManufacturerCode)
+			}
+			fmt.Printf("zclFrame.FrameControl.Ftype: %02x ", message.ZclFrame.FrameControl.Ftype)
+			fmt.Printf("message.ZclFrame.Command: 0x%02x \n", message.ZclFrame.Command)
+			fmt.Printf("message.ZclFrame.Payload: ")
+			for _, b := range message.ZclFrame.Payload {
+				fmt.Printf("0x%02x ", b)
+			}
+			fmt.Print("\n\n")
 		}
-		fmt.Printf("zclFrame.FrameControl.Ftype: %02x ", message.ZclFrame.FrameControl.Ftype)
-		fmt.Printf("message.ZclFrame.Command: 0x%02x \n", message.ZclFrame.Command)
-		fmt.Printf("message.ZclFrame.Payload: ")
-		for _, b := range message.ZclFrame.Payload {
-			fmt.Printf("0x%02x ", b)
-		}
-		fmt.Print("\n\n")
-	}
+	*/
 	if message.LinkQuality > 0 {
 		ed.Set_linkquality(message.LinkQuality)
 	}
@@ -498,6 +540,9 @@ func (c *Controller) messageHandler(command zdo.Command) {
 		if message.ZclFrame.Command == uint8(zcl.READ_ATTRIBUTES_RESPONSE) ||
 			message.ZclFrame.Command == uint8(zcl.REPORT_ATTRIBUTES) {
 			if len(message.ZclFrame.Payload) > 0 {
+				//				if ed.MacAddress == zdo.RELAY_7_KITCHEN {
+				//					log.Println(message.ZclFrame.Payload)
+				//				}
 				attributes := zcl.ParseAttributesPayload(message.ZclFrame.Payload, withStatus)
 				if len(attributes) > 0 {
 					c.onAttributeReport(ed, message.Source, message.Cluster, attributes)
@@ -509,13 +554,13 @@ func (c *Controller) messageHandler(command zdo.Command) {
 		// custom does not come here, they always have AttributeReport, even when activated
 		switch message.Cluster {
 		case zcl.ON_OFF:
-			log.Printf("message handler::ON_OFF: command 0x%02x \n", message.ZclFrame.Command)
+			//			log.Printf("message handler::ON_OFF: command 0x%02x \n", message.ZclFrame.Command)
 			// commands from the IKEA motion sensor also come here
 			c.onOffCommand(ed, message)
 			c.getPower(ed) // TODO: by timer
 
 		case zcl.LEVEL_CONTROL:
-			log.Printf("message handler::LEVEL_CONTROL: command 0x%02x \n", message.ZclFrame.Command)
+			//			log.Printf("message handler::LEVEL_CONTROL: command 0x%02x \n", message.ZclFrame.Command)
 			c.level_command(ed, message)
 			c.getPower(ed) // TODO: by timer
 
@@ -549,13 +594,13 @@ func (c *Controller) messageHandler(command zdo.Command) {
 
 			}
 		case zcl.IDENTIFY:
-			log.Printf("Cluster IDENTIFY:: command 0x%02x \n", message.ZclFrame.Command)
+			//			log.Printf("Cluster IDENTIFY:: command 0x%02x \n", message.ZclFrame.Command)
 		case zcl.ALARMS:
-			log.Printf("Cluster ALARMS:: command 0x%02x payload %q \n", message.ZclFrame.Command, message.ZclFrame.Payload)
+			//			log.Printf("Cluster ALARMS:: command 0x%02x payload %q \n", message.ZclFrame.Command, message.ZclFrame.Payload)
 		case zcl.TIME:
 			//fmt.Println("")
 			// Approximately 30 seconds pass with the Aqara relay, no useful information
-			log.Printf("Cluster TIME:: command 0x%02x \n\n", message.ZclFrame.Command)
+			//			log.Printf("Cluster TIME:: command 0x%02x \n\n", message.ZclFrame.Command)
 		} //switch
 	}
 	c.afterMessageAction(ed)
@@ -565,76 +610,76 @@ func (c *Controller) onAttributeReport(ed *zdo.EndDevice, ep zcl.Endpoint, clust
 
 	switch cluster {
 	case zcl.BASIC:
-		c := clusters.BasicCluster{Ed: ed}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.BasicCluster{Ed: ed}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.POWER_CONFIGURATION:
-		c := clusters.PowerConfigurationCluster{Ed: ed}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.PowerConfigurationCluster{Ed: ed}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.IDENTIFY:
-		c := clusters.IdentifyCluster{Ed: ed}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.IdentifyCluster{Ed: ed}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.ON_OFF:
-		c := clusters.OnOffCluster{Ed: ed, MsgChan: c.motionMsgChan}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.OnOffCluster{Ed: ed, MsgChan: c.motionMsgChan}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.ANALOG_INPUT:
-		c := clusters.AnalogInputCluster{Ed: ed}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.AnalogInputCluster{Ed: ed}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.MULTISTATE_INPUT:
-		c := clusters.MultistateInputCluster{}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.MultistateInputCluster{}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.XIAOMI_SWITCH:
-		c := clusters.XiaomiCluster{Ed: ed}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.XiaomiCluster{Ed: ed}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.SIMPLE_METERING:
-		c := clusters.SimpleMeteringCluster{Ed: ed}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.SimpleMeteringCluster{Ed: ed}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.ELECTRICAL_MEASUREMENTS:
-		c := clusters.ElectricalMeasurementCluster{Ed: ed}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.ElectricalMeasurementCluster{Ed: ed, ChargerChan: c.chargerChan}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.TUYA_ELECTRICIAN_PRIVATE_CLUSTER:
-		c := clusters.TuyaCluster{}
-		c.HandlerAttributes1(ep, attributes)
+		cl := clusters.TuyaCluster{}
+		cl.HandlerAttributes1(ep, attributes)
 
 	case zcl.TUYA_SWITCH_MODE_0:
-		c := clusters.TuyaCluster{}
-		c.HandlerAttributes2(ep, attributes)
+		cl := clusters.TuyaCluster{}
+		cl.HandlerAttributes2(ep, attributes)
 
 	case zcl.IAS_ZONE:
-		c := clusters.IasZoneCluster{}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.IasZoneCluster{}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.ALARMS:
-		c := clusters.AlarmsCluster{}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.AlarmsCluster{}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.POLL_CONTROL:
-		c := clusters.PollControlCluster{}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.PollControlCluster{}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.LIGHT_LINK:
-		c := clusters.LightLinkCluster{}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.LightLinkCluster{}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.IKEA_BUTTON:
-		c := clusters.IkeaCluster{}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.IkeaCluster{}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.GROUPS:
-		c := clusters.GroupsCluster{}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.GroupsCluster{}
+		cl.HandlerAttributes(ep, attributes)
 
 	case zcl.TIME:
-		c := clusters.TimeCluster{}
-		c.HandlerAttributes(ep, attributes)
+		cl := clusters.TimeCluster{}
+		cl.HandlerAttributes(ep, attributes)
 
 	default: // unattended clusters
 
@@ -647,32 +692,62 @@ func (c *Controller) onAttributeReport(ed *zdo.EndDevice, ep zcl.Endpoint, clust
 
 }
 
+// call every 30 sec - SmartPlugs
 func (c *Controller) getSmartPlugParams() {
-	ed := c.getDeviceByMac(0x70b3d52b6001b4a4) // SmartPlug
-	if ed.ShortAddress == 0 {
+	//	ed := c.getDeviceByMac(zdo.PLUG_2_CHARGER) // SmartPlug charger
+	//	if ed == nil || ed.ShortAddress == 0 {
+	//		return
+	//	}
+
+	//	var idsAV []uint16 = []uint16{0x0505, 0x0508} // Voltage, Current, Energy- 0x050B
+	//	c.readAttribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
+
+	//	var idsAVSM []uint16 = []uint16{0x0000} // Power
+	//	c.readAttribute(ed.ShortAddress, zcl.SIMPLE_METERING, idsAVSM)
+
+	plugs := zdo.GetDevicesByType(uint8(10))
+	for _, di := range plugs {
+		ed := c.getDeviceByMac(di)
+		if ed.ShortAddress != 0 {
+			var idsAV []uint16 = []uint16{0x0505, 0x0508} // Voltage, Current, Energy- 0x050B
+			c.readAttribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
+
+			// if the state has not yet been received
+			if ed.GetCurrentState(1) != "On" && ed.GetCurrentState(1) != "Off" {
+				var idsAV []uint16 = []uint16{0x0000} // state On / Off
+				c.readAttribute(ed.ShortAddress, zcl.ON_OFF, idsAV)
+			}
+		}
+	}
+}
+
+// call every 30 sec - Relay check
+func (c *Controller) getCheckRelay() {
+	ed := c.getDeviceByMac(zdo.RELAY_7_KITCHEN) // Relay in kitchen
+	if ed == nil || ed.ShortAddress == 0 {
 		return
 	}
-	// request current,voltage and instant power for every 5 minutes
-	interval := float64(300)
-	if c.config.Mode == "test" {
-		interval = 30.0
-	}
-	diff := time.Since(c.smartPlugTS)
-	if diff.Seconds() > interval {
-		c.smartPlugTS = time.Now()
-		var idsAV []uint16 = []uint16{0x0505, 0x0508, 0x050B} // Voltage, Current, Energy
-		c.readAttribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
+	//	c.getPower(ed)
+	//	var idsAV []uint16 = []uint16{0x0505, 0x0508} // Voltage, Current
+	//	c.readAttribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
 
-		var idsAVSM []uint16 = []uint16{0x0000} // Power
-		c.readAttribute(ed.ShortAddress, zcl.SIMPLE_METERING, idsAVSM)
+}
 
+// call every 30 sec - Valves check
+func (c *Controller) getCheckValves() {
+
+	valves := zdo.GetDevicesByType(uint8(6))
+	for _, di := range valves {
+		ed := c.getDeviceByMac(di) // valves
+		if ed == nil || ed.ShortAddress == 0 {
+			continue
+		}
 		// if the state has not yet been received
-		if ed.Get_current_state(1) != "On" && ed.Get_current_state(1) != "Off" {
+		if ed.GetCurrentState(1) != "On" && ed.GetCurrentState(1) != "Off" {
 			var idsAV []uint16 = []uint16{0x0000} // state On / Off
 			c.readAttribute(ed.ShortAddress, zcl.ON_OFF, idsAV)
 		}
 	}
-
 }
 
 // action after any message (they happen quite often, I use them as a timer)
@@ -691,10 +766,11 @@ func (c *Controller) afterMessageAction(ed *zdo.EndDevice) {
 		c.switchOffWithList()
 		log.Printf("There is no one at home\n")
 		if c.config.WithTlg {
-			alarmMsg := "There is no one at home "
+			alarmMsg := "Никого нет дома 20 минут "
 			c.tlg.tlgMsgChan <- telega32.Message{ChatId: c.config.MyId, Msg: alarmMsg}
 		}
 	}
+
 }
 
 // make a request to read an attribute (attributes)
@@ -751,7 +827,7 @@ func (c *Controller) switchOffWithList() {
 
 	for _, macAddr := range zdo.OFF_LIST {
 		c.switchRelay(macAddr, 0, 1)
-		if macAddr == 0x00158d0009414d7e { // the relay in the kitchen has two channel
+		if macAddr == zdo.RELAY_7_KITCHEN { // the relay in the kitchen has two channel
 			c.switchRelay(macAddr, 0, 2)
 		}
 	}
@@ -832,8 +908,54 @@ func (c *Controller) setLastMotionSensorActivity(lastTime time.Time) {
 }
 func (c *Controller) getLastMotionSensorActivity() time.Time { return c.lastMotion }
 
-func (c *Controller) executeCmd(cmd string) {
-	log.Println("Execute cmd ", cmd)
+// Исполнение команд из СМС и от телеграм-бота
+// Ответ отправляем в СМС и в телеграм
+// Команды могут быть информационные - /balance и управляющие /cmnd
+func (c *Controller) executeCmd(cmnd string) {
+	log.Println("Execute cmd ", cmnd)
+	cmnd = strings.Trim(cmnd, " ")
+	if strings.HasPrefix(cmnd, "/cmnd") {
+		var cmd int
+		n, err := fmt.Sscanf(cmnd, "/cmnd %d", &cmd)
+		if n == 0 || err != nil || cmd < 400 || cmd > 499 {
+			return
+		}
+
+		switch cmd {
+		case 401: // Запрос баланса сим-карты (ответ придет позднее)
+			c.mdm.GetBalance()
+
+		case 412: // Запрос состояния датчиков протечек
+			state := c.checkWaterLeak()
+			c.mdm.SendSms(state)
+			c.tlg.tlgMsgChan <- telega32.Message{ChatId: c.config.MyId, Msg: state}
+
+		case 423: // Запрос состояния датчиков движения
+		}
+	} else if strings.HasPrefix(cmnd, "/balance") {
+		// Пришел ответ на запрос баланса, отправим СМС и в телеграм
+		cmnd = strings.Replace(cmnd, "/balance ", "", 1)
+		c.mdm.SendSms(cmnd)
+		c.tlg.tlgMsgChan <- telega32.Message{ChatId: c.config.MyId, Msg: cmnd}
+	}
+}
+
+// Верну состояние датчиков протечек, неопределенное состояние считается нормой - датчик не срабатывал
+func (c *Controller) checkWaterLeak() string {
+	leaks := zdo.GetDevicesByType(uint8(5))
+	result := "Water: "
+	for _, di := range leaks {
+		ed := c.getDeviceByMac(di)
+		if ed != nil && ed.ShortAddress != 0 {
+			state := ed.GetMotionState()
+			if state == 0 || state == -1 {
+				result += "Norma "
+			} else if state == 1 {
+				result += "Alarm "
+			}
+		}
+	}
+	return result
 }
 
 func Mapkey(m map[uint16]uint64, value uint64) (key uint16, ok bool) {

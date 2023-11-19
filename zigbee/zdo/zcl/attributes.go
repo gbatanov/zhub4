@@ -168,7 +168,7 @@ const (
 type Attribute struct {
 	Id       uint16
 	Value    []byte
-	dataType DataType
+	Datatype DataType
 	Size     uint16
 }
 
@@ -180,7 +180,7 @@ func ParseAttributesPayload(payload []byte, wStatus bool) []Attribute {
 	valid := true
 	maxI := uint16(len(payload))
 
-	for i < maxI {
+	for i < maxI-2 {
 		var attribute Attribute
 		valid = true
 
@@ -197,16 +197,16 @@ func ParseAttributesPayload(payload []byte, wStatus bool) []Attribute {
 				continue
 			}
 		}
-		attribute.dataType = DataType(payload[i])
+		attribute.Datatype = DataType(payload[i])
 		i++
 
-		if attribute.dataType == 0 || attribute.dataType == 0xff {
+		if attribute.Datatype == 0 || attribute.Datatype == 0xff {
 			return attributes
 		}
 
 		size := uint16(0) //in this var will be current attribute size
 
-		switch attribute.dataType {
+		switch attribute.Datatype {
 
 		case DataType_ARRAY, // the implementation is conditional, theoretically there can be nested objects
 			DataType_STRUCTURE,
@@ -217,14 +217,24 @@ func ParseAttributesPayload(payload []byte, wStatus bool) []Attribute {
 			hi := payload[i]
 			i++
 			size = UINT16_(lo, hi)
-			attribute.Value = payload[i : i+size]
+			if i+size <= maxI {
+				attribute.Value = payload[i : i+size]
+			} else {
+				valid = false
+			}
 			attribute.Size = size
 
 		case DataType_OCT_STRING,
 			DataType_CHARACTER_STRING:
 			size = uint16(payload[i])
 			i++
-			attribute.Value = payload[i : i+size]
+			if i+size <= maxI {
+				attribute.Value = payload[i : i+size]
+			} else {
+				valid = false
+				//				log.Printf("DataType_CHARACTER_STRING size %d payload %v ", size, payload[i:])
+			}
+
 			attribute.Size = size
 
 		case DataType_LONG_OCT_STRING,
@@ -377,7 +387,7 @@ func ParseAttributesPayload(payload []byte, wStatus bool) []Attribute {
 			attribute.Size = size
 
 		default:
-			log.Printf("Unknown attribute data type: 0x%02x for attribute 0x%04x\n", uint8(attribute.dataType), attribute.Id)
+			log.Printf("Unknown attribute data type: 0x%02x for attribute 0x%04x\n", uint8(attribute.Datatype), attribute.Id)
 			valid = false
 			return attributes
 		} // switch

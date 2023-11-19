@@ -1,12 +1,10 @@
 ## Zhub4
 
-<<<<<<< HEAD
 Golang version of my project home automation system on C++ (zhub2)
-=======
-Golang version of my project home automation system on C++
->>>>>>> 47cf57f8a36ded71a6f4bb08182c062a48b2ba1d
+
 
 Starting from version 0.5.34, the project is developed only for notebooks and desktop computers.
+Внимание! На сегодня версия не полностью рабочая! использовать только в ознакомительных целях!
 
 ##### Directories:
 - httpServer - HTTP server, web api to zigbee part
@@ -31,9 +29,6 @@ sudo zhub4
 - q Quit
 - j Permit join
 
-<<<<<<< HEAD
-<p>(c) GSB, George Batanov, 2022-2023<br>
-=======
-<p>George Batanov, 2022-2023<br>
->>>>>>> 47cf57f8a36ded71a6f4bb08182c062a48b2ba1d
+
+<p>Copyright(c) GSB, Georgii Batanov, 2022-2023<br>
 gbatanov@yandex.ru</p>

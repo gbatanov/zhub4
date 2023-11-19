@@ -15,9 +15,10 @@ import (
 )
 
 func init() {
-	fmt.Println("init in telega32")
+
 }
 
+// Сообщения снаружи боту
 type Message struct {
 	ChatId int64
 	Msg    string
@@ -25,18 +26,19 @@ type Message struct {
 
 // We inherit the bot to rewrite the function for receiving updates
 type Tlg32 struct {
-	botApi    *tgbotapi.BotAPI
-	mode      string
-	MyId      int64
-	botName   string
-	chatIds   []int64
-	Flag      bool
-	tokenPath string
-	token     string
-	MsgChan   chan Message
+	botApi          *tgbotapi.BotAPI
+	mode            string
+	MyId            int64
+	botName         string
+	chatIds         []int64
+	Flag            bool
+	tokenPath       string
+	token           string
+	MsgChan         chan Message
+	CmdToController chan string
 }
 
-func Tlg32Create(botName string, mode string, tokenPath string, myId int64, msgChan chan Message) *Tlg32 {
+func Tlg32Create(botName string, mode string, tokenPath string, myId int64, msgChan chan Message, cmdChan chan string) *Tlg32 {
 	bot := Tlg32{}
 	bot.mode = mode
 	bot.tokenPath = tokenPath
@@ -45,6 +47,7 @@ func Tlg32Create(botName string, mode string, tokenPath string, myId int64, msgC
 	bot.chatIds = append(bot.chatIds, myId)
 	bot.Flag = true
 	bot.MsgChan = msgChan
+	bot.CmdToController = cmdChan
 	return &bot
 }
 func (bot *Tlg32) get_token() error {
@@ -181,20 +184,20 @@ func (bot *Tlg32) handle_msg_in(msg string, chatId int64, firstName string) (str
 		return fmt.Sprintf("Привет, %s!", firstName), nil
 	}
 	if strings.Contains(msg, "/stop") {
-		bot.Flag = false
+		//		bot.Flag = false
 		return fmt.Sprintf("Good bye, %s!", firstName), nil
 	}
-
-	// "/lwreg" add in chatIds
-	if strings.Contains(msg, "/lwreg") {
-		bot.chatIds = append(bot.chatIds, chatId)
-		return "Ok", nil
-	}
-
+	/*
+		// "/lwreg" add in chatIds
+		if strings.Contains(msg, "/lwreg") {
+			bot.chatIds = append(bot.chatIds, chatId)
+			return "Ok", nil
+		}
+	*/
 	if found {
 
 		//"/lwunreg" remove from chatIds
-		if strings.Contains(msg, "/lwreg") {
+		if strings.Contains(msg, "/lwunreg") {
 			for i, acc := range bot.chatIds {
 				if acc == chatId {
 					copy(bot.chatIds[i:], bot.chatIds[i+1:])
@@ -217,28 +220,12 @@ func (bot *Tlg32) handle_msg_in(msg string, chatId int64, firstName string) (str
 
 // Пока жестко один пробел между параметрами команды
 func (bot *Tlg32) handle_command(msg string) string {
-	//	msg = strings.Replace(msg, "/cmnd ", "", 1)
-	var c1 uint8
-	var c uint8
-	n, err := fmt.Sscanf(msg, "/cmnd %d %c", &c1, &c)
-	fmt.Printf("%d: %d, %c \n", n, c1, c)
-
-	if err != nil || n < 2 {
-		return "Команда не выполнена"
+	cmnd := strings.Trim(msg, " ")
+	var cmd int
+	n, err := fmt.Sscanf(cmnd, "/cmnd %d", &cmd)
+	if n == 0 || err != nil || cmd < 400 || cmd > 499 {
+		return "Фиг вам!"
 	}
-	//	c := msg[2]
-	//	c1 := msg[0]
-	switch c {
-	case 'o': //
-		bot.do_command(c, c1)
-		return "Команда отправлена"
-	default:
-		return "Команда не выполнена"
-	}
-
-}
-
-// команда
-func (bot *Tlg32) do_command(c uint8, c1 uint8) {
-	fmt.Printf("command %c %d \n", c, c1)
+	bot.CmdToController <- cmnd
+	return "Ok"
 }
