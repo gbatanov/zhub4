@@ -72,7 +72,7 @@ func (a AnalogInputCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes 
 		value = -100.0
 		unit[0] = 0
 	}
-	/* // прихолит в репортах
+	/* // приходит в репортах
 	else if (a.Ed.GetDeviceType() == 11 || a.Ed.GetDeviceType() == 9 || a.Ed.GetDeviceType() == 10) && (value > -100.0) {
 		a.Ed.SetCurrent(float64(value / 100))
 	}*/
