@@ -23,7 +23,7 @@ import (
 	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.6.61"
+const Version string = "v0.6.62"
 
 func init() {
 	fmt.Println("Init in zhub")
@@ -90,7 +90,7 @@ func main() {
 				case 'q':
 					Flag = false
 				case 'j':
-					controller.GetZdo().PermitJoin(60 * time.Second)
+					controller.GetZdo().PermitJoin(120 * time.Second)
 				} //switch
 			}
 		} //for
