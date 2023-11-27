@@ -47,7 +47,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 		/*
 			//  on/off  light in coridor zdo.RELAY_4_CORIDOR_LIGHT
 			//  works in couple with custom2
-			custom2 := c.getDeviceByMac(0x00124b0014db2724)
+			custom2 := c.getDeviceByMac(zdo.MOTION_LIGHT_CORIDOR)
 			if custom2.ShortAddress > 0 {
 				lum = custom2.Get_luminocity()
 			}

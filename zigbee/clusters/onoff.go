@@ -40,7 +40,7 @@ func (o OnOffCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 				b_val = true
 			}
 			macAddress := o.Ed.Get_mac_address()
-			if macAddress == 0x00124b0014db2724 {
+			if macAddress == zdo.MOTION_LIGHT_CORIDOR {
 				// custom2 coridor
 				if endpoint.Number == 2 { // light sensor
 					//					log.Printf("Освещенность %d \n", u_val)
@@ -51,20 +51,20 @@ func (o OnOffCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 					msg := MotionMsg{Ed: o.Ed, Cmd: 1 - u_val}
 					o.MsgChan <- msg
 				}
-			} else if macAddress == 0x00124b0009451438 {
+			} else if macAddress == zdo.PRESENCE_1_KITCHEN {
 				// custom3 - kitchen
 				if endpoint.Number == 2 { // presence sensor - kitchen
 					//					log.Printf("Кухня: Присутствие %d \n", 1-u_val)
 					msg := MotionMsg{Ed: o.Ed, Cmd: 1 - u_val}
 					o.MsgChan <- msg
 				}
-			} else if macAddress == 0x0c4314fffe17d8a8 {
+			} else if macAddress == zdo.MOTION_IKEA {
 				// motion sensor IKEA
 				//				log.Printf("Датчик движения IKEA %d \n", u_val)
 				msg := MotionMsg{Ed: o.Ed, Cmd: u_val}
 				o.MsgChan <- msg
-			} else if macAddress == 0x00124b0007246963 {
-				// Custom3
+			} else if macAddress == zdo.MOTION_LIGHT_NURSERY {
+				// Custom3 Детская - Свет/Движение
 				if endpoint.Number == 2 { // light sensor(1 - high, 0 - low)
 					//					log.Printf("Custom3: Освещенность %d \n", u_val)
 					o.Ed.Set_luminocity(int8(u_val))

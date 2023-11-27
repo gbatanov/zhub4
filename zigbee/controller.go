@@ -606,7 +606,6 @@ func (c *Controller) messageHandler(command zdo.Command) {
 	c.afterMessageAction(ed)
 }
 func (c *Controller) onAttributeReport(ed *zdo.EndDevice, ep zcl.Endpoint, cluster zcl.Cluster, attributes []zcl.Attribute) {
-	//	zcl.HandlerAttributes(cluster, ep, attributes)
 
 	switch cluster {
 	case zcl.BASIC:
@@ -694,16 +693,6 @@ func (c *Controller) onAttributeReport(ed *zdo.EndDevice, ep zcl.Endpoint, clust
 
 // call every 30 sec - SmartPlugs
 func (c *Controller) getSmartPlugParams() {
-	//	ed := c.getDeviceByMac(zdo.PLUG_2_CHARGER) // SmartPlug charger
-	//	if ed == nil || ed.ShortAddress == 0 {
-	//		return
-	//	}
-
-	//	var idsAV []uint16 = []uint16{0x0505, 0x0508} // Voltage, Current, Energy- 0x050B
-	//	c.readAttribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
-
-	//	var idsAVSM []uint16 = []uint16{0x0000} // Power
-	//	c.readAttribute(ed.ShortAddress, zcl.SIMPLE_METERING, idsAVSM)
 
 	plugs := zdo.GetDevicesByType(uint8(10))
 	for _, di := range plugs {
