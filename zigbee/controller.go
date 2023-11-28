@@ -69,7 +69,9 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 		tlg:                tlgBlock,
 		http:               httpBlock,
 		startTime:          time.Now(),
-		mdm:                mdm}
+		mdm:                mdm,
+		ikeaMotionChan:     make(chan uint8, 1),
+	}
 	return &controller, nil
 
 }
@@ -191,7 +193,8 @@ func (c *Controller) StartNetwork() error {
 	}
 
 	c.createDevicesByMap()
-
+	// Старт таймера датчика движения Ikea
+	c.IkeaMotionTimer()
 	// permit join during 1 minute
 	c.GetZdo().PermitJoin(60 * time.Second)
 
@@ -248,6 +251,7 @@ func (c *Controller) Stop() {
 		defer c.mdm.Stop()
 	}
 	// release channels
+	close(c.ikeaMotionChan)
 	c.msgChan <- *zdo.NewCommand(0)
 	c.chargerChan <- clusters.MotionMsg{Ed: &zdo.EndDevice{}, Cmd: 2}
 	c.motionMsgChan <- clusters.MotionMsg{Ed: &zdo.EndDevice{}, Cmd: 2}

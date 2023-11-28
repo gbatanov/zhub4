@@ -364,41 +364,21 @@ func (ed *EndDevice) SetCurrentState(state string, channel uint8) {
 func (ed EndDevice) GetCurrentState(channel uint8) string {
 
 	if channel == 1 {
-		return ed.state
+		if ed.MacAddress == RELAY_2_WASH {
+			if ed.state == "On" {
+				return "Off"
+			}
+			if ed.state == "Off" {
+				return "On"
+			}
+		} else {
+			return ed.state
+		}
 	} else if channel == 2 {
 		return ed.state2
 	}
 	return "Unknown"
-	/*
-			state = ""
-		    if ed.GetMotionState() == 1    {
-		        state = state + "Motion"
-		    }else if ed.GetMotionState() == 0 {
-				state = state +"No motion"
 
-			}
-		    if ed.Get_luminocity() == 1    {
-		        state = state +  "Light"
-		    }else if ed.Get_luminocity() == 0    {
-				state = state +  "Dark"
-			}
-		    if (state.size() > 0)
-		        return state;
-		    if (channel == 2)
-		        state = state2_;
-		    else
-		        state = state_;
-		    if (IEEEAddress_ == 0x54ef441000193352)
-		    {
-		        // инвертируем On -> Off
-		        if (state.find("On") != std::string::npos)
-		            gsbstring::replace_first(state, "On", "Off");
-		        else if (state.find("Off") != std::string::npos)
-		            gsbstring::replace_first(state, "Off", "On");
-		    }
-
-		    return state;
-	*/
 }
 func (ed EndDevice) GetMotionState() int8 {
 	return ed.motionState

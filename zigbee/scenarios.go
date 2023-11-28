@@ -110,39 +110,64 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 	} else if macAddress == 0x00124b002444d159 {
 		// motion sensor 3, coridor
 		if cmd == 1 {
-			fmt.Println("Motion3 On")
+			log.Println("Motion3 On")
 		} else {
-			fmt.Println("Motion3 Off")
+			log.Println("Motion3 Off")
 		}
 	} else if macAddress == 0x00124b0024455048 {
 		// motion sensor 2 (bedroom)
 		if cmd == 1 {
-			fmt.Println("Motion2 On")
+			log.Println("Motion2 On")
 		} else {
-			fmt.Println("Motion2 Off")
+			log.Println("Motion2 Off")
 		}
-	} else if macAddress == 0x0c4314fffe17d8a8 {
+	} else if macAddress == zdo.MOTION_IKEA {
 		// IKEA motion sensor
 		if cmd == 1 {
-			fmt.Println("IKEA motion sensor On")
+			log.Println("IKEA motion sensor On")
+			// switch off by timer
+			c.ikeaMotionChan <- cmd
+
 		} else {
-			fmt.Println("IKEA motion sensor Off")
+			log.Println("IKEA motion sensor Off")
 		}
-		fmt.Println("")
-		// switch off by timer (in test variant)
-		if cmd == 1 {
-			go func() {
-				time.Sleep(30 * time.Second)
-				c.handleMotion(ed, 0)
-			}()
-		}
-	} else if macAddress == 0x00124b0007246963 {
+
+	} else if macAddress == zdo.MOTION_LIGHT_NURSERY {
 		// motion sensor in Custom3(children room)
 		if cmd == 1 {
-			fmt.Println("Motion sensor in Custom3(children room) On")
+			log.Println("Motion sensor in Custom3(children room) On")
 		} else {
-			fmt.Println("Motion sensor in Custom3(children room) Off")
+			log.Println("Motion sensor in Custom3(children room) Off")
 		}
+	}
+}
+func (c *Controller) IkeaMotionTimer() {
+	ed := c.getDeviceByMac(zdo.MOTION_IKEA)
+	if ed.ShortAddress != 0 {
+
+		var timer1 *time.Timer = &time.Timer{}
+		go func() {
+			for {
+				select {
+				case state, ok := <-c.ikeaMotionChan:
+					if !ok {
+						// channel was closed
+						log.Println("Ikea motion channel was closed")
+						return
+					}
+					if state == 1 {
+						// Запускаем таймер на 3 минуты
+						timer1 = time.NewTimer(180 * time.Second)
+						log.Println("Ikea motion timer start")
+					}
+
+				case <-timer1.C:
+					// таймер сработал
+					log.Println("Ikea motion timer signal")
+					c.handleMotion(ed, 0)
+				}
+			}
+		}()
 	}
 }
 
@@ -236,25 +261,26 @@ func (c *Controller) level_command(ed *zdo.EndDevice, message zdo.Message) {
 // when the executive relay is turned on, the contactor turns off
 func (c *Controller) iasZoneCommand(cmnd uint8, shortAddr uint16) {
 	executiveDevices := [3]uint64{
-		0xa4c138d9758e1dcd,
-		0xa4c138373e89d731,
-		0x54ef441000193352}
+		zdo.VALVE_HOT_WATER,
+		zdo.VALVE_COLD_WATER,
+		zdo.RELAY_2_WASH}
 
 	cmd := cmnd // automatically turn off only
 	// enable/switch command is used only via web api
 	if shortAddr > 0 {
 		// one device, command via web api
-		dev, res := Mapkey(c.devicessAddressMap, 0x54ef441000193352) // washing machine contactor relay
+		dev, res := Mapkey(c.devicessAddressMap, zdo.RELAY_2_WASH) // washing machine contactor relay
 		if res && dev == shortAddr {
 			cmd = 1 - cmnd
 		}
+
 		c.sendCommandToOnoffDevice(shortAddr, cmd, 1)
 		log.Printf("Close device 0x%04x\n", shortAddr)
 	} else {
 		// all executive devices
 		for _, macAddress := range executiveDevices {
 			cmd1 := cmd
-			if macAddress == 0x54ef441000193352 {
+			if macAddress == zdo.RELAY_2_WASH {
 				cmd1 = 1 - cmd
 			}
 			_, res := Mapkey(c.devicessAddressMap, macAddress)
@@ -308,11 +334,11 @@ func (c *Controller) handleSonoffDoor(ed *zdo.EndDevice, cmd uint8) {
 		// turn off at any time (to cancel manual turn on)
 		// enable/disable the relay 0x54ef4410005b2639 - light relay "Toilet occupied"
 		if cmd == 0x01 {
-			c.switchRelay(0x54ef4410005b2639, 0, 1)
+			c.switchRelay(zdo.RELAY_5_TOILET, 0, 1)
 		} else if cmd == 0 {
 			h, _, _ := time.Now().Clock()
 			if h > 7 && h < 23 {
-				c.switchRelay(0x54ef4410005b2639, 1, 1)
+				c.switchRelay(zdo.RELAY_5_TOILET, 1, 1)
 			}
 		}
 	}
@@ -321,11 +347,11 @@ func (c *Controller) handleSonoffDoor(ed *zdo.EndDevice, cmd uint8) {
 // IKEA button on/off action only
 func (c *Controller) ikea_button_action(cmd uint8) {
 	if cmd == 1 {
-		fmt.Println("IKEA button on action")
+		log.Println("IKEA button on action")
 	} else {
-		fmt.Println("IKEA button off action")
+		log.Println("IKEA button off action")
 	}
-	fmt.Println("")
+
 }
 
 func (c *Controller) ringer() {

@@ -72,6 +72,7 @@ type Controller struct {
 	http               HttpBlock
 	startTime          time.Time
 	mdm                *modem.GsmModem
+	ikeaMotionChan     chan uint8
 }
 type WebDeviceInfo struct {
 	ShortAddr string
