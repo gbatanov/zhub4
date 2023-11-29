@@ -96,17 +96,18 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 				c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 0, 1)
 			}
 		}
-	} else if macAddress == 0x00124b0009451438 {
+	} else if macAddress == zdo.PRESENCE_1_KITCHEN {
 		relay := c.getDeviceByMac(0x00158d0009414d7e)
 		relayCurrentState := relay.GetCurrentState(1)
 		// presence sensor 1, on/off light in kitchen - relay 7 endpoint 1
 		if cmd == 1 && relayCurrentState != "On" {
 			log.Printf("Turn on light in kitchen")
 			c.switchRelay(0x00158d0009414d7e, 1, 1)
-		} else if cmd == 0 && relayCurrentState != "Off" {
+			c.kitchenPresenceChan <- 1
+		} /*else if cmd == 0 && relayCurrentState != "Off" {
 			log.Printf("Turn off light in kitchen")
 			c.switchRelay(0x00158d0009414d7e, 0, 1)
-		}
+		}*/
 	} else if macAddress == 0x00124b002444d159 {
 		// motion sensor 3, coridor
 		if cmd == 1 {
@@ -127,7 +128,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 			log.Println("IKEA motion sensor On")
 			// switch off by timer
 			c.ikeaMotionChan <- cmd
-
+			c.switchRelay(zdo.RELAY_1, 1, 1)
 		} else {
 			log.Println("IKEA motion sensor Off")
 		}
@@ -141,6 +142,8 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 		}
 	}
 }
+
+// таймер выключения по датчику движения Ikea
 func (c *Controller) IkeaMotionTimer() {
 	ed := c.getDeviceByMac(zdo.MOTION_IKEA)
 	if ed.ShortAddress != 0 {
@@ -164,7 +167,39 @@ func (c *Controller) IkeaMotionTimer() {
 				case <-timer1.C:
 					// таймер сработал
 					log.Println("Ikea motion timer signal")
-					c.handleMotion(ed, 0)
+					c.handleMotion(ed, 0) // датчик Икеа сам не подает сигнал выключения
+					c.switchRelay(zdo.RELAY_1, 0, 1)
+				}
+			}
+		}()
+	}
+}
+
+// таймер выключения по датчику присутствия на кухне
+func (c *Controller) KitchenPresenceTimer() {
+	ed := c.getDeviceByMac(zdo.PRESENCE_1_KITCHEN)
+	if ed.ShortAddress != 0 {
+
+		var timer1 *time.Timer = &time.Timer{}
+		go func() {
+			for {
+				select {
+				case state, ok := <-c.kitchenPresenceChan:
+					if !ok {
+						// channel was closed
+						log.Println("kitchen presence channel was closed")
+						return
+					}
+					if state == 1 {
+						// Запускаем таймер на 3 минуты
+						timer1 = time.NewTimer(180 * time.Second)
+						log.Println("kitchen presence timer start")
+					}
+
+				case <-timer1.C:
+					// таймер сработал
+					log.Println("kitchen presence timer signal")
+					c.switchRelay(zdo.RELAY_7_KITCHEN, 0, 1)
 				}
 			}
 		}()

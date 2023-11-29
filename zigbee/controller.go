@@ -53,24 +53,25 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 	httpBlock.withHttp = true
 
 	controller := Controller{
-		zdobj:              zdoo,
-		config:             config,
-		devices:            map[uint64]*zdo.EndDevice{},
-		devicessAddressMap: map[uint16]uint64{},
-		flag:               true,
-		chargerChan:        chn4,
-		msgChan:            chn1,
-		joinChan:           chn2,
-		motionMsgChan:      chn3,
-		lastMotion:         time.Now(),
-		smartPlugTS:        ts,
-		switchOffTS:        false,
-		mapFileMutex:       sync.Mutex{},
-		tlg:                tlgBlock,
-		http:               httpBlock,
-		startTime:          time.Now(),
-		mdm:                mdm,
-		ikeaMotionChan:     make(chan uint8, 1),
+		zdobj:               zdoo,
+		config:              config,
+		devices:             map[uint64]*zdo.EndDevice{},
+		devicessAddressMap:  map[uint16]uint64{},
+		flag:                true,
+		chargerChan:         chn4,
+		msgChan:             chn1,
+		joinChan:            chn2,
+		motionMsgChan:       chn3,
+		lastMotion:          time.Now(),
+		smartPlugTS:         ts,
+		switchOffTS:         false,
+		mapFileMutex:        sync.Mutex{},
+		tlg:                 tlgBlock,
+		http:                httpBlock,
+		startTime:           time.Now(),
+		mdm:                 mdm,
+		ikeaMotionChan:      make(chan uint8, 1),
+		kitchenPresenceChan: make(chan uint8, 1),
 	}
 	return &controller, nil
 
@@ -195,6 +196,8 @@ func (c *Controller) StartNetwork() error {
 	c.createDevicesByMap()
 	// Старт таймера датчика движения Ikea
 	c.IkeaMotionTimer()
+	// Старт таймера датчика присутствия на кухне
+	c.KitchenPresenceTimer()
 	// permit join during 1 minute
 	c.GetZdo().PermitJoin(60 * time.Second)
 
@@ -252,6 +255,7 @@ func (c *Controller) Stop() {
 	}
 	// release channels
 	close(c.ikeaMotionChan)
+	close(c.kitchenPresenceChan)
 	c.msgChan <- *zdo.NewCommand(0)
 	c.chargerChan <- clusters.MotionMsg{Ed: &zdo.EndDevice{}, Cmd: 2}
 	c.motionMsgChan <- clusters.MotionMsg{Ed: &zdo.EndDevice{}, Cmd: 2}
