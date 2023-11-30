@@ -103,11 +103,12 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 		if cmd == 1 && relayCurrentState != "On" {
 			log.Printf("Turn on light in kitchen")
 			c.switchRelay(0x00158d0009414d7e, 1, 1)
-			c.kitchenPresenceChan <- 1
+
 		} /*else if cmd == 0 && relayCurrentState != "Off" {
 			log.Printf("Turn off light in kitchen")
 			c.switchRelay(0x00158d0009414d7e, 0, 1)
 		}*/
+		c.kitchenPresenceChan <- cmd
 	} else if macAddress == 0x00124b002444d159 {
 		// motion sensor 3, coridor
 		if cmd == 1 {
@@ -182,6 +183,7 @@ func (c *Controller) KitchenPresenceTimer() {
 
 		var timer1 *time.Timer = &time.Timer{}
 		go func() {
+			started := false
 			for {
 				select {
 				case state, ok := <-c.kitchenPresenceChan:
@@ -191,9 +193,15 @@ func (c *Controller) KitchenPresenceTimer() {
 						return
 					}
 					if state == 1 {
+						log.Println("kitchen presence timer stop")
+						if started {
+							timer1.Stop()
+						}
+					} else if state == 0 {
 						// Запускаем таймер на 3 минуты
 						timer1 = time.NewTimer(180 * time.Second)
 						log.Println("kitchen presence timer start")
+						started = true
 					}
 
 				case <-timer1.C:
