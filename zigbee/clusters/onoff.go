@@ -6,6 +6,7 @@ Copyright (c) 2023 GSB, Georgii Batanov gbatanov @ yandex.ru
 package clusters
 
 import (
+	"log"
 	"time"
 
 	"github.com/gbatanov/zhub4/zigbee/zdo"
@@ -52,9 +53,9 @@ func (o OnOffCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 					o.MsgChan <- msg
 				}
 			} else if macAddress == zdo.PRESENCE_1_KITCHEN {
-				// custom3 - kitchen
+				// custom3 - kitchen сообщения идут каждую минуту
 				if endpoint.Number == 2 { // presence sensor - kitchen
-					//					log.Printf("Кухня: Присутствие %d \n", 1-u_val)
+					log.Printf("Кухня: Присутствие %d %d \n", 1-u_val, endpoint.Number)
 					msg := MotionMsg{Ed: o.Ed, Cmd: 1 - u_val}
 					o.MsgChan <- msg
 				}

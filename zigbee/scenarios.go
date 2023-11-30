@@ -196,12 +196,15 @@ func (c *Controller) KitchenPresenceTimer() {
 						log.Println("kitchen presence timer stop")
 						if started {
 							timer1.Stop()
+							started = false
 						}
-					} else if state == 0 {
-						// Запускаем таймер на 3 минуты
-						timer1 = time.NewTimer(180 * time.Second)
-						log.Println("kitchen presence timer start")
-						started = true
+					} else if state == 0 { // идут каждую минуту
+						// Запускаем таймер на 2 минуты
+						if !started {
+							timer1 = time.NewTimer(120 * time.Second)
+							log.Println("kitchen presence timer start")
+							started = true
+						}
 					}
 
 				case <-timer1.C:
