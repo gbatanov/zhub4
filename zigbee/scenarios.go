@@ -74,17 +74,17 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 		} else {
 			log.Println("Motion2 Off")
 		}
-	} else if macAddress == zdo.MOTION_IKEA {
-		// IKEA motion sensor
-		if cmd == 1 {
-			log.Println("IKEA motion sensor On")
-			// switch off by timer
-			c.ikeaMotionChan <- cmd
-			c.switchRelay(zdo.RELAY_1, 1, 1)
-		} else {
-			log.Println("IKEA motion sensor Off")
-		}
-
+		/*	} else if macAddress == zdo.MOTION_IKEA {
+			// IKEA motion sensor
+			if cmd == 1 {
+				log.Println("IKEA motion sensor On")
+				// switch off by timer
+				c.ikeaMotionChan <- cmd
+				c.switchRelay(zdo.RELAY_1, 1, 1)
+			} else {
+				log.Println("IKEA motion sensor Off")
+			}
+		*/
 	} else if macAddress == zdo.MOTION_LIGHT_NURSERY {
 		// motion sensor in Custom3(children room)
 		if cmd == 1 {
@@ -190,7 +190,7 @@ func (c *Controller) onOffCommand(ed *zdo.EndDevice, message zdo.Message) {
 			ed.SetCurrentState("Double click", 1)
 		case 2:
 			ed.SetCurrentState("Single click", 1)
-			c.switchRelay(zdo.PLUG_3_NURSERY_LIGHT, 1, 1)
+			//			c.switchRelay(zdo.PLUG_3_NURSERY_LIGHT, 1, 1)
 		} //switch
 	} else if macAddress == zdo.BUTTON_SONOFF_2 {
 		// button Sonoff 2 call ringer with double click
@@ -332,12 +332,13 @@ func (c *Controller) handleSonoffDoor(ed *zdo.EndDevice, cmd uint8) {
 
 // IKEA button on/off action only
 func (c *Controller) ikea_button_action(cmd uint8) {
-	if cmd == 1 {
-		c.switchRelay(zdo.PLUG_3_NURSERY_LIGHT, 1, 1)
-	} else {
-		c.switchRelay(zdo.PLUG_3_NURSERY_LIGHT, 0, 1)
-	}
-
+	/*
+		if cmd == 1 {
+			c.switchRelay(zdo.PLUG_3_NURSERY_LIGHT, 1, 1)
+		} else {
+			c.switchRelay(zdo.PLUG_3_NURSERY_LIGHT, 0, 1)
+		}
+	*/
 }
 
 func (c *Controller) ringer() {

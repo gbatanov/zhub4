@@ -46,7 +46,7 @@ func (eh *EventHandler) wait(id CommandId, timeout time.Duration) Command {
 	case cmd := <-event.Emit:
 		return cmd
 	case <-ticker.C:
-		log.Println("Wait timeout")
+		log.Println("Wait command timeout")
 		return *NewCommand(0)
 	}
 }
