@@ -55,23 +55,25 @@ type HttpBlock struct {
 }
 
 type Controller struct {
-	zdobj              *zdo.Zdo
-	config             *GlobalConfig
-	devices            map[uint64]*zdo.EndDevice
-	devicessAddressMap map[uint16]uint64
-	flag               bool
-	chargerChan        chan clusters.MotionMsg // channel for end charge indication
-	msgChan            chan zdo.Command        // chanel for receive incoming message command from zdo
-	joinChan           chan []byte             // chanel for receive command join device from zdo
-	motionMsgChan      chan clusters.MotionMsg // chanel for get message from motion sensors
-	lastMotion         time.Time               // last motion any motion sensor
-	smartPlugTS        time.Time               // timestamp for smart plug timer
-	switchOffTS        bool                    // flag for switch off timer
-	mapFileMutex       sync.Mutex
-	tlg                TlgBlock
-	http               HttpBlock
-	startTime          time.Time
-	mdm                *modem.GsmModem
+	zdobj               *zdo.Zdo
+	config              *GlobalConfig
+	devices             map[uint64]*zdo.EndDevice
+	devicessAddressMap  map[uint16]uint64
+	flag                bool
+	chargerChan         chan clusters.MotionMsg // channel for end charge indication
+	msgChan             chan zdo.Command        // chanel for receive incoming message command from zdo
+	joinChan            chan []byte             // chanel for receive command join device from zdo
+	motionMsgChan       chan clusters.MotionMsg // chanel for get message from motion sensors
+	lastMotion          time.Time               // last motion any motion sensor
+	smartPlugTS         time.Time               // timestamp for smart plug timer
+	switchOffTS         bool                    // flag for switch off timer
+	mapFileMutex        sync.Mutex
+	tlg                 TlgBlock
+	http                HttpBlock
+	startTime           time.Time
+	mdm                 *modem.GsmModem
+	ikeaMotionChan      chan uint8
+	kitchenPresenceChan chan uint8
 }
 type WebDeviceInfo struct {
 	ShortAddr string

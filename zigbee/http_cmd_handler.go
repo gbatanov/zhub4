@@ -31,9 +31,9 @@ func (c *Controller) formatDateTime(la time.Time) string {
 func (c *Controller) showDeviceStatuses() map[int]map[uint16]WebDeviceInfo {
 
 	var result map[int]map[uint16]WebDeviceInfo = make(map[int]map[uint16]WebDeviceInfo)
-	ClimatSensors := []uint64{0x00124b000b1bb401}
+	ClimatSensors := []uint64{zdo.CLIMAT_BALCON}
 	MotionSensors := zdo.GetDevicesByType(uint8(2)) // sonoff sensors
-	MotionSensors = append(MotionSensors, []uint64{0x00124b0007246963, 0x00124b0014db2724, 0x00124b0009451438, 0x0c4314fffe17d8a8}...)
+	MotionSensors = append(MotionSensors, []uint64{0x00124b0007246963, zdo.MOTION_LIGHT_CORIDOR, 0x00124b0009451438, 0x0c4314fffe17d8a8}...)
 	WaterSensors := zdo.GetDevicesByType(uint8(5))
 	WaterValves := zdo.GetDevicesByType(uint8(6))
 	DoorSensors := zdo.GetDevicesByType(uint8(3))
@@ -99,6 +99,15 @@ func (c *Controller) showOneType(ed *zdo.EndDevice) WebDeviceInfo {
 	if ed.GetDeviceType() == 11 {
 		wdi.State += "/" + ed.GetCurrentState(2)
 	}
+
+	if zdo.MOTION_LIGHT_NURSERY == ed.MacAddress {
+		if ed.Get_luminocity() == 1 {
+			wdi.State += "/Light"
+		} else if ed.Get_luminocity() == 0 {
+			wdi.State += "/Dark"
+		}
+	}
+
 	wdi.LQ = fmt.Sprintf("%d", ed.Get_linkquality())
 	if ed.Get_temperature() > -90 {
 		wdi.Tmp = fmt.Sprintf("%d", ed.Get_temperature())

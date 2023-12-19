@@ -53,23 +53,26 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 	httpBlock.withHttp = true
 
 	controller := Controller{
-		zdobj:              zdoo,
-		config:             config,
-		devices:            map[uint64]*zdo.EndDevice{},
-		devicessAddressMap: map[uint16]uint64{},
-		flag:               true,
-		chargerChan:        chn4,
-		msgChan:            chn1,
-		joinChan:           chn2,
-		motionMsgChan:      chn3,
-		lastMotion:         time.Now(),
-		smartPlugTS:        ts,
-		switchOffTS:        false,
-		mapFileMutex:       sync.Mutex{},
-		tlg:                tlgBlock,
-		http:               httpBlock,
-		startTime:          time.Now(),
-		mdm:                mdm}
+		zdobj:               zdoo,
+		config:              config,
+		devices:             map[uint64]*zdo.EndDevice{},
+		devicessAddressMap:  map[uint16]uint64{},
+		flag:                true,
+		chargerChan:         chn4,
+		msgChan:             chn1,
+		joinChan:            chn2,
+		motionMsgChan:       chn3,
+		lastMotion:          time.Now(),
+		smartPlugTS:         ts,
+		switchOffTS:         false,
+		mapFileMutex:        sync.Mutex{},
+		tlg:                 tlgBlock,
+		http:                httpBlock,
+		startTime:           time.Now(),
+		mdm:                 mdm,
+		ikeaMotionChan:      make(chan uint8, 1),
+		kitchenPresenceChan: make(chan uint8, 1),
+	}
 	return &controller, nil
 
 }
@@ -191,7 +194,10 @@ func (c *Controller) StartNetwork() error {
 	}
 
 	c.createDevicesByMap()
-
+	// Старт таймера датчика движения Ikea
+	c.IkeaMotionTimer()
+	// Старт таймера датчика присутствия на кухне
+	c.KitchenPresenceTimer()
 	// permit join during 1 minute
 	c.GetZdo().PermitJoin(60 * time.Second)
 
@@ -248,6 +254,8 @@ func (c *Controller) Stop() {
 		defer c.mdm.Stop()
 	}
 	// release channels
+	close(c.ikeaMotionChan)
+	close(c.kitchenPresenceChan)
 	c.msgChan <- *zdo.NewCommand(0)
 	c.chargerChan <- clusters.MotionMsg{Ed: &zdo.EndDevice{}, Cmd: 2}
 	c.motionMsgChan <- clusters.MotionMsg{Ed: &zdo.EndDevice{}, Cmd: 2}
@@ -606,7 +614,6 @@ func (c *Controller) messageHandler(command zdo.Command) {
 	c.afterMessageAction(ed)
 }
 func (c *Controller) onAttributeReport(ed *zdo.EndDevice, ep zcl.Endpoint, cluster zcl.Cluster, attributes []zcl.Attribute) {
-	//	zcl.HandlerAttributes(cluster, ep, attributes)
 
 	switch cluster {
 	case zcl.BASIC:
@@ -694,16 +701,6 @@ func (c *Controller) onAttributeReport(ed *zdo.EndDevice, ep zcl.Endpoint, clust
 
 // call every 30 sec - SmartPlugs
 func (c *Controller) getSmartPlugParams() {
-	//	ed := c.getDeviceByMac(zdo.PLUG_2_CHARGER) // SmartPlug charger
-	//	if ed == nil || ed.ShortAddress == 0 {
-	//		return
-	//	}
-
-	//	var idsAV []uint16 = []uint16{0x0505, 0x0508} // Voltage, Current, Energy- 0x050B
-	//	c.readAttribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
-
-	//	var idsAVSM []uint16 = []uint16{0x0000} // Power
-	//	c.readAttribute(ed.ShortAddress, zcl.SIMPLE_METERING, idsAVSM)
 
 	plugs := zdo.GetDevicesByType(uint8(10))
 	for _, di := range plugs {

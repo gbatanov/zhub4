@@ -94,7 +94,7 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	// датчики движения и/или освещения
 	MOTION_1_CORIDOR: {2, "Sonoff", "SNZB-03", "КоридорДвижение", "Датчик движения 1 (коридор)", zcl.PowerSource_BATTERY, 1, 0},
 	MOTION_2_ROOM:    {2, "Sonoff", "SNZB-03", "КомнатаДвижение", "Датчик движения 2 (комната)", zcl.PowerSource_BATTERY, 1, 0},
-	MOTION_3_CORIDOR: {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3(коридор) ", zcl.PowerSource_BATTERY, 1, 0},
+	//	MOTION_3_CORIDOR:     {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3(коридор) ", zcl.PowerSource_BATTERY, 1, 0},
 	MOTION_4_NURSERY: {2, "Sonoff", "SNZB-03", "ДетскаяДвижение4", "Датчик движения 4 (детская)", zcl.PowerSource_BATTERY, 1, 0},
 	//	MOTION_5_KITCHEN:     {2, "Sonoff", "SNZB-03", "КухняДвижение", "Датчик движения 5 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
 	PRESENCE_1_KITCHEN: {4, "Custom", "CC2530", "КухняПрисутствие", "Датчик присутствия 1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
@@ -107,7 +107,7 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	//	DOOR_3_BOX:    {3, "Sonoff", "SNZB-04", "ЯщикДатчик", "Датчик открытия 3 (ящик)", zcl.PowerSource_BATTERY, 1, 0},
 	// Кнопки
 	//	BUTTON_IKEA:     {7, "IKEA", "E1743", "КнопкаИкеа", "Кнопка ИКЕА", zcl.PowerSource_BATTERY, 1, 1},
-	//	BUTTON_SONOFF_1: {1, "Sonoff", "SNZB-01", "Кнопка1", "Кнопка Sonoff 1", zcl.PowerSource_BATTERY, 1, 0},
+	BUTTON_SONOFF_1: {1, "Sonoff", "SNZB-01", "Кнопка1", "Кнопка Sonoff 1", zcl.PowerSource_BATTERY, 1, 0},
 	BUTTON_SONOFF_2: {1, "Sonoff", "SNZB-01", "Кнопка2", "Кнопка Sonoff 2", zcl.PowerSource_BATTERY, 1, 0},
 	// Датчики климата
 	CLIMAT_BALCON: {4, "GSB", "CC2530", "КлиматБалкон", "Датчик климата (балкон)", zcl.PowerSource_BATTERY, 1, 0},
@@ -360,13 +360,25 @@ func (ed *EndDevice) SetCurrentState(state string, channel uint8) {
 		ed.state2 = state
 	}
 }
+
 func (ed EndDevice) GetCurrentState(channel uint8) string {
+
 	if channel == 1 {
-		return ed.state
+		if ed.MacAddress == RELAY_2_WASH {
+			if ed.state == "On" {
+				return "Off"
+			}
+			if ed.state == "Off" {
+				return "On"
+			}
+		} else {
+			return ed.state
+		}
 	} else if channel == 2 {
 		return ed.state2
 	}
 	return "Unknown"
+
 }
 func (ed EndDevice) GetMotionState() int8 {
 	return ed.motionState

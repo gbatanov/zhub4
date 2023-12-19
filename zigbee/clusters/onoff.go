@@ -40,40 +40,24 @@ func (o OnOffCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 				b_val = true
 			}
 			macAddress := o.Ed.Get_mac_address()
-			if macAddress == 0x00124b0014db2724 {
-				// custom2 coridor
-				if endpoint.Number == 2 { // light sensor
-					//					log.Printf("Освещенность %d \n", u_val)
-					o.Ed.Set_luminocity(int8(u_val))
-				}
-				if endpoint.Number == 6 { // motion sensor (1 - no motion, 0 - motion)
-					//					log.Printf("Прихожая: Движение %d \n", 1-u_val)
-					msg := MotionMsg{Ed: o.Ed, Cmd: 1 - u_val}
-					o.MsgChan <- msg
-				}
-			} else if macAddress == 0x00124b0009451438 {
-				// custom3 - kitchen
+			if macAddress == zdo.PRESENCE_1_KITCHEN {
+				// custom3 - kitchen сообщения идут каждую минуту
 				if endpoint.Number == 2 { // presence sensor - kitchen
-					//					log.Printf("Кухня: Присутствие %d \n", 1-u_val)
 					msg := MotionMsg{Ed: o.Ed, Cmd: 1 - u_val}
 					o.MsgChan <- msg
 				}
-			} else if macAddress == 0x0c4314fffe17d8a8 {
+			} else if macAddress == zdo.MOTION_IKEA {
 				// motion sensor IKEA
-				//				log.Printf("Датчик движения IKEA %d \n", u_val)
 				msg := MotionMsg{Ed: o.Ed, Cmd: u_val}
 				o.MsgChan <- msg
-			} else if macAddress == 0x00124b0007246963 {
-				// Custom3
+			} else if macAddress == zdo.MOTION_LIGHT_NURSERY {
+				// Custom3 Детская - Свет/Движение
 				if endpoint.Number == 2 { // light sensor(1 - high, 0 - low)
-					//					log.Printf("Custom3: Освещенность %d \n", u_val)
 					o.Ed.Set_luminocity(int8(u_val))
 				}
 				if endpoint.Number == 4 { // motion sensor (1 - no motion, 0 - motion)
-					//					log.Printf("Custom3: Движение %d \n", 1-u_val)
 					msg := MotionMsg{Ed: o.Ed, Cmd: 1 - u_val}
 					o.MsgChan <- msg
-
 				}
 			} else if o.Ed.GetDeviceType() == 10 { // SmartPlug
 				currentState := o.Ed.GetCurrentState(1)
@@ -81,7 +65,6 @@ func (o OnOffCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 				if b_val {
 					newState = "On"
 				}
-				//				log.Printf("SmartPlug %s \n", newState)
 				if newState != currentState {
 					ts := time.Now() // get time now
 					o.Ed.SetLastAction(ts)
@@ -94,7 +77,6 @@ func (o OnOffCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 				if b_val {
 					newState = "On"
 				}
-				//				log.Printf("Duochannel relay %s channel %d\n", newState, endpoint.Number)
 				if newState != currentState {
 					ts := time.Now() // get time now
 					o.Ed.SetLastAction(ts)

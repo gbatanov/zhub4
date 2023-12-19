@@ -49,6 +49,9 @@ func (ah *ActionHandler) cmdHandler(ctx *gin.Context) {
 		if err == nil {
 			ep, err := strconv.Atoi(eps)
 			if err == nil {
+				if macAddress == zdo.RELAY_2_WASH {
+					cmnd = 1 - cmnd
+				}
 				ah.con.switchRelay(macAddress, uint8(cmnd), uint8(ep))
 				result += fmt.Sprintf("Cmd %d to device 0x%08x endpoint %d executed", cmnd, macAddress, ep)
 			}

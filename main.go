@@ -8,11 +8,11 @@ package main
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,21 +20,19 @@ import (
 	"time"
 
 	"github.com/gbatanov/zhub4/zigbee"
-	"github.com/matishsiao/goInfo"
 )
 
-const Version string = "v0.6.61"
+const Version string = "v0.6.70"
 
 func init() {
-	fmt.Println("Init in zhub")
+
 }
 
 func main() {
 	var err error
 	var Flag bool = true
 	config := zigbee.GlobalConfig{}
-	gi, _ := goInfo.GetInfo()
-	config.Os = gi.GoOS
+	config.Os = runtime.GOOS
 	rootDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err == nil {
 		config.ProgramDir = rootDir
@@ -90,7 +88,7 @@ func main() {
 				case 'q':
 					Flag = false
 				case 'j':
-					controller.GetZdo().PermitJoin(60 * time.Second)
+					controller.GetZdo().PermitJoin(120 * time.Second)
 				} //switch
 			}
 		} //for

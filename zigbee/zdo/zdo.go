@@ -431,11 +431,11 @@ func (zdo *Zdo) RegisterEndpointDescriptor(endpoint_descriptor Simple_descriptor
 func (zdo *Zdo) PermitJoin(duration time.Duration) error {
 
 	permitJoinRequest := New2(ZDO_MGMT_PERMIT_JOIN_REQ, 5)
-	permitJoinRequest.Payload[0] = 0x0F     // Destination address type : 0x02 - Address 16 bit, 0x0F - Broadcast.
-	permitJoinRequest.Payload[1] = 0xFC     // Specifies the network address of the destination device whose Permit Join information is to be modified.
-	permitJoinRequest.Payload[2] = 0xFF     // (address || 0xFFFC)
-	permitJoinRequest.Payload[3] = byte(60) //  duration.
-	permitJoinRequest.Payload[4] = 0x00     // Trust Center Significance (0).
+	permitJoinRequest.Payload[0] = 0x0F      // Destination address type : 0x02 - Address 16 bit, 0x0F - Broadcast.
+	permitJoinRequest.Payload[1] = 0xFC      // Specifies the network address of the destination device whose Permit Join information is to be modified.
+	permitJoinRequest.Payload[2] = 0xFF      // (address || 0xFFFC)
+	permitJoinRequest.Payload[3] = byte(120) //  duration.
+	permitJoinRequest.Payload[4] = 0x00      // Trust Center Significance (0).
 
 	return zdo.async_request(*permitJoinRequest, 3*time.Second)
 }
