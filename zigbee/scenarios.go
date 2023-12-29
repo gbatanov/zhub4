@@ -51,7 +51,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 			log.Printf("Motion sensor in coridor. Turn off light relay. \n")
 			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 0, 1)
 		}
-	} else if macAddress == zdo.PRESENCE_1_KITCHEN {
+	} else if macAddress == zdo.MOTION_5_KITCHEN { //zdo.PRESENCE_1_KITCHEN {
 		relay := c.getDeviceByMac(0x00158d0009414d7e)
 		relayCurrentState := relay.GetCurrentState(1)
 		// presence sensor 1, on/off light in kitchen - relay 7 endpoint 1
