@@ -1,13 +1,9 @@
 ## Zhub4
 
 Golang version of my project home automation system on C++ (zhub2)
-<<<<<<< HEAD
-=======
-
->>>>>>> master
 
 Starting from version 0.5.34, the project is developed only for notebooks and desktop computers.
-Внимание! На сегодня версия не полностью рабочая! использовать только в ознакомительных целях!
+Внимание! Использовать только в ознакомительных целях!
 
 ##### Directories:
 - httpServer - HTTP server, web api to zigbee part

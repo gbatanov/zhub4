@@ -204,6 +204,7 @@ func (c *Controller) StartNetwork() error {
 	// we will get SmurtPlug parameters  every 30 seconds
 	// and check valves state
 	// chek rely every 60 seconds
+	// Установка для блока действий по таймеру
 	go func() {
 		for c.flag {
 			time.Sleep(30 * time.Second)
@@ -699,6 +700,7 @@ func (c *Controller) onAttributeReport(ed *zdo.EndDevice, ep zcl.Endpoint, clust
 
 }
 
+// Блок действий по таймеру
 // call every 30 sec - SmartPlugs
 func (c *Controller) getSmartPlugParams() {
 
@@ -719,6 +721,9 @@ func (c *Controller) getSmartPlugParams() {
 }
 
 // call every 30 sec - Relay check
+// Также проверяем состояние датчиков движения, если есть активный
+// корректируем время последней активности, так как датчики Sonoff
+// дают сигнал только один раз при срабатывании
 func (c *Controller) getCheckRelay() {
 	ed := c.getDeviceByMac(zdo.RELAY_7_KITCHEN) // Relay in kitchen
 	if ed == nil || ed.ShortAddress == 0 {
@@ -727,7 +732,19 @@ func (c *Controller) getCheckRelay() {
 	//	c.getPower(ed)
 	//	var idsAV []uint16 = []uint16{0x0505, 0x0508} // Voltage, Current
 	//	c.readAttribute(ed.ShortAddress, zcl.ELECTRICAL_MEASUREMENTS, idsAV)
-
+	//  получить список датчиков движения
+	// перебрать в цикле до первого, у которого есть активность,
+	// скорректировать время последней активности
+	for _, md := range zdo.PROM_MOTION_LIST {
+		ed := c.getDeviceByMac(md)
+		if ed == nil || ed.ShortAddress == 0 {
+			continue
+		}
+		if 1 == ed.GetMotionState() {
+			c.setLastMotionSensorActivity(time.Now())
+			return
+		}
+	}
 }
 
 // call every 30 sec - Valves check
@@ -769,6 +786,9 @@ func (c *Controller) afterMessageAction(ed *zdo.EndDevice) {
 	}
 
 }
+
+// Конец блока действий по таймерам
+//
 
 // make a request to read an attribute (attributes)
 func (c *Controller) readAttribute(address uint16, cl zcl.Cluster, ids []uint16) error {
