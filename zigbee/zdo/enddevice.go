@@ -28,6 +28,7 @@ const PLUG_1 = uint64(0x70b3d52b6001b4a4)
 const PLUG_2_CHARGER = uint64(0x70b3d52b6001b5d9)
 const PLUG_3_NURSERY_LIGHT = uint64(0x70b3d52b60022ac9)
 const PLUG_4_SOLDER = uint64(0x70b3d52b60022cfd)
+const PLUG_5_PAVEL = uint64(0xa4c138a94e5b9388)
 
 const VALVE_HOT_WATER = uint64(0xa4c138d9758e1dcd)
 const VALVE_COLD_WATER = uint64(0xa4c138373e89d731)
@@ -87,7 +88,8 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	//	PLUG_1:               {10, "Girier", "TS011F", "Розетка1", "Розетка 1", zcl.PowerSource_SINGLE_PHASE, 1, 1},
 	PLUG_2_CHARGER:       {10, "Girier", "TS011F", "Розетка2", "Розетка 2(Зарядники)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	PLUG_3_NURSERY_LIGHT: {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Лампы в детской)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	//	PLUG_4_SOLDER:        {10, "Girier", "TS011F", "Розетка4", "Розетка 4(Паяльник)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	// PLUG_4_SOLDER:        {10, "Girier", "TS011F", "Розетка4", "Розетка 4(Паяльник)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	// PLUG_5_PAVEL: {10, "Aubess", "m000", "Розетка5", "Розетка 5(Пашина)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// краны
 	VALVE_HOT_WATER:  {6, "TUYA", "Valve", "КранГВ", "Кран1 ГВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	VALVE_COLD_WATER: {6, "TUYA", "Valve", "КранХВ", "Кран2 ХВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
