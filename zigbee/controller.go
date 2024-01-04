@@ -742,6 +742,7 @@ func (c *Controller) getCheckRelay() {
 		}
 		if 1 == ed.GetMotionState() {
 			c.setLastMotionSensorActivity(time.Now())
+			c.switchOffTS = false
 			return
 		}
 	}
