@@ -95,23 +95,24 @@ func (zdo *Zdo) Stop() {
 }
 
 // call sync request
-func (zdo *Zdo) sync_request(request Command, timeout time.Duration) Command {
+func (zdo *Zdo) sync_request(request Command, address uint16, timeout time.Duration) Command {
 
 	var id CommandId = CommandId((uint16(request.Id) | 0b0100000000000000)) // идентификатор синхронного ответа
-	zdo.eh.AddEvent(id)
+	zdo.eh.AddEvent(uint32(uint32(address)<<16 + uint32(id)))
 	buff := zdo.prepare_command(request)
 	err := zdo.Uart.Send_command_to_device(buff)
 	if err != nil {
 		return *NewCommand(0)
 	}
-	cmd := zdo.eh.wait(id, timeout)
+	cmd := zdo.eh.wait(uint32(uint32(address)<<16+uint32(id)), timeout)
 
 	return cmd
 }
 
 // async request. Answer will get in command handler
-func (zdo *Zdo) async_request(request Command, timeout time.Duration) error {
-	response := zdo.sync_request(request, timeout)
+func (zdo *Zdo) async_request(request Command, address uint16, timeout time.Duration) error {
+	timeout = 10 * time.Second
+	response := zdo.sync_request(request, address, timeout)
 	if uint16(response.Id) != 0 && response.Payload[0] == byte(zcl.SUCCESS) {
 		return nil
 	} else {
@@ -176,6 +177,9 @@ func (zdo *Zdo) parseCommand(BufRead []byte) ([]Command, bool) {
 		b := BufRead[i]
 		if b == serial3.SOF {
 			i++
+			if i >= len(BufRead) {
+				return []Command{}, true
+			}
 			payload_length := BufRead[i]
 			if payload_length > byte(len(BufRead)-5) {
 				return []Command{}, true
@@ -210,6 +214,7 @@ func (zdo *Zdo) parseCommand(BufRead []byte) ([]Command, bool) {
 			if BufRead[i] == command.Fcs() {
 				result = append(result, *command)
 			}
+
 		} //if
 	} //for
 	return result, false
@@ -220,7 +225,7 @@ func (zdo *Zdo) Reset() error {
 	var cmd Command = *NewCommand(0)
 
 	// wait initial hard reset
-	cmd = zdo.eh.wait(SYS_RESET_IND, 60*time.Second)
+	cmd = zdo.eh.wait(uint32(SYS_RESET_IND), 60*time.Second)
 
 	// write_nvram call sync request
 	startup_options := make([]byte, 1)
@@ -246,7 +251,7 @@ func (zdo *Zdo) Reset() error {
 	if err != nil {
 		return err
 	}
-	cmd = zdo.eh.wait(SYS_RESET_IND, 10*time.Second)
+	cmd = zdo.eh.wait(uint32(SYS_RESET_IND), 10*time.Second)
 	if cmd.Id == 0 {
 		return errors.New("bad reset")
 	}
@@ -271,7 +276,7 @@ func (zdo *Zdo) write_nvram(item zcl.NvItems, item_data []byte) error {
 		data[i+4] = e
 	}
 	write_nv_request.Set_data(data)
-	response := zdo.sync_request(*write_nv_request, 30*time.Second)
+	response := zdo.sync_request(*write_nv_request, 0, 30*time.Second)
 	//	 log.Printf("response- %q \n", response)
 	if response.Id != 0x0000 && response.Payload[0] == byte(zcl.SUCCESS) {
 		return nil
@@ -288,7 +293,7 @@ func (zdo *Zdo) read_nvram(item zcl.NvItems) []byte {
 	read_nv_request.Payload[1] = zcl.HIGHBYTE(uint16(item))
 	read_nv_request.Payload[2] = 0 // Number of bytes offset from the beginning or the NV value.
 
-	read_nv_response := zdo.sync_request(*read_nv_request, 10*time.Second)
+	read_nv_response := zdo.sync_request(*read_nv_request, 0, 10*time.Second)
 	if read_nv_response.Id != 0x0000 && read_nv_response.Payload[0] == byte(zcl.SUCCESS) {
 		return read_nv_response.Payload[2:]
 	} else {
@@ -361,7 +366,7 @@ func (zdo *Zdo) init_nvram(item zcl.NvItems, length uint16, item_data []byte) er
 	for i := 0; i < len(item_data); i++ {
 		init_nv_request.Payload[5+i] = item_data[i]
 	}
-	init_nv_response := zdo.sync_request(*init_nv_request, 3*time.Second)
+	init_nv_response := zdo.sync_request(*init_nv_request, 0, 3*time.Second)
 	// 0x00 = Item already exists, no action taken
 	// 0x09 = Success, item created and initialized
 	// 0x0A = Initialization failed, item not created
@@ -378,13 +383,13 @@ func (zdo *Zdo) Startup(delay time.Duration) error {
 	startup_request.Payload[0] = zcl.LOWBYTE(uint16(delay))
 	startup_request.Payload[1] = zcl.HIGHBYTE(uint16(delay))
 
-	startup_response := zdo.sync_request(*startup_request, 3*time.Second)
+	startup_response := zdo.sync_request(*startup_request, 0, 3*time.Second)
 
 	if startup_response.Id == 0 || startup_response.Payload[0] == byte(zcl.NOT_STARTED) {
 		log.Println("startup error 1")
 		return errors.New("startup error 1")
 	}
-	device_info_response := zdo.sync_request(*NewCommand(UTIL_GET_DEVICE_INFO), 3*time.Second)
+	device_info_response := zdo.sync_request(*NewCommand(UTIL_GET_DEVICE_INFO), 0, 3*time.Second)
 	if device_info_response.Id != 0 && device_info_response.Payload[0] == byte(zcl.SUCCESS) {
 
 		zdo.macAddress = binary.LittleEndian.Uint64(device_info_response.Payload[1:10])
@@ -419,7 +424,7 @@ func (zdo *Zdo) RegisterEndpointDescriptor(endpoint_descriptor Simple_descriptor
 	register_ep_request.Payload[7] = 0 // input cluster size
 	register_ep_request.Payload[8] = 0 // output cluster size
 
-	response := zdo.sync_request(*register_ep_request, 10*time.Second)
+	response := zdo.sync_request(*register_ep_request, 0, 3*time.Second)
 	if response.Id != 0 && response.Payload[0] == byte(zcl.SUCCESS) {
 		return nil
 	} else {
@@ -437,7 +442,7 @@ func (zdo *Zdo) PermitJoin(duration time.Duration) error {
 	permitJoinRequest.Payload[3] = byte(120) //  duration.
 	permitJoinRequest.Payload[4] = 0x00      // Trust Center Significance (0).
 
-	return zdo.async_request(*permitJoinRequest, 3*time.Second)
+	return zdo.async_request(*permitJoinRequest, 0, 3*time.Second)
 }
 
 func (zdo *Zdo) ParseZclData(data []byte) zcl.Frame {
@@ -509,7 +514,7 @@ func (zdo *Zdo) SendMessage(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame) er
 	afDataRequest.Payload[9] = i                      // data length
 	afDataRequest.Payload = afDataRequest.Payload[:i] // cut superfluous
 
-	return zdo.async_request(*afDataRequest, 3*time.Second)
+	return zdo.async_request(*afDataRequest, message.Destination.Address, 5*time.Second)
 }
 
 // get endpoint list from device
@@ -519,7 +524,7 @@ func (zdo *Zdo) ActiveEndpoints(address uint16) error {
 	activeEndpointsRequest.Payload[1] = zcl.HIGHBYTE(address)
 	activeEndpointsRequest.Payload[2] = zcl.LOWBYTE(address)
 	activeEndpointsRequest.Payload[3] = zcl.HIGHBYTE(address)
-	return zdo.async_request(*activeEndpointsRequest, 3*time.Second)
+	return zdo.async_request(*activeEndpointsRequest, address, 3*time.Second)
 }
 
 // get endpoint descriptor from device
@@ -530,7 +535,7 @@ func (zdo *Zdo) Simple_descriptor(address uint16, endpointNumber uint8) error {
 	activeEndpointsRequest.Payload[2] = zcl.LOWBYTE(address)
 	activeEndpointsRequest.Payload[3] = zcl.HIGHBYTE(address)
 	activeEndpointsRequest.Payload[4] = endpointNumber
-	return zdo.async_request(*activeEndpointsRequest, 3*time.Second)
+	return zdo.async_request(*activeEndpointsRequest, address, 3*time.Second)
 
 }
 
@@ -557,7 +562,7 @@ func (zdo *Zdo) Bind(shortAddress uint16, macAddress uint64, endpoint uint8, clu
 	}
 	bindRequest.Payload = append(bindRequest.Payload, 1)
 
-	return zdo.async_request(*bindRequest, 3*time.Second)
+	return zdo.async_request(*bindRequest, shortAddress, 5*time.Second)
 }
 
 // handler the specific command
@@ -596,82 +601,84 @@ func (zdo *Zdo) handle_command(command Command) {
 			fmt.Printf("0x%02x ", command.Payload[i])
 		}
 		fmt.Println("")
+		/*
+			 TODO: тут стало падать на cc2538
+				if command.Payload[2] == byte(zcl.SUCCESS) {
+					shortAddr := zcl.UINT16_(command.Payload[0], command.Payload[1])
 
-		if command.Payload[2] == byte(zcl.SUCCESS) {
-			shortAddr := zcl.UINT16_(command.Payload[0], command.Payload[1])
+					ep_count := command.Payload[5]
+					var endpoints []byte = make([]byte, ep_count)
+					log.Printf("Zdo:: Device 0x%04x Endpoints count: %d list: ", shortAddr, ep_count)
+					for i := 0; i < int(ep_count); i++ { // Number of active endpoint in the list
+						endpoints[i] = command.Payload[6+i]
+						log.Printf("Query descriptor for endpoint %d \n", endpoints[i])
+						zdo.Simple_descriptor(shortAddr, endpoints[i])
 
-			ep_count := command.Payload[5]
-			var endpoints []byte = make([]byte, ep_count)
-			log.Printf("Zdo:: Device 0x%04x Endpoints count: %d list: ", shortAddr, ep_count)
-			for i := 0; i < int(ep_count); i++ { // Number of active endpoint in the list
-				endpoints[i] = command.Payload[6+i]
-				log.Printf("Query descriptor for endpoint %d \n", endpoints[i])
-				zdo.Simple_descriptor(shortAddr, endpoints[i])
-
-			}
-			log.Println("")
-		}
-
+					}
+					log.Println("")
+				}
+		*/
 	case ZDO_SIMPLE_DESC_RSP: // 0x4584
-		len := command.Payload_size()
-		if len > 0 {
+		lenp := command.Payload_size()
+		if lenp > 0 {
 			// fmt.Println("zdo.handle_command::ZDO_SIMPLE_DESC_RSP:: Payload: ")
 			i := byte(0)
-			for len > 0 {
+			for lenp > 0 {
 				// fmt.Printf(" %02x ", command.Payload[i])
 				i++
-				len--
+				lenp--
 			}
 			// fmt.Println("")
 			if command.Payload[2] == byte(zcl.SUCCESS) {
 				shortAddr := zcl.UINT16_(command.Payload[0], command.Payload[1])
 
 				// descriptorLen := command.Payload[5] //
+				if len(command.Payload) > 3 {
 
-				descriptor := Simple_descriptor{}
-				descriptor.endpointNumber = uint16(command.Payload[6])                     // номер эндпойнта, для которого пришел дескриптор
-				descriptor.profileId = zcl.UINT16_(command.Payload[7], command.Payload[8]) // профиль эндпойнта
-				descriptor.deviceId = zcl.UINT16_(command.Payload[9], command.Payload[10]) // ID устройства
-				descriptor.deviceVersion = uint16(command.Payload[11])                     // Версия устройства
+					descriptor := Simple_descriptor{}
+					descriptor.endpointNumber = uint16(command.Payload[6])                     // номер эндпойнта, для которого пришел дескриптор
+					descriptor.profileId = zcl.UINT16_(command.Payload[7], command.Payload[8]) // профиль эндпойнта
+					descriptor.deviceId = zcl.UINT16_(command.Payload[9], command.Payload[10]) // ID устройства
+					descriptor.deviceVersion = uint16(command.Payload[11])                     // Версия устройства
 
-				//				log.Printf("ZDO_SIMPLE_DESC_RSP:: Device 0x%04x Descriptor length %d \n", shortAddr, descriptorLen)
-				log.Printf("ZDO_SIMPLE_DESC_RSP:: Device 0x%04x Endpoint %d ProfileId 0x%04x DeviceId 0x%04x \n", shortAddr, descriptor.endpointNumber, descriptor.profileId, descriptor.deviceId)
-				i := 12 // Index of number of input clusters/
+					//				log.Printf("ZDO_SIMPLE_DESC_RSP:: Device 0x%04x Descriptor length %d \n", shortAddr, descriptorLen)
+					log.Printf("ZDO_SIMPLE_DESC_RSP:: Device 0x%04x Endpoint %d ProfileId 0x%04x DeviceId 0x%04x \n", shortAddr, descriptor.endpointNumber, descriptor.profileId, descriptor.deviceId)
+					i := 12 // Index of number of input clusters/
 
-				inputClustersNumber := command.Payload[i]
-				i++
-				log.Printf("ZDO_SIMPLE_DESC_RSP: Input Cluster count %d \n ", inputClustersNumber)
-				for inputClustersNumber > 0 {
-					descriptor.inputClusters = []uint16{}
-					p1 := command.Payload[i]
+					inputClustersNumber := command.Payload[i]
 					i++
-					p2 := command.Payload[i]
-					i++
-					fmt.Printf("ZDO_SIMPLE_DESC_RSP: Input Cluster %s 0x%04X \n", zcl.ClusterToString(zcl.Cluster(zcl.UINT16_(p1, p2))), zcl.UINT16_(p1, p2))
+					log.Printf("ZDO_SIMPLE_DESC_RSP: Input Cluster count %d \n ", inputClustersNumber)
+					for inputClustersNumber > 0 {
+						descriptor.inputClusters = []uint16{}
+						p1 := command.Payload[i]
+						i++
+						p2 := command.Payload[i]
+						i++
+						fmt.Printf("ZDO_SIMPLE_DESC_RSP: Input Cluster %s 0x%04X \n", zcl.ClusterToString(zcl.Cluster(zcl.UINT16_(p1, p2))), zcl.UINT16_(p1, p2))
 
-					descriptor.inputClusters = append(descriptor.inputClusters, zcl.UINT16_(p1, p2)) // List of input cluster Id's supported.
-					inputClustersNumber--
+						descriptor.inputClusters = append(descriptor.inputClusters, zcl.UINT16_(p1, p2)) // List of input cluster Id's supported.
+						inputClustersNumber--
+					}
+					fmt.Println("")
+					outputClustersNumber := command.Payload[i]
+					i++
+					log.Printf("ZDO_SIMPLE_DESC_RSP: Output Cluster count %d \n ", outputClustersNumber)
+					for outputClustersNumber > 0 {
+
+						p1 := command.Payload[i]
+						i++
+						p2 := command.Payload[i]
+						i++
+
+						fmt.Printf("ZDO_SIMPLE_DESC_RSP: Output Cluster %s 0x%04X \n", zcl.ClusterToString(zcl.Cluster(zcl.UINT16_(p1, p2))), zcl.UINT16_(p1, p2))
+
+						descriptor.outputClusters = append(descriptor.outputClusters, zcl.UINT16_(p1, p2)) // List of output cluster Id's supported.
+						outputClustersNumber--
+					}
+					fmt.Println("")
 				}
-				fmt.Println("")
-				outputClustersNumber := command.Payload[i]
-				i++
-				log.Printf("ZDO_SIMPLE_DESC_RSP: Output Cluster count %d \n ", outputClustersNumber)
-				for outputClustersNumber > 0 {
-
-					p1 := command.Payload[i]
-					i++
-					p2 := command.Payload[i]
-					i++
-
-					fmt.Printf("ZDO_SIMPLE_DESC_RSP: Output Cluster %s 0x%04X \n", zcl.ClusterToString(zcl.Cluster(zcl.UINT16_(p1, p2))), zcl.UINT16_(p1, p2))
-
-					descriptor.outputClusters = append(descriptor.outputClusters, zcl.UINT16_(p1, p2)) // List of output cluster Id's supported.
-					outputClustersNumber--
-				}
-				fmt.Println("")
 			}
 		}
-
 		// unattended commands
 	case ZDO_TC_DEV_IND, // 0x45ca
 		ZDO_SRC_RTG_IND, // 0x45c4
@@ -681,9 +688,13 @@ func (zdo *Zdo) handle_command(command Command) {
 		}
 		// commands with mandatory event emitter
 	case SYS_RESET_IND: // 0x4180
-		zdo.eh.emit(command.Id, command)
+		zdo.eh.emit(uint32(command.Id), command)
 	default: // all sync commands and unknown commands
-		zdo.eh.emit(command.Id, command)
+		shortAddr := uint16(0)
+		if len(command.Payload) > 1 {
+			shortAddr = zcl.UINT16_(command.Payload[0], command.Payload[1])
+		}
+		zdo.eh.emit(uint32(shortAddr)<<16+uint32(command.Id), command)
 	}
 
 }

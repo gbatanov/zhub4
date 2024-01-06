@@ -194,7 +194,7 @@ func (c *Controller) onOffCommand(ed *zdo.EndDevice, message zdo.Message) {
 			}
 		case 2:
 			ed.SetCurrentState("Single click", 1)
-			//			c.switchRelay(zdo.PLUG_3_NURSERY_LIGHT, 1, 1)
+			//			c.switchRelay(zdo.RELAY_6_ROOM_LIGHT, 2, 1)
 		} //switch
 	} else if macAddress == zdo.BUTTON_SONOFF_2 {
 		// button Sonoff 2 call ringer with double click
@@ -211,8 +211,7 @@ func (c *Controller) onOffCommand(ed *zdo.EndDevice, message zdo.Message) {
 			}
 		case 2:
 			ed.SetCurrentState("Single click", 1)
-			// toogle relay 0x54ef441000609dcc
-			c.switchRelay(0x54ef441000609dcc, 2, 1)
+			c.switchRelay(zdo.RELAY_6_ROOM_LIGHT, 2, 1)
 		}
 	}
 }

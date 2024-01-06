@@ -473,7 +473,7 @@ func (c *Controller) getIdentifier(address uint16) {
 	frame.Payload = append(frame.Payload, zcl.LOWBYTE(id6))
 	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(id6))
 
-	c.GetZdo().SendMessage(endpoint, cl, frame)
+	go c.GetZdo().SendMessage(endpoint, cl, frame)
 }
 
 func (c *Controller) getDeviceByShortAddr(shortAddres uint16) *zdo.EndDevice {
@@ -506,6 +506,11 @@ func (c *Controller) messageHandler(command zdo.Command) {
 	message.Destination.Number = command.Payload[7]
 	message.LinkQuality = command.Payload[9]
 	length := command.Payload[16]
+	lenPayLoad := len(command.Payload)
+	if (17 + length) > byte(lenPayLoad) {
+		log.Printf("Len Payload: %d, endIndex=%d", lenPayLoad, 17+length)
+		return
+	}
 	message.ZclFrame = c.GetZdo().ParseZclData(command.Payload[17 : 17+length])
 
 	ed := c.getDeviceByShortAddr(message.Source.Address)
@@ -812,7 +817,8 @@ func (c *Controller) readAttribute(address uint16, cl zcl.Cluster, ids []uint16)
 		frame.Payload[0+i*2] = zcl.LOWBYTE(ids[i])
 		frame.Payload[1+i*2] = zcl.HIGHBYTE(ids[i])
 	}
-	return c.GetZdo().SendMessage(endpoint, cl, frame)
+	go c.GetZdo().SendMessage(endpoint, cl, frame)
+	return nil
 }
 
 // make a request to read power attributes
@@ -837,7 +843,7 @@ func (c *Controller) getPower(ed *zdo.EndDevice) {
 	frame.Payload = append(frame.Payload, zcl.LOWBYTE(uint16(zcl.PowerConfiguration_BATTERY_REMAIN)))   //  0x0021 Battery remain level, 0.5%, UINT8
 	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(uint16(zcl.PowerConfiguration_BATTERY_REMAIN)))  //
 
-	c.GetZdo().SendMessage(endpoint, cluster, frame)
+	go c.GetZdo().SendMessage(endpoint, cluster, frame)
 }
 
 // Turn off the relay according to the list with a long press on the buttons Sonoff1 Sonoff2
@@ -881,7 +887,7 @@ func (c *Controller) sendCommandToOnoffDevice(address uint16, cmd uint8, ep uint
 	frame.TransactionSequenceNumber = c.GetZdo().Generate_transaction_sequence_number()
 	frame.Command = cmd
 
-	c.GetZdo().SendMessage(endpoint, cluster, frame)
+	go c.GetZdo().SendMessage(endpoint, cluster, frame)
 }
 
 func (c *Controller) configureReporting(address uint16,
@@ -916,7 +922,8 @@ func (c *Controller) configureReporting(address uint16,
 	frame.Payload = append(frame.Payload, zcl.LOWBYTE(reportable_change))
 	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(reportable_change))
 
-	return c.GetZdo().SendMessage(endpoint, cluster, frame)
+	go c.GetZdo().SendMessage(endpoint, cluster, frame)
+	return nil
 }
 
 func (c *Controller) setLastMotionSensorActivity(lastTime time.Time) {
