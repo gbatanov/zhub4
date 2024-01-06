@@ -188,6 +188,10 @@ func (c *Controller) onOffCommand(ed *zdo.EndDevice, message zdo.Message) {
 			c.switchOffWithList()
 		case 1:
 			ed.SetCurrentState("Double click", 1)
+			c.ringer()
+			if c.config.WithTlg {
+				c.tlg.tlgMsgChan <- telega32.Message{ChatId: c.config.MyId, Msg: "Вызов с кнопки "}
+			}
 		case 2:
 			ed.SetCurrentState("Single click", 1)
 			//			c.switchRelay(zdo.PLUG_3_NURSERY_LIGHT, 1, 1)
