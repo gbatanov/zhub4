@@ -304,7 +304,7 @@ func (zdo *Zdo) ReadRfChannels() RF_Channels {
 	item_data := zdo.read_nvram(zcl.CHANNEL_LIST) // CHANNEL_LIST = 0x00000084 //channel bit mask. Little endian. Default is 0x00000800 for CH11;  Ex: value: [ 0x00, 0x00, 0x00, 0x04 ] for CH26, [ 0x00, 0x00, 0x20, 0x00 ] for CH15.
 	if len(item_data) == 4 {                      //CHANNEL_LIST = 0x00000800 CH11 0x00008000 CH15
 		var channelBitMask uint32 = binary.LittleEndian.Uint32(item_data)
-		log.Printf("rf.channels bitMask: 0x%08x \n", channelBitMask)
+		log.Printf("rf.channels read bitMask: 0x%08x \n", channelBitMask)
 		for i := 0; i < 32; i++ {
 			if (channelBitMask & uint32(1<<i)) != 0 {
 				rf.Channels = append(rf.Channels, uint8(i))
@@ -393,14 +393,14 @@ func (zdo *Zdo) Startup(delay time.Duration) error {
 		log.Printf("Configurator info: shortAddr: 0x%04x \n", zdo.ShortAddress)
 		log.Printf("Configurator info: Device Type: 0x%02x \n", device_info_response.Payload[11])
 		log.Printf("Configurator info: Device State: 0x%02x \n", device_info_response.Payload[12])
-		fmt.Printf("Configurator info: Associated devices count: %d \n", device_info_response.Payload[13])
+		log.Printf("Configurator info: Associated devices count: %d \n", device_info_response.Payload[13])
 		if device_info_response.Payload[13] > 0 {
 			for i := 0; i < int(device_info_response.Payload[13]); i++ {
-				fmt.Printf("0x%04x ", zcl.UINT16_(device_info_response.Payload[i+14], device_info_response.Payload[i+15]))
+				log.Printf("0x%04x ", zcl.UINT16_(device_info_response.Payload[i+14], device_info_response.Payload[i+15]))
 			}
-			fmt.Printf("\n")
+			log.Printf("\n")
 		}
-		fmt.Println("")
+		log.Println("")
 	} else {
 		return errors.New("startup error 2")
 	}

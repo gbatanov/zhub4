@@ -6,7 +6,6 @@ package serial3
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -25,8 +24,6 @@ type Uart struct {
 }
 
 func init() {
-	fmt.Println("Init in serial3")
-	// TODO: check availability serial port
 }
 
 func UartCreate(port string, os string) *Uart {
@@ -37,7 +34,7 @@ func UartCreate(port string, os string) *Uart {
 func (u *Uart) Open() error {
 	comport, err := u.openPort()
 	if err != nil {
-		log.Println("Error open port ", u.port)
+		log.Println("Error open com port ", u.port)
 		return err
 	}
 	u.Flag = true
