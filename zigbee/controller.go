@@ -505,8 +505,11 @@ func (c *Controller) messageHandler(command zdo.Command) {
 	message.Source.Number = command.Payload[6]
 	message.Destination.Number = command.Payload[7]
 	message.LinkQuality = command.Payload[9]
-	length := command.Payload[16]
 	lenPayLoad := len(command.Payload)
+	if lenPayLoad < 16 {
+		return
+	}
+	length := command.Payload[16]
 	if (17 + length) > byte(lenPayLoad) {
 		log.Printf("Len Payload: %d, endIndex=%d", lenPayLoad, 17+length)
 		return

@@ -1,6 +1,6 @@
 /*
 zhub4 - Система домашней автоматизации на Go
-Copyright (c) 2022-2023 GSB, Georgii Batanov gbatanov@yandex.ru
+Copyright (c) 2022-2024 GSB, Georgii Batanov gbatanov@yandex.ru
 MIT License
 */
 package zigbee
@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/foolin/goview"
@@ -34,6 +35,8 @@ func NewHttpServer(c *Controller) (*HttpServer, error) {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 
+	exec := os.Args[0]
+
 	// Используем Goview (Ginview - вариант для Gin)
 	var vConfig goview.Config = goview.Config{
 		Root:      "html/tpl",       //template root path
@@ -42,6 +45,9 @@ func NewHttpServer(c *Controller) (*HttpServer, error) {
 		//		Partials:  []string{"partials/head"}, //partial files
 		DisableCache: true, //if disable cache, auto reload template file for debug.
 		Delims:       goview.Delims{Left: "{{", Right: "}}"},
+	}
+	if exec == "/usr/local/bin/zhub4" {
+		vConfig.Root = "/usr/local/etc/zhub4/web/tpl"
 	}
 	router.HTMLRender = ginview.New(vConfig)
 	if c.config.Os == "windows" {

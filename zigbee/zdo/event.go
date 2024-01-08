@@ -1,6 +1,7 @@
 /*
 zhub4 - Система домашней автоматизации на Go
-Copyright (c) 2023 GSB, Georgii Batanov gbatanov @ yandex.ru
+Copyright (c) 2022-2024 GSB, Georgii Batanov gbatanov@yandex.ru
+MIT License
 */
 
 package zdo
@@ -24,23 +25,24 @@ var evMtx sync.Mutex
 
 func (eh *EventHandler) AddEvent(id uint32) {
 	evMtx.Lock()
-	eh.Events[id] = Event{Id: id, Emit: make(chan Command)}
+	eh.Events[id] = Event{Id: id & 0xffff, Emit: make(chan Command, 6)}
 	evMtx.Unlock()
 }
 
 func (eh *EventHandler) GetEvent(id uint32) *Event {
 	evMtx.Lock()
-	_, key := eh.Events[id]
+
+	_, key := eh.Events[id&0xffff]
 	if !key {
-		eh.Events[id] = Event{Id: id, Emit: make(chan Command)}
+		eh.Events[id] = Event{Id: id & 0xffff, Emit: make(chan Command, 6)}
 	}
-	val := eh.Events[id]
+	val := eh.Events[id&0xffff]
 	evMtx.Unlock()
 	return &val
 }
 
 func (eh *EventHandler) emit(id uint32, cmd Command) {
-	event := eh.GetEvent(id)
+	event := eh.GetEvent(id & 0xffff)
 
 	event.Emit <- cmd
 }
@@ -53,7 +55,7 @@ func (eh *EventHandler) wait(id uint32, timeout time.Duration) Command {
 	case cmd := <-event.Emit:
 		return cmd
 	case <-ticker.C:
-		log.Printf("Wait command 0x%08x timeout", id)
+		log.Printf("Wait command 0x%08x timeout", id&0xffff)
 		return *NewCommand(0)
 	}
 }

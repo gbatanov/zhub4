@@ -1,6 +1,6 @@
 /*
 zhub4 - Система домашней автоматизации на Go
-Copyright (c) 2022-2023 GSB, Georgii Batanov gbatanov@yandex.ru
+Copyright (c) 2022-2024 GSB, Georgii Batanov gbatanov@yandex.ru
 MIT License
 */
 package zdo
@@ -59,14 +59,10 @@ type Zdo struct {
 	tmpBuff                   []byte
 }
 
-func init() {
-	fmt.Println("Init in zigbee: zdo")
-}
-
 func ZdoCreate(port string, os string, chn chan Command, jchn chan []byte) (*Zdo, error) {
 	eh := Create_event_handler()
 	uart := serial3.UartCreate(port, os)
-	cmdinput := make(chan []byte, 256)
+	cmdinput := make(chan []byte, serial3.BUF_READ_SIZE)
 	err := uart.Open()
 	if err != nil {
 		return &Zdo{}, err
@@ -111,7 +107,6 @@ func (zdo *Zdo) sync_request(request Command, address uint16, timeout time.Durat
 
 // async request. Answer will get in command handler
 func (zdo *Zdo) async_request(request Command, address uint16, timeout time.Duration) error {
-	timeout = 10 * time.Second
 	response := zdo.sync_request(request, address, timeout)
 	if uint16(response.Id) != 0 && response.Payload[0] == byte(zcl.SUCCESS) {
 		return nil
@@ -130,7 +125,6 @@ func (zdo *Zdo) prepare_command(command Command) []byte {
 		buff[4+i] = command.Payload[i]
 	}
 	buff[command.Payload_size()+4] = command.Fcs()
-	//	 log.Printf("prepare command buff %02x ", buff)
 	return buff
 }
 
@@ -143,15 +137,15 @@ func (zdo *Zdo) InputCommand() {
 			if len(zdo.tmpBuff) > 0 {
 				command_src = append(zdo.tmpBuff, command_src...)
 			}
+			zdo.tmpBuff = []byte{}
 			commands, next := zdo.parseCommand(command_src)
-			if next {
-				zdo.tmpBuff = append(zdo.tmpBuff, command_src...)
-			} else {
+			if !next {
 				zdo.tmpBuff = []byte{}
-				for _, command := range commands {
-					go func(cmd Command) { zdo.handle_command(cmd) }(command)
-				}
 			}
+			for _, command := range commands {
+				go func(cmd Command) { zdo.handle_command(cmd) }(command)
+			}
+
 		}
 	}
 	zdo.Uart.Flag = false
@@ -161,44 +155,55 @@ func (zdo *Zdo) InputCommand() {
 func (zdo *Zdo) parseCommand(BufRead []byte) ([]Command, bool) {
 
 	if len(BufRead) < 5 {
+		//Добавим этот кусок к предыдущей части команды
+		zdo.tmpBuff = append(zdo.tmpBuff, BufRead...)
 		return []Command{}, true
 	}
 	var result []Command = make([]Command, 0)
 
 	if false {
 		fmt.Printf("parseCommand:: BufRead: len = %d , data: ", len(BufRead))
+		if len(BufRead) > 255 {
+			panic("Big buffer")
+		}
 		for i := 0; i < len(BufRead); i++ {
 			fmt.Printf("0x%02x ", BufRead[i])
 		}
 		fmt.Println("")
 	}
-
+	var SofStart int = 0
 	for i := 0; i < len(BufRead); i++ {
 		b := BufRead[i]
 		if b == serial3.SOF {
+			SofStart = i
 			i++
 			if i >= len(BufRead) {
-				return []Command{}, true
+				zdo.tmpBuff = append(zdo.tmpBuff, BufRead[SofStart:]...)
+				return result, true
 			}
 			payload_length := BufRead[i]
-			if payload_length > byte(len(BufRead)-5) {
-				return []Command{}, true
+			if int(payload_length) > int(len(BufRead)-5-SofStart) {
+				zdo.tmpBuff = append(zdo.tmpBuff, BufRead[SofStart:]...)
+				return result, true
 			}
 
 			i++
 			if i >= len(BufRead) {
-				return []Command{}, true
+				zdo.tmpBuff = append(zdo.tmpBuff, BufRead[SofStart:]...)
+				return result, true
 			}
 			cmd0 := BufRead[i]
 			i++
 			if i >= len(BufRead) {
-				return []Command{}, true
+				zdo.tmpBuff = append(zdo.tmpBuff, BufRead[SofStart:]...)
+				return result, true
 			}
 
 			cmd1 := BufRead[i]
 			i++
 			if i >= len(BufRead) {
-				return []Command{}, true
+				zdo.tmpBuff = append(zdo.tmpBuff, BufRead[SofStart:]...)
+				return result, true
 			}
 
 			// в команде сначала идет старший байт Cmd0, за ним младший Cmd1
@@ -209,10 +214,17 @@ func (zdo *Zdo) parseCommand(BufRead []byte) ([]Command, bool) {
 				command.Payload = append(command.Payload, BufRead[i])
 				i++
 			}
-			//			fmt.Println("")
 
-			if BufRead[i] == command.Fcs() {
+			fcs := command.Fcs()
+			if BufRead[i] == fcs {
+				// Есть готовая команда, добавляем ее в буфер команд
+				// Если исходный буфер еще не закончился, идем дальше
 				result = append(result, *command)
+				if (i + 1) >= len(BufRead) {
+					return result, false
+				}
+			} else {
+				log.Printf("Fcs:Buff 0x%02x:0x%02x\n", fcs, BufRead[i])
 			}
 
 		} //if
@@ -389,7 +401,7 @@ func (zdo *Zdo) Startup(delay time.Duration) error {
 		log.Println("startup error 1")
 		return errors.New("startup error 1")
 	}
-	device_info_response := zdo.sync_request(*NewCommand(UTIL_GET_DEVICE_INFO), 0, 3*time.Second)
+	device_info_response := zdo.sync_request(*NewCommand(UTIL_GET_DEVICE_INFO), 0, 10*time.Second)
 	if device_info_response.Id != 0 && device_info_response.Payload[0] == byte(zcl.SUCCESS) {
 
 		zdo.macAddress = binary.LittleEndian.Uint64(device_info_response.Payload[1:10])
@@ -689,12 +701,14 @@ func (zdo *Zdo) handle_command(command Command) {
 		// commands with mandatory event emitter
 	case SYS_RESET_IND: // 0x4180
 		zdo.eh.emit(uint32(command.Id), command)
+	case 0x6108:
+		zdo.eh.emit(uint32(0x6108), command)
+	case AF_DATA_REQUEST_SRSP: //     0x6401
+		zdo.eh.emit(uint32(0x6401), command)
+	case 0x6700:
+		zdo.eh.emit(uint32(0x6700), command)
 	default: // all sync commands and unknown commands
-		shortAddr := uint16(0)
-		if len(command.Payload) > 1 {
-			shortAddr = zcl.UINT16_(command.Payload[0], command.Payload[1])
-		}
-		zdo.eh.emit(uint32(shortAddr)<<16+uint32(command.Id), command)
+		zdo.eh.emit(uint32(command.Id), command)
 	}
 
 }

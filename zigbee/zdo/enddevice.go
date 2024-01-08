@@ -39,7 +39,7 @@ const MOTION_3_CORIDOR = uint64(0x00124b002444d159)
 const MOTION_4_NURSERY = uint64(0x00124b002a535b66)
 const MOTION_5_KITCHEN = uint64(0x00124b002a507fe2)
 const PRESENCE_1_KITCHEN = uint64(0x00124b0009451438)
-const MOTION_LIGHT_CORIDOR = uint64(0x00124b0014db2724)
+const MOTION_LIGHT_CORIDOR = uint64(0x00124b0005a58976)
 const MOTION_IKEA = uint64(0x0c4314fffe17d8a8)
 const MOTION_LIGHT_NURSERY = uint64(0x00124b0007246963)
 
@@ -82,7 +82,7 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	RELAY_3_CAB_LIGHT:     {9, "Aqara", "SSM-U01", "ШкафСвет", "Реле3(Шкаф, подсветка)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	RELAY_4_CORIDOR_LIGHT: {9, "Aqara", "SSM-U01", "КоридорСвет", "Реле4(Свет в коридоре)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	RELAY_5_TOILET:        {9, "Aqara", "SSM-U01", "ТулетЗанят", "Реле5(Туалет занят)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	RELAY_6_ROOM_LIGHT:    {9, "Aqara", "SSM-U01", "Реле6", "Реле6 (Свет комната)", zcl.PowerSource_SINGLE_PHASE, 1, 1},
+	RELAY_6_ROOM_LIGHT:    {9, "Aqara", "SSM-U01", "Реле6", "Реле6 (Свет комната)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	RELAY_7_KITCHEN:       {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// Умные розетки
 	PLUG_1:               {10, "Girier", "TS011F", "Розетка1", "Розетка 1", zcl.PowerSource_SINGLE_PHASE, 1, 1},
@@ -94,15 +94,15 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	VALVE_HOT_WATER:  {6, "TUYA", "Valve", "КранГВ", "Кран1 ГВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	VALVE_COLD_WATER: {6, "TUYA", "Valve", "КранХВ", "Кран2 ХВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// датчики движения и/или освещения
-	MOTION_1_CORIDOR: {2, "Sonoff", "SNZB-03", "КоридорДвижение", "Датчик движения 1 (коридор)", zcl.PowerSource_BATTERY, 1, 0},
-	MOTION_2_ROOM:    {2, "Sonoff", "SNZB-03", "КомнатаДвижение", "Датчик движения 2 (комната)", zcl.PowerSource_BATTERY, 1, 0},
-	MOTION_3_CORIDOR: {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3(коридор) ", zcl.PowerSource_BATTERY, 1, 0},
-	MOTION_4_NURSERY: {2, "Sonoff", "SNZB-03", "ДетскаяДвижение4", "Датчик движения 4 (детская)", zcl.PowerSource_BATTERY, 1, 0},
-	MOTION_5_KITCHEN: {2, "Sonoff", "SNZB-03", "КухняДвижение", "Датчик движения 5 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
-	//PRESENCE_1_KITCHEN: {4, "Custom", "CC2530", "КухняПрисутствие", "Датчик присутствия 1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	//	MOTION_LIGHT_CORIDOR: {4, "Custom", "CC2530", "ПрихожаяДвижение", "Датчик движение + освещение (прихожая)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	MOTION_1_CORIDOR:     {2, "Sonoff", "SNZB-03", "КоридорДвижение", "Датчик движения 1 (коридор)", zcl.PowerSource_BATTERY, 1, 0},
+	MOTION_2_ROOM:        {2, "Sonoff", "SNZB-03", "КомнатаДвижение", "Датчик движения 2 (комната)", zcl.PowerSource_BATTERY, 1, 0},
+	MOTION_3_CORIDOR:     {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3(коридор) ", zcl.PowerSource_BATTERY, 1, 1},
+	MOTION_4_NURSERY:     {2, "Sonoff", "SNZB-03", "ДетскаяДвижение4", "Датчик движения 4 (детская)", zcl.PowerSource_BATTERY, 1, 0},
+	MOTION_5_KITCHEN:     {2, "Sonoff", "SNZB-03", "КухняДвижение", "Датчик движения 5 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
+	PRESENCE_1_KITCHEN:   {4, "Custom", "CC2530", "КухняПрисутствие", "Датчик присутствия 1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 1},
+	MOTION_LIGHT_CORIDOR: {4, "Custom", "CC2530", "ПрихожаяДвижение", "Датчик движение + освещение (прихожая)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	MOTION_IKEA:          {8, "IKEA", "E1745", "ИкеаДвижение", "Датчик движения IKEA", zcl.PowerSource_BATTERY, 1, 1},
-	MOTION_LIGHT_NURSERY: {4, "Custom", "CC2530", "ДетскаяДвижение", "Датчик движение + освещение (детская)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	MOTION_LIGHT_NURSERY: {4, "Custom", "CC2530", "ДетскаяДвижение", "Датчик движение + освещение (детская)", zcl.PowerSource_SINGLE_PHASE, 1, 1},
 	// Датчики открытия дверей
 	DOOR_1_TOILET: {3, "Sonoff", "SNZB-04", "ТуалетДатчик", "Датчик открытия 1 (туалет)", zcl.PowerSource_BATTERY, 1, 0},
 	DOOR_2_CAB:    {3, "Sonoff", "SNZB-04", "ШкафДатчик", "Датчик открытия 2 (шкаф, подсветка)", zcl.PowerSource_BATTERY, 1, 0},

@@ -45,12 +45,22 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 	if macAddress == zdo.MOTION_1_CORIDOR { //Sonoff motion sensor 1 (coridor)
 
 		if cmd == 1 {
-			log.Printf("Motion sensor in coridor. Turn on light relay. \n")
+			log.Printf("Motion sensor1 in coridor. Turn on light relay. \n")
 			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
 		} else if cmd == 0 {
-			log.Printf("Motion sensor in coridor. Turn off light relay. \n")
+			log.Printf("Motion sensor1 in coridor. Turn off light relay. \n")
 			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 0, 1)
 		}
+	} else if macAddress == zdo.PRESENCE_1_KITCHEN {
+		log.Printf("presence %d kitchen", cmd)
+		relay := c.getDeviceByMac(0x00158d0009414d7e)
+		relayCurrentState := relay.GetCurrentState(1)
+		// presence sensor 1, on/off light in kitchen - relay 7 endpoint 1
+		if cmd == 1 && relayCurrentState != "On" {
+			log.Printf("Turn on light in kitchen")
+			c.switchRelay(0x00158d0009414d7e, 1, 1)
+		}
+		c.kitchenPresenceChan <- cmd
 	} else if macAddress == zdo.MOTION_5_KITCHEN { //zdo.PRESENCE_1_KITCHEN {
 		relay := c.getDeviceByMac(0x00158d0009414d7e)
 		relayCurrentState := relay.GetCurrentState(1)
@@ -74,23 +84,31 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 		} else {
 			log.Println("Motion2 Off")
 		}
-		/*	} else if macAddress == zdo.MOTION_IKEA {
-			// IKEA motion sensor
-			if cmd == 1 {
-				log.Println("IKEA motion sensor On")
-				// switch off by timer
-				c.ikeaMotionChan <- cmd
-				c.switchRelay(zdo.RELAY_1, 1, 1)
-			} else {
-				log.Println("IKEA motion sensor Off")
-			}
-		*/
+	} else if macAddress == zdo.MOTION_IKEA {
+		// IKEA motion sensor
+		if cmd == 1 {
+			log.Println("IKEA motion sensor On")
+			// switch off by timer
+			c.ikeaMotionChan <- cmd
+			c.switchRelay(zdo.RELAY_1, 1, 1)
+		} else {
+			// Выключит таймер
+			log.Println("IKEA motion sensor Off")
+		}
+
 	} else if macAddress == zdo.MOTION_LIGHT_NURSERY {
 		// motion sensor in Custom3(children room)
 		if cmd == 1 {
 			log.Println("Motion sensor in Custom3(children room) On")
 		} else {
 			log.Println("Motion sensor in Custom3(children room) Off")
+		}
+	} else if macAddress == zdo.MOTION_LIGHT_CORIDOR {
+		// motion/light sensor in coridor
+		if cmd == 1 {
+			// log.Println("MotionLight sensor in coridor On")
+		} else {
+			// log.Println("MotionLight sensor in coridor Off")
 		}
 	}
 }
@@ -335,13 +353,13 @@ func (c *Controller) handleSonoffDoor(ed *zdo.EndDevice, cmd uint8) {
 
 // IKEA button on/off action only
 func (c *Controller) ikea_button_action(cmd uint8) {
-	/*
-		if cmd == 1 {
-			c.switchRelay(zdo.PLUG_3_NURSERY_LIGHT, 1, 1)
-		} else {
-			c.switchRelay(zdo.PLUG_3_NURSERY_LIGHT, 0, 1)
-		}
-	*/
+
+	if cmd == 1 {
+		c.switchRelay(zdo.RELAY_1, 1, 1)
+	} else {
+		c.switchRelay(zdo.RELAY_1, 0, 1)
+	}
+
 }
 
 func (c *Controller) ringer() {
