@@ -94,12 +94,12 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	VALVE_HOT_WATER:  {6, "TUYA", "Valve", "КранГВ", "Кран1 ГВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	VALVE_COLD_WATER: {6, "TUYA", "Valve", "КранХВ", "Кран2 ХВ", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// датчики движения и/или освещения
-	MOTION_1_CORIDOR:     {2, "Sonoff", "SNZB-03", "КоридорДвижение", "Датчик движения 1 (коридор)", zcl.PowerSource_BATTERY, 1, 0},
-	MOTION_2_ROOM:        {2, "Sonoff", "SNZB-03", "КомнатаДвижение", "Датчик движения 2 (комната)", zcl.PowerSource_BATTERY, 1, 0},
-	MOTION_3_CORIDOR:     {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3(коридор) ", zcl.PowerSource_BATTERY, 1, 1},
-	MOTION_4_NURSERY:     {2, "Sonoff", "SNZB-03", "ДетскаяДвижение4", "Датчик движения 4 (детская)", zcl.PowerSource_BATTERY, 1, 0},
-	MOTION_5_KITCHEN:     {2, "Sonoff", "SNZB-03", "КухняДвижение", "Датчик движения 5 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
-	PRESENCE_1_KITCHEN:   {4, "Custom", "CC2530", "КухняПрисутствие", "Датчик присутствия 1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 1},
+	MOTION_1_CORIDOR: {2, "Sonoff", "SNZB-03", "КоридорДвижение", "Датчик движения 1 (коридор)", zcl.PowerSource_BATTERY, 1, 0},
+	MOTION_2_ROOM:    {2, "Sonoff", "SNZB-03", "КомнатаДвижение", "Датчик движения 2 (комната)", zcl.PowerSource_BATTERY, 1, 0},
+	MOTION_3_CORIDOR: {2, "Sonoff", "SNZB-03", "Движение3", "Датчик движения 3(коридор) ", zcl.PowerSource_BATTERY, 1, 1},
+	MOTION_4_NURSERY: {2, "Sonoff", "SNZB-03", "ДетскаяДвижение4", "Датчик движения 4 (детская)", zcl.PowerSource_BATTERY, 1, 0},
+	MOTION_5_KITCHEN: {2, "Sonoff", "SNZB-03", "КухняДвижение", "Датчик движения 5 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
+	//PRESENCE_1_KITCHEN:   {4, "Custom", "CC2530", "КухняПрисутствие", "Датчик присутствия 1 (кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 1},
 	MOTION_LIGHT_CORIDOR: {4, "Custom", "CC2530", "ПрихожаяДвижение", "Датчик движение + освещение (прихожая)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	MOTION_IKEA:          {8, "IKEA", "E1745", "ИкеаДвижение", "Датчик движения IKEA", zcl.PowerSource_BATTERY, 1, 1},
 	MOTION_LIGHT_NURSERY: {4, "Custom", "CC2530", "ДетскаяДвижение", "Датчик движение + освещение (детская)", zcl.PowerSource_SINGLE_PHASE, 1, 1},
@@ -135,17 +135,17 @@ var DEVICE_TYPES map[uint8]string = map[uint8]string{
 	11: "RelayAqaraDouble", // 2 endpoint 1 - {11 input cluster - 0x0000, 0x0001,0x0002, 0x0003,0x0004,0x0005,0x0006,0x000a,0x0010,0x0b04,0x000c 2 output cluster - 0x000a,0x0019}
 } //            2 -?
 
-// List of devices that are turned off by long pressing the Sonoff1 button
+// List of devices that are turned off by long pressing the Sonoff button
 // I use the same list for forced shutdown in the mode "No one is at home"
 var OFF_LIST []uint64 = []uint64{
+	PLUG_4_SOLDER,         // SmartPlug 4
+	RELAY_6_ROOM_LIGHT,    // Relay 6 room light
 	RELAY_4_CORIDOR_LIGHT, // light in coridor
 	RELAY_7_KITCHEN,       // light and ventilation in kitchen
 	RELAY_3_CAB_LIGHT,     // cabinet in room(backlighting)
 	RELAY_5_TOILET,        // toilet is busy
 	PLUG_1,                // SmartPlug 1
 	PLUG_3_NURSERY_LIGHT,  // SmartPlug 3
-	PLUG_4_SOLDER,         // SmartPlug 4
-	RELAY_6_ROOM_LIGHT,    // Relay 6 room light
 }
 
 // List of devices to display in Grafana
@@ -153,7 +153,7 @@ var OFF_LIST []uint64 = []uint64{
 var PROM_MOTION_LIST []uint64 = []uint64{
 	MOTION_1_CORIDOR,     // coridor
 	MOTION_LIGHT_CORIDOR, // hallway
-	PRESENCE_1_KITCHEN,   // kitchen presence sensor
+	//	PRESENCE_1_KITCHEN,   // kitchen presence sensor
 	MOTION_5_KITCHEN,     // kitchen onoff sensor
 	MOTION_2_ROOM,        // room
 	MOTION_3_CORIDOR,     // coridor

@@ -50,6 +50,7 @@ type Zdo struct {
 	Cmdinput                  chan []byte
 	transactionNumber         uint8
 	transactionSecuenseNumber uint8
+	tnMutex                   sync.Mutex
 	tsnMutex                  sync.Mutex
 	macAddress                uint64
 	ShortAddress              uint16
@@ -73,6 +74,7 @@ func ZdoCreate(port string, os string, chn chan Command, jchn chan []byte) (*Zdo
 		Cmdinput:                  cmdinput,
 		transactionNumber:         0,
 		transactionSecuenseNumber: 0,
+		tnMutex:                   sync.Mutex{},
 		tsnMutex:                  sync.Mutex{},
 		macAddress:                0x0000000000000000,
 		ShortAddress:              0x0000,
@@ -98,6 +100,7 @@ func (zdo *Zdo) sync_request(request Command, address uint16, timeout time.Durat
 	buff := zdo.prepare_command(request)
 	err := zdo.Uart.Send_command_to_device(buff)
 	if err != nil {
+		log.Println("sync request", err.Error())
 		return *NewCommand(0)
 	}
 	cmd := zdo.eh.wait(uint32(uint32(address)<<16+uint32(id)), timeout)
@@ -111,7 +114,7 @@ func (zdo *Zdo) async_request(request Command, address uint16, timeout time.Dura
 	if uint16(response.Id) != 0 && response.Payload[0] == byte(zcl.SUCCESS) {
 		return nil
 	} else {
-		return errors.New("async request error")
+		return errors.New("async request is not success")
 	}
 }
 
@@ -526,7 +529,7 @@ func (zdo *Zdo) SendMessage(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame) er
 	afDataRequest.Payload[9] = i                      // data length
 	afDataRequest.Payload = afDataRequest.Payload[:i] // cut superfluous
 
-	return zdo.async_request(*afDataRequest, message.Destination.Address, 5*time.Second)
+	return zdo.async_request(*afDataRequest, message.Destination.Address, 10*time.Second)
 }
 
 // get endpoint list from device
@@ -715,6 +718,8 @@ func (zdo *Zdo) handle_command(command Command) {
 
 // in payload
 func (zdo *Zdo) Generate_transaction_number() uint8 {
+	zdo.tnMutex.Lock()
+	defer zdo.tnMutex.Unlock()
 
 	ret := zdo.transactionNumber
 	zdo.transactionNumber++

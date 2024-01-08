@@ -28,5 +28,5 @@ sudo zhub4
 - q Quit
 - j Permit join
 
-<p>Copyright(c) GSB, Georgii Batanov, 2022-2023<br>
+<p>Copyright(c) GSB, Georgii Batanov, 2022-2024<br>
 gbatanov@yandex.ru</p>

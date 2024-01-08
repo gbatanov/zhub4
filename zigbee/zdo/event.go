@@ -25,7 +25,7 @@ var evMtx sync.Mutex
 
 func (eh *EventHandler) AddEvent(id uint32) {
 	evMtx.Lock()
-	eh.Events[id] = Event{Id: id & 0xffff, Emit: make(chan Command, 6)}
+	eh.Events[id] = Event{Id: id & 0xffff, Emit: make(chan Command, 16)}
 	evMtx.Unlock()
 }
 
@@ -34,7 +34,7 @@ func (eh *EventHandler) GetEvent(id uint32) *Event {
 
 	_, key := eh.Events[id&0xffff]
 	if !key {
-		eh.Events[id] = Event{Id: id & 0xffff, Emit: make(chan Command, 6)}
+		eh.Events[id] = Event{Id: id & 0xffff, Emit: make(chan Command, 16)}
 	}
 	val := eh.Events[id&0xffff]
 	evMtx.Unlock()

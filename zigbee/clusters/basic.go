@@ -5,8 +5,6 @@ Copyright (c) 2023 GSB, Georgii Batanov gbatanov @ yandex.ru
 package clusters
 
 import (
-	"log"
-
 	"github.com/gbatanov/zhub4/zigbee/zdo"
 
 	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
@@ -111,8 +109,8 @@ func (b BasicCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 					i = i + 3
 
 				case 0x05: // RSSI  val - 90
-					rssi := int16(zcl.UINT16_(attribute.Value[i+2], attribute.Value[i+3]) - 90)
-					log.Printf("device 0x%04x RSSI:  %d dBm \n", endpoint.Address, rssi)
+					//				rssi := int16(zcl.UINT16_(attribute.Value[i+2], attribute.Value[i+3]) - 90)
+					//				log.Printf("device 0x%04x RSSI:  %d dBm \n", endpoint.Address, rssi)
 					i = i + 3
 
 				case 0x06: // ?
