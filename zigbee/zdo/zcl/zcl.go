@@ -5,8 +5,6 @@ Copyright (c) 2023 GSB, Georgii Batanov gbatanov @ yandex.ru
 
 package zcl
 
-import "fmt"
-
 type Endpoint struct {
 	Address uint16
 	Number  uint8 //endpoint
@@ -185,10 +183,6 @@ func ClusterToString(cl Cluster) string {
 		result = "UNKNOWN_CLUSTER"
 	}
 	return result
-}
-
-func init() {
-	fmt.Println("Init in zcl")
 }
 
 // байт b будет старшим, b младшим

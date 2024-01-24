@@ -72,6 +72,7 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 		mdm:                 mdm,
 		ikeaMotionChan:      make(chan uint8, 1),
 		kitchenPresenceChan: make(chan uint8, 1),
+		coridorMotionChan:   make(chan uint8, 1),
 	}
 	return &controller, nil
 
@@ -257,6 +258,7 @@ func (c *Controller) Stop() {
 	// release channels
 	close(c.ikeaMotionChan)
 	close(c.kitchenPresenceChan)
+	//	close(c.coridorMotionChan) // тот же блок, что и kitchen
 	c.msgChan <- *zdo.NewCommand(0)
 	c.chargerChan <- clusters.MotionMsg{Ed: &zdo.EndDevice{}, Cmd: 2}
 	c.motionMsgChan <- clusters.MotionMsg{Ed: &zdo.EndDevice{}, Cmd: 2}
@@ -473,7 +475,10 @@ func (c *Controller) getIdentifier(address uint16) {
 	frame.Payload = append(frame.Payload, zcl.LOWBYTE(id6))
 	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(id6))
 
-	c.GetZdo().SendMessage(endpoint, cl, frame)
+	err := c.GetZdo().SendMessage(endpoint, cl, frame)
+	if err != nil {
+		log.Printf("Get identifier error %s", err.Error())
+	}
 }
 
 func (c *Controller) getDeviceByShortAddr(shortAddres uint16) *zdo.EndDevice {
@@ -505,7 +510,15 @@ func (c *Controller) messageHandler(command zdo.Command) {
 	message.Source.Number = command.Payload[6]
 	message.Destination.Number = command.Payload[7]
 	message.LinkQuality = command.Payload[9]
+	lenPayLoad := len(command.Payload)
+	if lenPayLoad < 16 {
+		return
+	}
 	length := command.Payload[16]
+	if (17 + length) > byte(lenPayLoad) {
+		log.Printf("Len Payload: %d, endIndex=%d", lenPayLoad, 17+length)
+		return
+	}
 	message.ZclFrame = c.GetZdo().ParseZclData(command.Payload[17 : 17+length])
 
 	ed := c.getDeviceByShortAddr(message.Source.Address)
@@ -549,9 +562,6 @@ func (c *Controller) messageHandler(command zdo.Command) {
 		if message.ZclFrame.Command == uint8(zcl.READ_ATTRIBUTES_RESPONSE) ||
 			message.ZclFrame.Command == uint8(zcl.REPORT_ATTRIBUTES) {
 			if len(message.ZclFrame.Payload) > 0 {
-				//				if ed.MacAddress == zdo.RELAY_7_KITCHEN {
-				//					log.Println(message.ZclFrame.Payload)
-				//				}
 				attributes := zcl.ParseAttributesPayload(message.ZclFrame.Payload, withStatus)
 				if len(attributes) > 0 {
 					c.onAttributeReport(ed, message.Source, message.Cluster, attributes)
@@ -742,6 +752,7 @@ func (c *Controller) getCheckRelay() {
 		}
 		if 1 == ed.GetMotionState() {
 			c.setLastMotionSensorActivity(time.Now())
+			c.switchOffTS = false
 			return
 		}
 	}
@@ -811,7 +822,12 @@ func (c *Controller) readAttribute(address uint16, cl zcl.Cluster, ids []uint16)
 		frame.Payload[0+i*2] = zcl.LOWBYTE(ids[i])
 		frame.Payload[1+i*2] = zcl.HIGHBYTE(ids[i])
 	}
-	return c.GetZdo().SendMessage(endpoint, cl, frame)
+
+	err := c.GetZdo().SendMessage(endpoint, cl, frame)
+	if err != nil {
+		log.Printf("Read attribute for 0x%04x error: %s", address, err.Error())
+	}
+	return err
 }
 
 // make a request to read power attributes
@@ -836,7 +852,11 @@ func (c *Controller) getPower(ed *zdo.EndDevice) {
 	frame.Payload = append(frame.Payload, zcl.LOWBYTE(uint16(zcl.PowerConfiguration_BATTERY_REMAIN)))   //  0x0021 Battery remain level, 0.5%, UINT8
 	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(uint16(zcl.PowerConfiguration_BATTERY_REMAIN)))  //
 
-	c.GetZdo().SendMessage(endpoint, cluster, frame)
+	err := c.GetZdo().SendMessage(endpoint, cluster, frame)
+	if err != nil {
+		log.Printf("getPower error %s", err.Error())
+	}
+
 }
 
 // Turn off the relay according to the list with a long press on the buttons Sonoff1 Sonoff2
@@ -847,16 +867,17 @@ func (c *Controller) switchOffWithList() {
 		if macAddr == zdo.RELAY_7_KITCHEN { // the relay in the kitchen has two channel
 			c.switchRelay(macAddr, 0, 2)
 		}
+		time.Sleep(100 * time.Millisecond) // попробую подключить задержку, не все устройства выключаются
 	}
 
 }
 func (c *Controller) switchRelay(macAddress uint64, cmd uint8, channel uint8) {
-	log.Printf("Relay 0x%016x switch to %d\n", macAddress, cmd)
 	ed := c.getDeviceByMac(macAddress)
 	if ed.ShortAddress > 0 && ed.Di.Available == 1 {
 		c.sendCommandToOnoffDevice(ed.ShortAddress, cmd, channel)
 		ts := time.Now() // get time now
 		ed.SetLastAction(ts)
+		log.Printf("Relay 0x%016x switch to %d\n", macAddress, cmd)
 	} else {
 		log.Printf("Relay 0x%016x not found\n", macAddress)
 	}
@@ -880,14 +901,18 @@ func (c *Controller) sendCommandToOnoffDevice(address uint16, cmd uint8, ep uint
 	frame.TransactionSequenceNumber = c.GetZdo().Generate_transaction_sequence_number()
 	frame.Command = cmd
 
-	c.GetZdo().SendMessage(endpoint, cluster, frame)
+	err := c.GetZdo().SendMessage(endpoint, cluster, frame)
+	if err != nil {
+		log.Printf("sendCommandToOnoffDevice error %s", err.Error())
+	}
+
 }
 
 func (c *Controller) configureReporting(address uint16,
 	cluster zcl.Cluster,
 	attributeId uint16,
 	attributeDataType zcl.DataType,
-	reportable_change uint16) error {
+	reportable_change uint16) {
 
 	endpoint := zcl.Endpoint{Address: address, Number: 1}
 	// ZCL Header
@@ -915,7 +940,10 @@ func (c *Controller) configureReporting(address uint16,
 	frame.Payload = append(frame.Payload, zcl.LOWBYTE(reportable_change))
 	frame.Payload = append(frame.Payload, zcl.HIGHBYTE(reportable_change))
 
-	return c.GetZdo().SendMessage(endpoint, cluster, frame)
+	err := c.GetZdo().SendMessage(endpoint, cluster, frame)
+	if err != nil {
+		log.Printf("configureReporting error %s", err.Error())
+	}
 }
 
 func (c *Controller) setLastMotionSensorActivity(lastTime time.Time) {

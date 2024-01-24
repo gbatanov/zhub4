@@ -6,7 +6,6 @@ package serial3
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 )
 
 const SOF byte = 0xFE
+const BUF_READ_SIZE = 1024
 
 // UART for zigbee adapter
 type Uart struct {
@@ -24,11 +24,6 @@ type Uart struct {
 	portOpened bool
 }
 
-func init() {
-	fmt.Println("Init in serial3")
-	// TODO: check availability serial port
-}
-
 func UartCreate(port string, os string) *Uart {
 	uart := Uart{port: port, os: os}
 	return &uart
@@ -37,7 +32,7 @@ func UartCreate(port string, os string) *Uart {
 func (u *Uart) Open() error {
 	comport, err := u.openPort()
 	if err != nil {
-		log.Println("Error open port ", u.port)
+		log.Println("Error open com port ", u.port)
 		return err
 	}
 	u.Flag = true
@@ -88,7 +83,7 @@ func (u Uart) Write(text []byte) error {
 // in this serial port library version we get chunks 64 byte size !!!
 func (u *Uart) Loop(cmdinput chan []byte) {
 	for u.Flag {
-		BufRead := make([]byte, 256)
+		BufRead := make([]byte, BUF_READ_SIZE)
 		n, err := u.comport.Read(BufRead)
 		if err != nil {
 			if n != 0 {
