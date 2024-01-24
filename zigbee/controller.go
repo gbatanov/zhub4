@@ -72,6 +72,7 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 		mdm:                 mdm,
 		ikeaMotionChan:      make(chan uint8, 1),
 		kitchenPresenceChan: make(chan uint8, 1),
+		coridorMotionChan:   make(chan uint8, 1),
 	}
 	return &controller, nil
 
@@ -257,6 +258,7 @@ func (c *Controller) Stop() {
 	// release channels
 	close(c.ikeaMotionChan)
 	close(c.kitchenPresenceChan)
+	//	close(c.coridorMotionChan) // тот же блок, что и kitchen
 	c.msgChan <- *zdo.NewCommand(0)
 	c.chargerChan <- clusters.MotionMsg{Ed: &zdo.EndDevice{}, Cmd: 2}
 	c.motionMsgChan <- clusters.MotionMsg{Ed: &zdo.EndDevice{}, Cmd: 2}

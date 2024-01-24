@@ -43,14 +43,16 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 	macAddress := ed.MacAddress
 	switch macAddress {
 	case zdo.MOTION_1_CORIDOR: //Sonoff motion sensor 1 (coridor)
-
-		if cmd == 1 {
+		relay := c.getDeviceByMac(zdo.RELAY_7_KITCHEN)
+		relayCurrentState := relay.GetCurrentState(1)
+		if cmd == 1 && relayCurrentState != "On" {
 			log.Printf("Motion sensor1 in coridor. Turn on light relay. \n")
 			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
-		} else if cmd == 0 {
+		} /*else if cmd == 0 {
 			log.Printf("Motion sensor1 in coridor. Turn off light relay. \n")
 			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 0, 1)
-		}
+		}*/
+		c.coridorMotionChan <- cmd
 	case zdo.PRESENCE_1_KITCHEN:
 		log.Printf("presence %d kitchen", cmd)
 		/*
@@ -142,12 +144,16 @@ func (c *Controller) IkeaMotionTimer() {
 	}
 }
 
-// таймер выключения по датчику движения на кухне
+// таймер выключения по датчику движения
+// на кухне
+// в коридоре
 func (c *Controller) KitchenPresenceTimer() {
 
 	go func() {
-		var timer1 *time.Timer = &time.Timer{}
-		started := false
+		var timer1 *time.Timer = &time.Timer{} // кухня
+		started1 := false
+		var timer2 *time.Timer = &time.Timer{} // коридор
+		started2 := false
 		for {
 			select {
 			case state, ok := <-c.kitchenPresenceChan:
@@ -156,23 +162,44 @@ func (c *Controller) KitchenPresenceTimer() {
 					return
 				}
 				if state == 1 {
-					if started {
+					if started1 {
 						timer1.Stop()
-						started = false
+						started1 = false
 					}
 				} else if state == 0 { // идут каждую минуту
 					// Запускаем таймер на 2 минуты
-					if !started {
+					if !started1 {
 						timer1 = time.NewTimer(120 * time.Second)
-						started = true
+						started1 = true
 					}
 				}
 
 			case <-timer1.C:
 				// таймер сработал
 				c.switchRelay(zdo.RELAY_7_KITCHEN, 0, 1)
-			}
-		}
+
+			case state, ok := <-c.coridorMotionChan:
+				if !ok {
+					// channel was closed
+					return
+				}
+				if state == 1 {
+					if started2 {
+						timer2.Stop()
+						started2 = false
+					}
+				} else if state == 0 { // с датчика Sonoff приходит однократно
+					// Запускаем таймер на 1 минуту
+					if !started2 {
+						timer2 = time.NewTimer(60 * time.Second)
+						started2 = true
+					}
+				}
+			case <-timer2.C:
+				// таймер сработал
+				c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 0, 1)
+			} //select
+		} //for
 	}()
 }
 

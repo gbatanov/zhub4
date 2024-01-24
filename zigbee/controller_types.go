@@ -74,6 +74,7 @@ type Controller struct {
 	mdm                 *modem.GsmModem
 	ikeaMotionChan      chan uint8
 	kitchenPresenceChan chan uint8
+	coridorMotionChan   chan uint8
 }
 type WebDeviceInfo struct {
 	ShortAddr string
