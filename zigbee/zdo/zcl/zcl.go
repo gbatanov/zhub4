@@ -185,9 +185,6 @@ func ClusterToString(cl Cluster) string {
 	return result
 }
 
-func init() {
-}
-
 // байт b будет старшим, b младшим
 func UINT16_(a uint8, b uint8) uint16 {
 	return uint16(b)<<8 + uint16(a)

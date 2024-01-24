@@ -37,7 +37,8 @@ func (c *Command) Set_data(data []byte) {
 
 // empty command
 func NewCommand(cmnd CommandId) *Command {
-	cmd := Command{Id: cmnd, Payload: []byte{}}
+	data := make([]byte, 0)
+	cmd := Command{Id: cmnd, Payload: data}
 	return &cmd
 }
 

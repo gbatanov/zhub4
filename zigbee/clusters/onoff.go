@@ -59,6 +59,16 @@ func (o OnOffCluster) HandlerAttributes(endpoint zcl.Endpoint, attributes []zcl.
 					msg := MotionMsg{Ed: o.Ed, Cmd: 1 - u_val}
 					o.MsgChan <- msg
 				}
+			} else if macAddress == zdo.MOTION_LIGHT_CORIDOR {
+				//				log.Printf("Custom coridor endpoint: %d", endpoint.Number)
+				// Custom Coridor - Свет/Движение
+				if endpoint.Number == 2 { // light sensor(1 - high, 0 - low)
+					o.Ed.Set_luminocity(int8(u_val))
+				}
+				if endpoint.Number == 6 { // motion sensor (1 - no motion, 0 - motion)
+					msg := MotionMsg{Ed: o.Ed, Cmd: 1 - u_val}
+					o.MsgChan <- msg
+				}
 			} else if o.Ed.GetDeviceType() == 10 { // SmartPlug
 				currentState := o.Ed.GetCurrentState(1)
 				newState := "Off"

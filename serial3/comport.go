@@ -13,6 +13,7 @@ import (
 )
 
 const SOF byte = 0xFE
+const BUF_READ_SIZE = 1024
 
 // UART for zigbee adapter
 type Uart struct {
@@ -21,9 +22,6 @@ type Uart struct {
 	comport    *serial.Port
 	Flag       bool
 	portOpened bool
-}
-
-func init() {
 }
 
 func UartCreate(port string, os string) *Uart {
@@ -85,7 +83,7 @@ func (u Uart) Write(text []byte) error {
 // in this serial port library version we get chunks 64 byte size !!!
 func (u *Uart) Loop(cmdinput chan []byte) {
 	for u.Flag {
-		BufRead := make([]byte, 256)
+		BufRead := make([]byte, BUF_READ_SIZE)
 		n, err := u.comport.Read(BufRead)
 		if err != nil {
 			if n != 0 {

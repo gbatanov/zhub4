@@ -1,6 +1,6 @@
 /*
 zhub4 - Система домашней автоматизации на Go
-Copyright (c) 2022-2023 GSB, Georgii Batanov gbatanov@yandex.ru
+Copyright (c) 2022-2024 GSB, Georgii Batanov gbatanov@yandex.ru
 MIT License
 */
 package main
@@ -22,11 +22,7 @@ import (
 	"github.com/gbatanov/zhub4/zigbee"
 )
 
-const Version string = "v0.6.73"
-
-func init() {
-
-}
+const Version string = "v0.7.76"
 
 func main() {
 	var err error

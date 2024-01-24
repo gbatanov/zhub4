@@ -32,7 +32,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 			ed.SetLastAction(ts)
 			c.switchOffTS = false
 		}
-		log.Println("handleMotion")
+		//	log.Println("handleMotion")
 	}
 	ed.SetMotionState(cmd) // numeric value
 	if cmd == 1 {
@@ -41,56 +41,77 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 	ed.SetCurrentState(state, 1) // text value
 
 	macAddress := ed.MacAddress
-
-	if macAddress == zdo.MOTION_1_CORIDOR { //Sonoff motion sensor 1 (coridor)
-
-		if cmd == 1 {
-			log.Printf("Motion sensor in coridor. Turn on light relay. \n")
+	switch macAddress {
+	case zdo.MOTION_1_CORIDOR: //Sonoff motion sensor 1 (coridor)
+		relay := c.getDeviceByMac(zdo.RELAY_7_KITCHEN)
+		relayCurrentState := relay.GetCurrentState(1)
+		if cmd == 1 && relayCurrentState != "On" {
+			log.Printf("Motion sensor1 in coridor. Turn on light relay. \n")
 			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
-		} else if cmd == 0 {
-			log.Printf("Motion sensor in coridor. Turn off light relay. \n")
+		} /*else if cmd == 0 {
+			log.Printf("Motion sensor1 in coridor. Turn off light relay. \n")
 			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 0, 1)
-		}
-	} else if macAddress == zdo.MOTION_5_KITCHEN { //zdo.PRESENCE_1_KITCHEN {
-		relay := c.getDeviceByMac(0x00158d0009414d7e)
+		}*/
+		c.coridorMotionChan <- cmd
+	case zdo.PRESENCE_1_KITCHEN:
+		log.Printf("presence %d kitchen", cmd)
+		/*
+			relay := c.getDeviceByMac(zdo.MOTION_5_KITCHEN)
+			relayCurrentState := relay.GetCurrentState(1)
+			// presence sensor 1, on/off light in kitchen - relay 7 endpoint 1
+			if cmd == 1 && relayCurrentState != "On" {
+				log.Printf("Turn on light in kitchen")
+				c.switchRelay(zdo.RELAY_7_KITCHEN, 1, 1)
+			}
+			c.kitchenPresenceChan <- cmd
+		*/
+	case zdo.MOTION_5_KITCHEN:
+		relay := c.getDeviceByMac(zdo.RELAY_7_KITCHEN)
 		relayCurrentState := relay.GetCurrentState(1)
 		// presence sensor 1, on/off light in kitchen - relay 7 endpoint 1
 		if cmd == 1 && relayCurrentState != "On" {
 			log.Printf("Turn on light in kitchen")
-			c.switchRelay(0x00158d0009414d7e, 1, 1)
+			c.switchRelay(zdo.RELAY_7_KITCHEN, 1, 1)
 		}
 		c.kitchenPresenceChan <- cmd
-	} else if macAddress == 0x00124b002444d159 {
+	case zdo.MOTION_3_CORIDOR:
 		// motion sensor 3, coridor
 		if cmd == 1 {
-			log.Println("Motion3 On")
+			log.Println("MOTION_3_CORIDOR On")
 		} else {
-			log.Println("Motion3 Off")
+			log.Println("MOTION_3_CORIDOR Off")
 		}
-	} else if macAddress == 0x00124b0024455048 {
+	case zdo.MOTION_2_ROOM:
 		// motion sensor 2 (bedroom)
 		if cmd == 1 {
-			log.Println("Motion2 On")
+			log.Println("MOTION_2_ROOM On")
 		} else {
-			log.Println("Motion2 Off")
+			log.Println("MOTION_2_ROOM Off")
 		}
-		/*	} else if macAddress == zdo.MOTION_IKEA {
-			// IKEA motion sensor
-			if cmd == 1 {
-				log.Println("IKEA motion sensor On")
-				// switch off by timer
-				c.ikeaMotionChan <- cmd
-				c.switchRelay(zdo.RELAY_1, 1, 1)
-			} else {
-				log.Println("IKEA motion sensor Off")
-			}
-		*/
-	} else if macAddress == zdo.MOTION_LIGHT_NURSERY {
+	case zdo.MOTION_IKEA:
+		// IKEA motion sensor
+		if cmd == 1 {
+			log.Println("IKEA motion sensor On")
+			c.ikeaMotionChan <- cmd
+			c.switchRelay(zdo.RELAY_1, 1, 1)
+		} else {
+			// Выключит таймер
+			log.Println("IKEA motion sensor Off")
+		}
+
+	case zdo.MOTION_LIGHT_NURSERY:
 		// motion sensor in Custom3(children room)
 		if cmd == 1 {
 			log.Println("Motion sensor in Custom3(children room) On")
 		} else {
 			log.Println("Motion sensor in Custom3(children room) Off")
+		}
+	case zdo.MOTION_LIGHT_CORIDOR:
+		// motion/light custom in coridor
+		if cmd == 1 {
+			// log.Println("MotionLight sensor in coridor On")
+		} else {
+			// log.Println("MotionLight sensor in coridor Off")
 		}
 	}
 }
@@ -123,12 +144,16 @@ func (c *Controller) IkeaMotionTimer() {
 	}
 }
 
-// таймер выключения по датчику присутствия на кухне
+// таймер выключения по датчику движения
+// на кухне
+// в коридоре
 func (c *Controller) KitchenPresenceTimer() {
 
 	go func() {
-		var timer1 *time.Timer = &time.Timer{}
-		started := false
+		var timer1 *time.Timer = &time.Timer{} // кухня
+		started1 := false
+		var timer2 *time.Timer = &time.Timer{} // коридор
+		started2 := false
 		for {
 			select {
 			case state, ok := <-c.kitchenPresenceChan:
@@ -137,23 +162,44 @@ func (c *Controller) KitchenPresenceTimer() {
 					return
 				}
 				if state == 1 {
-					if started {
+					if started1 {
 						timer1.Stop()
-						started = false
+						started1 = false
 					}
 				} else if state == 0 { // идут каждую минуту
 					// Запускаем таймер на 2 минуты
-					if !started {
+					if !started1 {
 						timer1 = time.NewTimer(120 * time.Second)
-						started = true
+						started1 = true
 					}
 				}
 
 			case <-timer1.C:
 				// таймер сработал
 				c.switchRelay(zdo.RELAY_7_KITCHEN, 0, 1)
-			}
-		}
+
+			case state, ok := <-c.coridorMotionChan:
+				if !ok {
+					// channel was closed
+					return
+				}
+				if state == 1 {
+					if started2 {
+						timer2.Stop()
+						started2 = false
+					}
+				} else if state == 0 { // с датчика Sonoff приходит однократно
+					// Запускаем таймер на 1 минуту
+					if !started2 {
+						timer2 = time.NewTimer(60 * time.Second)
+						started2 = true
+					}
+				}
+			case <-timer2.C:
+				// таймер сработал
+				c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 0, 1)
+			} //select
+		} //for
 	}()
 }
 
@@ -194,7 +240,7 @@ func (c *Controller) onOffCommand(ed *zdo.EndDevice, message zdo.Message) {
 			}
 		case 2:
 			ed.SetCurrentState("Single click", 1)
-			//			c.switchRelay(zdo.PLUG_3_NURSERY_LIGHT, 1, 1)
+			//			c.switchRelay(zdo.RELAY_6_ROOM_LIGHT, 2, 1)
 		} //switch
 	} else if macAddress == zdo.BUTTON_SONOFF_2 {
 		// button Sonoff 2 call ringer with double click
@@ -211,8 +257,7 @@ func (c *Controller) onOffCommand(ed *zdo.EndDevice, message zdo.Message) {
 			}
 		case 2:
 			ed.SetCurrentState("Single click", 1)
-			// toogle relay 0x54ef441000609dcc
-			c.switchRelay(0x54ef441000609dcc, 2, 1)
+			c.switchRelay(zdo.RELAY_6_ROOM_LIGHT, 2, 1)
 		}
 	}
 }
@@ -336,13 +381,13 @@ func (c *Controller) handleSonoffDoor(ed *zdo.EndDevice, cmd uint8) {
 
 // IKEA button on/off action only
 func (c *Controller) ikea_button_action(cmd uint8) {
-	/*
-		if cmd == 1 {
-			c.switchRelay(zdo.PLUG_3_NURSERY_LIGHT, 1, 1)
-		} else {
-			c.switchRelay(zdo.PLUG_3_NURSERY_LIGHT, 0, 1)
-		}
-	*/
+
+	if cmd == 1 {
+		c.switchRelay(zdo.RELAY_1, 1, 1)
+	} else {
+		c.switchRelay(zdo.RELAY_1, 0, 1)
+	}
+
 }
 
 func (c *Controller) ringer() {
