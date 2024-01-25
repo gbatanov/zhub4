@@ -43,15 +43,21 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 	macAddress := ed.MacAddress
 	switch macAddress {
 	case zdo.MOTION_1_CORIDOR: //Sonoff motion sensor 1 (coridor)
-		relay := c.getDeviceByMac(zdo.RELAY_7_KITCHEN)
-		relayCurrentState := relay.GetCurrentState(1)
-		if cmd == 1 && relayCurrentState != "On" {
-			log.Printf("Motion sensor1 in coridor. Turn on light relay. \n")
+		if cmd == 1 {
+			log.Printf("MOTION_1_CORIDOR On. Turn on light relay. \n")
 			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
-		} /*else if cmd == 0 {
-			log.Printf("Motion sensor1 in coridor. Turn off light relay. \n")
-			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 0, 1)
-		}*/
+		} else {
+			log.Println("MOTION_1_CORIDOR Off")
+		}
+		c.coridorMotionChan <- cmd
+	case zdo.MOTION_3_CORIDOR:
+		// motion sensor 3, coridor
+		if cmd == 1 {
+			log.Println("MOTION_3_CORIDOR On")
+			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
+		} else {
+			log.Println("MOTION_3_CORIDOR Off")
+		}
 		c.coridorMotionChan <- cmd
 	case zdo.PRESENCE_1_KITCHEN:
 		log.Printf("presence %d kitchen", cmd)
@@ -74,13 +80,7 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 			c.switchRelay(zdo.RELAY_7_KITCHEN, 1, 1)
 		}
 		c.kitchenPresenceChan <- cmd
-	case zdo.MOTION_3_CORIDOR:
-		// motion sensor 3, coridor
-		if cmd == 1 {
-			log.Println("MOTION_3_CORIDOR On")
-		} else {
-			log.Println("MOTION_3_CORIDOR Off")
-		}
+
 	case zdo.MOTION_2_ROOM:
 		// motion sensor 2 (bedroom)
 		if cmd == 1 {
@@ -191,7 +191,7 @@ func (c *Controller) KitchenPresenceTimer() {
 				} else if state == 0 { // с датчика Sonoff приходит однократно
 					// Запускаем таймер на 1 минуту
 					if !started2 {
-						timer2 = time.NewTimer(60 * time.Second)
+						timer2 = time.NewTimer(120 * time.Second)
 						started2 = true
 					}
 				}
