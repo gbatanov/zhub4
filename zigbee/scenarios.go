@@ -46,19 +46,31 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 		if cmd == 1 {
 			log.Printf("MOTION_1_CORIDOR On. Turn on light relay. \n")
 			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
+			c.coridorMotionChan <- cmd
 		} else {
 			log.Println("MOTION_1_CORIDOR Off")
 		}
-		c.coridorMotionChan <- cmd
+
 	case zdo.MOTION_3_CORIDOR:
 		// motion sensor 3, coridor
 		if cmd == 1 {
 			log.Println("MOTION_3_CORIDOR On")
 			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
+
 		} else {
 			log.Println("MOTION_3_CORIDOR Off")
 		}
 		c.coridorMotionChan <- cmd
+	case zdo.MOTION_LIGHT_CORIDOR:
+		// motion/light custom in coridor
+		if cmd == 1 {
+			log.Println("MotionLight sensor in coridor On")
+			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
+			c.coridorMotionChan <- cmd
+		} else {
+			log.Println("MotionLight sensor in coridor Off")
+		}
+
 	case zdo.PRESENCE_1_KITCHEN:
 		log.Printf("presence %d kitchen", cmd)
 		/*
@@ -105,13 +117,6 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 			log.Println("Motion sensor in Custom3(children room) On")
 		} else {
 			log.Println("Motion sensor in Custom3(children room) Off")
-		}
-	case zdo.MOTION_LIGHT_CORIDOR:
-		// motion/light custom in coridor
-		if cmd == 1 {
-			// log.Println("MotionLight sensor in coridor On")
-		} else {
-			// log.Println("MotionLight sensor in coridor Off")
 		}
 	}
 }
