@@ -73,6 +73,7 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 		ikeaMotionChan:      make(chan uint8, 1),
 		kitchenPresenceChan: make(chan uint8, 1),
 		coridorMotionChan:   make(chan uint8, 1),
+		coridorMotionState:  0,
 	}
 	return &controller, nil
 

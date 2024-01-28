@@ -42,35 +42,32 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 
 	macAddress := ed.MacAddress
 	switch macAddress {
+	//coridorMotionState  uint8 // состояние датчиков движения в коридоре,
+	// бит 0(1) - кастом, бит 1(2) -датчик 1, бит 2(4) - датчик 3
 	case zdo.MOTION_1_CORIDOR: //Sonoff motion sensor 1 (coridor)
 		if cmd == 1 {
-			log.Printf("MOTION_1_CORIDOR On. Turn on light relay. \n")
-			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
-			c.coridorMotionChan <- cmd
+			//			log.Printf("MOTION_1_CORIDOR On. Turn on light relay. \n")
+			//		c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
+			c.coridorMotionState |= 2
 		} else {
-			log.Println("MOTION_1_CORIDOR Off")
+			c.coridorMotionState &= ^uint8(2)
 		}
-
-	case zdo.MOTION_3_CORIDOR:
-		// motion sensor 3, coridor
+		c.coridorMotionChan <- cmd
+	case zdo.MOTION_3_CORIDOR: // Sonoff motion sensor 3, coridor
 		if cmd == 1 {
-			log.Println("MOTION_3_CORIDOR On")
-			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
-
+			c.coridorMotionState |= 4
 		} else {
-			log.Println("MOTION_3_CORIDOR Off")
+			c.coridorMotionState &= ^uint8(4)
 		}
 		c.coridorMotionChan <- cmd
 	case zdo.MOTION_LIGHT_CORIDOR:
 		// motion/light custom in coridor
 		if cmd == 1 {
-			log.Println("MotionLight sensor in coridor On")
-			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
-			c.coridorMotionChan <- cmd
+			c.coridorMotionState |= 1
 		} else {
-			log.Println("MotionLight sensor in coridor Off")
+			c.coridorMotionState &= ^uint8(1)
 		}
-
+		c.coridorMotionChan <- cmd
 	case zdo.PRESENCE_1_KITCHEN:
 		log.Printf("presence %d kitchen", cmd)
 		/*
@@ -189,13 +186,14 @@ func (c *Controller) KitchenPresenceTimer() {
 					return
 				}
 				if state == 1 {
+					c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
 					if started2 {
 						timer2.Stop()
 						started2 = false
 					}
 				} else if state == 0 { // с датчика Sonoff приходит однократно
-					// Запускаем таймер на 1 минуту
-					if !started2 {
+					// Запускаем таймер на 1 минуту, если coridorMotionState == 0
+					if c.coridorMotionState == 0 && !started2 {
 						timer2 = time.NewTimer(120 * time.Second)
 						started2 = true
 					}

@@ -75,6 +75,8 @@ type Controller struct {
 	ikeaMotionChan      chan uint8
 	kitchenPresenceChan chan uint8
 	coridorMotionChan   chan uint8
+	coridorMotionState  uint8 // состояние датчиков движения в коридоре,
+	// бит 0 - кастом, бит 1 -датчик 1, бит 2 - датчик 3
 }
 type WebDeviceInfo struct {
 	ShortAddr string
