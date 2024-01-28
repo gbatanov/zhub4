@@ -57,3 +57,45 @@ div.command h4{
 div.command p {
     font-size: 13px;
 }
+
+
+div.cmd, div.cmd1{
+    width: 100%;
+    height: 40px;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 32px;
+    margin: 6px;
+}
+div.cmd.unkn{
+    background-color: gray;
+}
+div.cmd.on{
+    background-color: red;
+}
+div.cmd.off{
+    background-color: green;
+}
+div.cmd2{
+    width: 49%;
+    height: 100%;
+    font-size: 32px;
+    float: left;
+    border: 1px solid gray;
+    box-sizing: border-box;
+}
+div.cmd2.unkn{
+    background-color: gray;
+}
+div.cmd2.on{
+    background-color: red;
+}
+div.cmd2.off{
+    background-color: green;
+}
+div.cmd2 a, div.cmd1 a{
+    font-size: 32px;
+    text-decoration: none;
+    color: black;
+}
+div.cmd1{border: 1px solid gray}
