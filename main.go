@@ -22,7 +22,7 @@ import (
 	"github.com/gbatanov/zhub4/zigbee"
 )
 
-const Version string = "v0.8.80"
+const Version string = "v0.8.81"
 
 func main() {
 	var err error

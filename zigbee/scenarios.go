@@ -62,15 +62,20 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 		}
 		c.coridorMotionMutex.Unlock()
 		c.coridorMotionChan <- cmd
-	case zdo.MOTION_LIGHT_CORIDOR: // motion/light custom in coridor
+	case zdo.MOTION_LIGHT_CORIDOR: // motion/light custom in coridor  каждые 10 секунд
 		c.coridorMotionMutex.Lock()
+		tmp := c.coridorMotionState
 		if cmd == 1 {
 			c.coridorMotionState |= 1
+
 		} else {
 			c.coridorMotionState &= ^uint8(1)
 		}
+		tmp1 := c.coridorMotionState
 		c.coridorMotionMutex.Unlock()
-		c.coridorMotionChan <- cmd
+		if tmp != tmp1 {
+			c.coridorMotionChan <- cmd
+		}
 	case zdo.PRESENCE_1_KITCHEN:
 		log.Printf("presence %d kitchen", cmd)
 		/*
