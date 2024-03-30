@@ -48,6 +48,7 @@ func NewHttpServer(c *Controller) (*HttpServer, error) {
 	}
 	if exec == "/usr/local/bin/zhub4" {
 		vConfig.Root = "/usr/local/etc/zhub4/web/tpl"
+		vConfig.Master = "/usr/local/etc/zhub4/web/tpl/layouts/master"
 	}
 	router.HTMLRender = ginview.New(vConfig)
 	if c.config.Os == "windows" {
