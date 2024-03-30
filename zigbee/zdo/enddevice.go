@@ -24,8 +24,8 @@ const RELAY_5_TOILET = uint64(0x54ef4410005b2639)
 const RELAY_6_ROOM_LIGHT = uint64(0x54ef441000609dcc)
 const RELAY_7_KITCHEN = uint64(0x00158d0009414d7e)
 
-const PLUG_1 = uint64(0x70b3d52b6001b4a4)
-const PLUG_2_CHARGER = uint64(0x70b3d52b6001b5d9)
+const PLUG_2 = uint64(0x70b3d52b6001b5d9)
+const PLUG_1_CHARGER = uint64(0x70b3d52b6001b4a4)
 const PLUG_3_NURSERY_LIGHT = uint64(0x70b3d52b60022ac9)
 const PLUG_4_SOLDER = uint64(0x70b3d52b60022cfd)
 const PLUG_5_PAVEL = uint64(0xa4c138a94e5b9388)
@@ -85,8 +85,8 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	RELAY_6_ROOM_LIGHT:    {9, "Aqara", "SSM-U01", "Реле6", "Реле6 (Свет комната)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	RELAY_7_KITCHEN:       {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// Умные розетки
-	PLUG_1:               {10, "Girier", "TS011F", "Розетка1", "Розетка 1", zcl.PowerSource_SINGLE_PHASE, 1, 1},
-	PLUG_2_CHARGER:       {10, "Girier", "TS011F", "Розетка2", "Розетка 2(Зарядники)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	PLUG_2:               {10, "Girier", "TS011F", "Розетка2", "Розетка 2", zcl.PowerSource_SINGLE_PHASE, 1, 1},
+	PLUG_1_CHARGER:       {10, "Girier", "TS011F", "Розетка1", "Розетка 1(Зарядники)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	PLUG_3_NURSERY_LIGHT: {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Лампы в детской)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	PLUG_4_SOLDER:        {10, "Girier", "TS011F", "Розетка4", "Розетка 4(Паяльник)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// PLUG_5_PAVEL: {10, "Aubess", "m000", "Розетка5", "Розетка 5(Пашина)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
@@ -144,7 +144,7 @@ var OFF_LIST []uint64 = []uint64{
 	RELAY_7_KITCHEN,       // light and ventilation in kitchen
 	RELAY_3_CAB_LIGHT,     // cabinet in room(backlighting)
 	RELAY_5_TOILET,        // toilet is busy
-	PLUG_1,                // SmartPlug 1
+	PLUG_2,                // SmartPlug 1
 	PLUG_3_NURSERY_LIGHT,  // SmartPlug 3
 }
 
