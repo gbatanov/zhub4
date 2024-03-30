@@ -23,6 +23,7 @@ const RELAY_4_CORIDOR_LIGHT = uint64(0x54ef4410001933d3)
 const RELAY_5_TOILET = uint64(0x54ef4410005b2639)
 const RELAY_6_ROOM_LIGHT = uint64(0x54ef441000609dcc)
 const RELAY_7_KITCHEN = uint64(0x00158d0009414d7e)
+const RELAY_8_SANUZEL = uint64(0x00158d0009d3930b)
 
 const PLUG_2 = uint64(0x70b3d52b6001b5d9)
 const PLUG_1_CHARGER = uint64(0x70b3d52b6001b4a4)
@@ -84,6 +85,7 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	RELAY_5_TOILET:        {9, "Aqara", "SSM-U01", "ТулетЗанят", "Реле5(Туалет занят)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	RELAY_6_ROOM_LIGHT:    {9, "Aqara", "SSM-U01", "Реле6", "Реле6 (Свет комната)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	RELAY_7_KITCHEN:       {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	RELAY_8_SANUZEL:       {11, "Aqara", "Double", " ТуалетСвет/ВаннаСвет", "Реле 8(Свет Туалет/Ванна)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// Умные розетки
 	PLUG_2:               {10, "Girier", "TS011F", "Розетка2", "Розетка 2", zcl.PowerSource_SINGLE_PHASE, 1, 1},
 	PLUG_1_CHARGER:       {10, "Girier", "TS011F", "Розетка1", "Розетка 1(Зарядники)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
