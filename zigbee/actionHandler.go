@@ -7,6 +7,7 @@ package zigbee
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -116,4 +117,23 @@ func (ah *ActionHandler) metrics(ctx *gin.Context) {
 func (ah *ActionHandler) join(ctx *gin.Context) {
 	ah.con.GetZdo().PermitJoin(60 * time.Second)
 	ctx.Redirect(http.StatusPermanentRedirect, "/")
+}
+
+// Обработчик control
+func (ah *ActionHandler) controlHandler(ctx *gin.Context) {
+	cmd := ctx.Query("cmd")
+	log.Println(cmd)
+
+	// HTML ответ на основе шаблона
+
+	kitchen_light := "unkn"
+	kitchen_vent := "unkn"
+	coridor_light := "unkn"
+
+	ginview.HTML(ctx, http.StatusOK, "control.tmpl",
+		gin.H{"Kitchen_light": kitchen_light,
+			"Kitchen_vent":  kitchen_vent,
+			"Coridor_light": coridor_light,
+		})
+
 }

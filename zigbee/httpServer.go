@@ -60,6 +60,7 @@ func NewHttpServer(c *Controller) (*HttpServer, error) {
 	router.GET("/metrics", actionHandler.metrics)
 	router.GET("/join", actionHandler.join)
 	router.GET("/command", actionHandler.cmdHandler)
+	router.GET("/control", actionHandler.controlHandler)
 
 	router.GET("/", actionHandler.otherHandler)
 	router.NoRoute(actionHandler.page404)

@@ -42,17 +42,40 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 
 	macAddress := ed.MacAddress
 	switch macAddress {
+	//coridorMotionState  uint8 // состояние датчиков движения в коридоре,
+	// бит 0(1) - кастом, бит 1(2) -датчик 1, бит 2(4) - датчик 3
 	case zdo.MOTION_1_CORIDOR: //Sonoff motion sensor 1 (coridor)
-		relay := c.getDeviceByMac(zdo.RELAY_7_KITCHEN)
-		relayCurrentState := relay.GetCurrentState(1)
-		if cmd == 1 && relayCurrentState != "On" {
-			log.Printf("Motion sensor1 in coridor. Turn on light relay. \n")
-			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
-		} /*else if cmd == 0 {
-			log.Printf("Motion sensor1 in coridor. Turn off light relay. \n")
-			c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 0, 1)
-		}*/
+		c.coridorMotionMutex.Lock()
+		if cmd == 1 {
+			c.coridorMotionState |= 2
+		} else {
+			c.coridorMotionState &= ^uint8(2)
+		}
+		c.coridorMotionMutex.Unlock()
 		c.coridorMotionChan <- cmd
+	case zdo.MOTION_3_CORIDOR: // Sonoff motion sensor 3, coridor
+		c.coridorMotionMutex.Lock()
+		if cmd == 1 {
+			c.coridorMotionState |= 4
+		} else {
+			c.coridorMotionState &= ^uint8(4)
+		}
+		c.coridorMotionMutex.Unlock()
+		c.coridorMotionChan <- cmd
+	case zdo.MOTION_LIGHT_CORIDOR: // motion/light custom in coridor  каждые 10 секунд
+		c.coridorMotionMutex.Lock()
+		tmp := c.coridorMotionState
+		if cmd == 1 {
+			c.coridorMotionState |= 1
+
+		} else {
+			c.coridorMotionState &= ^uint8(1)
+		}
+		tmp1 := c.coridorMotionState
+		c.coridorMotionMutex.Unlock()
+		if tmp != tmp1 {
+			c.coridorMotionChan <- cmd
+		}
 	case zdo.PRESENCE_1_KITCHEN:
 		log.Printf("presence %d kitchen", cmd)
 		/*
@@ -74,13 +97,6 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 			c.switchRelay(zdo.RELAY_7_KITCHEN, 1, 1)
 		}
 		c.kitchenPresenceChan <- cmd
-	case zdo.MOTION_3_CORIDOR:
-		// motion sensor 3, coridor
-		if cmd == 1 {
-			log.Println("MOTION_3_CORIDOR On")
-		} else {
-			log.Println("MOTION_3_CORIDOR Off")
-		}
 	case zdo.MOTION_2_ROOM:
 		// motion sensor 2 (bedroom)
 		if cmd == 1 {
@@ -105,13 +121,6 @@ func (c *Controller) handleMotion(ed *zdo.EndDevice, cmd uint8) {
 			log.Println("Motion sensor in Custom3(children room) On")
 		} else {
 			log.Println("Motion sensor in Custom3(children room) Off")
-		}
-	case zdo.MOTION_LIGHT_CORIDOR:
-		// motion/light custom in coridor
-		if cmd == 1 {
-			// log.Println("MotionLight sensor in coridor On")
-		} else {
-			// log.Println("MotionLight sensor in coridor Off")
 		}
 	}
 }
@@ -184,14 +193,20 @@ func (c *Controller) KitchenPresenceTimer() {
 					return
 				}
 				if state == 1 {
+					c.switchRelay(zdo.RELAY_4_CORIDOR_LIGHT, 1, 1)
 					if started2 {
 						timer2.Stop()
 						started2 = false
 					}
-				} else if state == 0 { // с датчика Sonoff приходит однократно
-					// Запускаем таймер на 1 минуту
-					if !started2 {
-						timer2 = time.NewTimer(60 * time.Second)
+				} else if state == 0 {
+					// с датчика Sonoff приходит однократно
+					// с кастома идут периодически
+					// Запускаем таймер на 1 минуту, если coridorMotionState == 0
+					c.coridorMotionMutex.RLock()
+					mst := c.coridorMotionState
+					c.coridorMotionMutex.RUnlock()
+					if mst == 0 && !started2 {
+						timer2 = time.NewTimer(120 * time.Second)
 						started2 = true
 					}
 				}
