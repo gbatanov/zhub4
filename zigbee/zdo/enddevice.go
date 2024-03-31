@@ -20,7 +20,7 @@ const RELAY_1 = uint64(0x54ef44100019335b)
 const RELAY_2_WASH = uint64(0x54ef441000193352)
 const RELAY_3_CAB_LIGHT = uint64(0x54ef44100018b523)
 const RELAY_4_CORIDOR_LIGHT = uint64(0x54ef4410001933d3)
-const RELAY_5_TOILET = uint64(0x54ef4410005b2639)
+const RELAY_5 = uint64(0x54ef4410005b2639)
 const RELAY_6_ROOM_LIGHT = uint64(0x54ef441000609dcc)
 const RELAY_7_KITCHEN = uint64(0x00158d0009414d7e)
 const RELAY_8_SANUZEL = uint64(0x00158d0009d3930b)
@@ -82,10 +82,10 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	RELAY_2_WASH:          {9, "Aqara", "SSM-U01", "Стиралка", "Реле2(Стиральная машина)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	RELAY_3_CAB_LIGHT:     {9, "Aqara", "SSM-U01", "ШкафСвет", "Реле3(Шкаф, подсветка)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	RELAY_4_CORIDOR_LIGHT: {9, "Aqara", "SSM-U01", "КоридорСвет", "Реле4(Свет в коридоре)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	RELAY_5_TOILET:        {9, "Aqara", "SSM-U01", "ТуалетЗанят", "Реле5(Туалет занят)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	RELAY_6_ROOM_LIGHT:    {9, "Aqara", "SSM-U01", "Реле6", "Реле6 (Свет комната)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	RELAY_5:               {9, "Aqara", "SSM-U01", "Реле5", "Реле5", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	RELAY_6_ROOM_LIGHT:    {9, "Aqara", "SSM-U01", "КомнатаСвет", "Реле6 (Свет комната)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	RELAY_7_KITCHEN:       {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	RELAY_8_SANUZEL:       {11, "Aqara", "Double", "ТуалетСвет/ВаннаСвет", "Реле 8(Свет Туалет/Ванна)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	RELAY_8_SANUZEL:       {11, "Aqara", "Double", "ВаннаСвет/ТуалетСвет", "Реле 8(Свет Ванна/Туалет)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// Умные розетки
 	PLUG_2:               {10, "Girier", "TS011F", "Розетка2", "Розетка 2", zcl.PowerSource_SINGLE_PHASE, 1, 1},
 	PLUG_1_CHARGER:       {10, "Girier", "TS011F", "Розетка1", "Розетка 1(Зарядники)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
@@ -145,7 +145,7 @@ var OFF_LIST []uint64 = []uint64{
 	RELAY_4_CORIDOR_LIGHT, // light in coridor
 	RELAY_7_KITCHEN,       // light and ventilation in kitchen
 	RELAY_3_CAB_LIGHT,     // cabinet in room(backlighting)
-	RELAY_5_TOILET,        // toilet is busy
+	RELAY_5,               // toilet is busy
 	RELAY_8_SANUZEL,
 	PLUG_2,               // SmartPlug 1
 	PLUG_3_NURSERY_LIGHT, // SmartPlug 3
@@ -172,7 +172,7 @@ var PROM_DOOR_LIST []uint64 = []uint64{
 var PROM_RELAY_LIST []uint64 = []uint64{
 	RELAY_7_KITCHEN,       // light/ventilation in kitchen
 	RELAY_4_CORIDOR_LIGHT, // light in coridor
-	RELAY_5_TOILET,        // toilet is busy
+	RELAY_5,               // toilet is busy
 	RELAY_8_SANUZEL,       // туалет ванна
 }
 
