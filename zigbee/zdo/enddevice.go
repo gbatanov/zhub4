@@ -140,15 +140,15 @@ var DEVICE_TYPES map[uint8]string = map[uint8]string{
 // List of devices that are turned off by long pressing the Sonoff button
 // I use the same list for forced shutdown in the mode "No one is at home"
 var OFF_LIST []uint64 = []uint64{
-	PLUG_4_SOLDER,         // SmartPlug 4
-	RELAY_6_ROOM_LIGHT,    // Relay 6 room light
-	RELAY_4_CORIDOR_LIGHT, // light in coridor
-	RELAY_7_KITCHEN,       // light and ventilation in kitchen
-	RELAY_3_CAB_LIGHT,     // cabinet in room(backlighting)
-	RELAY_5,               // toilet is busy
+	PLUG_4_SOLDER,         // паяльник
+	RELAY_6_ROOM_LIGHT,    // свет в комнате
+	RELAY_4_CORIDOR_LIGHT, // свет в коридоре
+	RELAY_7_KITCHEN,       // свет и вентилятор на кухне
+	RELAY_3_CAB_LIGHT,     // подстветка шкафа
+	//	RELAY_5,               //
 	RELAY_8_SANUZEL,
-	PLUG_2,               // SmartPlug 1
-	PLUG_3_NURSERY_LIGHT, // SmartPlug 3
+	//	PLUG_2,               // Розетка 2
+	PLUG_3_NURSERY_LIGHT, // Настольные лампы в детской
 }
 
 // List of devices to display in Grafana
@@ -172,8 +172,8 @@ var PROM_DOOR_LIST []uint64 = []uint64{
 var PROM_RELAY_LIST []uint64 = []uint64{
 	RELAY_7_KITCHEN,       // light/ventilation in kitchen
 	RELAY_4_CORIDOR_LIGHT, // light in coridor
-	RELAY_5,               // toilet is busy
-	RELAY_8_SANUZEL,       // туалет ванна
+	//	RELAY_5,               // toilet is busy
+	RELAY_8_SANUZEL, // туалет ванна
 }
 
 type BatteryParams struct {

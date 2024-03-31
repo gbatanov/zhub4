@@ -205,7 +205,7 @@ func (c *Controller) StartNetwork() error {
 
 	// we will get SmurtPlug parameters  every 30 seconds
 	// and check valves state
-	// chek rely every 60 seconds
+	// chek relay every 60 seconds
 	// Установка для блока действий по таймеру
 	go func() {
 		for c.flag {
@@ -861,11 +861,12 @@ func (c *Controller) getPower(ed *zdo.EndDevice) {
 }
 
 // Turn off the relay according to the list with a long press on the buttons Sonoff1 Sonoff2
+// and by timer 20 minutes
 func (c *Controller) switchOffWithList() {
 
 	for _, macAddr := range zdo.OFF_LIST {
 		c.switchRelay(macAddr, 0, 1)
-		if macAddr == zdo.RELAY_7_KITCHEN { // the relay in the kitchen has two channel
+		if macAddr == zdo.RELAY_7_KITCHEN || macAddr == zdo.RELAY_8_SANUZEL { // реле на кухне и туалет/ванна двухканальные
 			c.switchRelay(macAddr, 0, 2)
 		}
 		time.Sleep(100 * time.Millisecond) // попробую подключить задержку, не все устройства выключаются
