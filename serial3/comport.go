@@ -86,10 +86,10 @@ func (u *Uart) Loop(cmdinput chan []byte) {
 		BufRead := make([]byte, BUF_READ_SIZE)
 		n, err := u.comport.Read(BufRead)
 		if err != nil {
-			if n != 0 {
+			if n != 0 { // Сбой ???
 				u.Flag = false
 			}
-		} else if err == nil && n > 0 {
+		} else if n > 0 {
 			cmdinput <- BufRead[:n]
 		} else {
 			// if there is no command, wait 1 sec
