@@ -36,7 +36,7 @@ func (e ElectricalMeasurementCluster) HandlerAttributes(endpoint zcl.Endpoint, a
 		case zcl.ElectricalMeasurement_0508: // RMS Current mA
 			val := zcl.UINT16_(attribute.Value[0], attribute.Value[1])
 			e.Ed.SetCurrent(float64(val) / 1000)
-			if e.Ed.MacAddress == zdo.PLUG_2_CHARGER {
+			if e.Ed.MacAddress == zdo.PLUG_1_CHARGER {
 				e.checkCharger(val)
 			}
 			// log.Printf(" Current %0.3fA ", e.Ed.Get_current())

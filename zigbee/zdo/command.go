@@ -13,6 +13,8 @@ import (
 
 type Command struct {
 	Id      CommandId // command ID
+	Ts      int64     // timestamp
+	Dir     bool      // направление команды 0-in, 1-out
 	Payload []byte    // payload field
 }
 

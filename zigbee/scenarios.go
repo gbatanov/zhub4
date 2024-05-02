@@ -384,11 +384,11 @@ func (c *Controller) handleSonoffDoor(ed *zdo.EndDevice, cmd uint8) {
 		// turn off at any time (to cancel manual turn on)
 		// enable/disable the relay 0x54ef4410005b2639 - light relay "Toilet occupied"
 		if cmd == 0x01 {
-			c.switchRelay(zdo.RELAY_5_TOILET, 0, 1)
+			c.switchRelay(zdo.RELAY_8_SANUZEL, 0, 2) // zdo.RELAY_8_SANUZEL ep2
 		} else if cmd == 0 {
 			h, _, _ := time.Now().Clock()
 			if h > 7 && h < 23 {
-				c.switchRelay(zdo.RELAY_5_TOILET, 1, 1)
+				c.switchRelay(zdo.RELAY_8_SANUZEL, 1, 2) // zdo.RELAY_8_SANUZEL ep2
 			}
 		}
 	}

@@ -146,7 +146,12 @@ func (zdo *Zdo) InputCommand() {
 				zdo.tmpBuff = []byte{}
 			}
 			for _, command := range commands {
-				go func(cmd Command) { zdo.handle_command(cmd) }(command)
+				// Для каждой команды запускаем свой поток
+				go func(cmd Command) {
+					cmd.Ts = time.Now().Unix()
+					cmd.Dir = false
+					zdo.handle_command(cmd)
+				}(command)
 			}
 
 		}
