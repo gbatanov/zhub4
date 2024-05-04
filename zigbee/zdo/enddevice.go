@@ -87,8 +87,8 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	RELAY_7_KITCHEN:       {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	RELAY_8_SANUZEL:       {11, "Aqara", "Double", "ВаннаСвет/ТуалетСвет", "Реле 8(Свет Ванна/Туалет)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// Умные розетки
-	PLUG_2:               {10, "Girier", "TS011F", "Розетка2", "Розетка 2", zcl.PowerSource_SINGLE_PHASE, 0, 0},
-	PLUG_1_CHARGER:       {10, "Girier", "TS011F", "Розетка1", "Розетка 1(Зарядники)", zcl.PowerSource_SINGLE_PHASE, 0, 0},
+	PLUG_2:               {10, "Girier", "TS011F", "Розетка2", "Розетка 2", zcl.PowerSource_SINGLE_PHASE, 1, 0},
+	PLUG_1_CHARGER:       {10, "Girier", "TS011F", "Розетка1", "Розетка 1(Зарядники)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	PLUG_3_NURSERY_LIGHT: {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Лампы в детской)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	PLUG_4_SOLDER:        {10, "Girier", "TS011F", "Розетка4", "Розетка 4(Паяльник)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	// PLUG_5_PAVEL: {10, "Aubess", "m000", "Розетка5", "Розетка 5(Пашина)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
