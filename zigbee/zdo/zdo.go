@@ -101,6 +101,7 @@ func (zdo *Zdo) sync_request(request Command, address uint16, timeout time.Durat
 	err := zdo.Uart.Send_command_to_device(buff)
 	if err != nil {
 		log.Println("sync request", err.Error())
+		zdo.eh.RemoveEvent(uint32(uint32(address)<<16 + uint32(id)))
 		return *NewCommand(0)
 	}
 	cmd := zdo.eh.wait(uint32(uint32(address)<<16+uint32(id)), timeout)
@@ -279,7 +280,7 @@ func (zdo *Zdo) Reset() error {
 	if cmd.Payload_size() > 5 {
 		log.Printf("Coordinator version: %d.%d.%d \n", cmd.Payload[3], cmd.Payload[4], cmd.Payload[5])
 	} else {
-		log.Printf("reset answer: %q \n", cmd)
+		log.Printf("reset answer: %v \n", cmd)
 	}
 	return nil
 }

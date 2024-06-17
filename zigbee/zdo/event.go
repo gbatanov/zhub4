@@ -29,14 +29,25 @@ func (eh *EventHandler) AddEvent(id uint32) {
 	evMtx.Unlock()
 }
 
+func (eh *EventHandler) RemoveEvent(id uint32) {
+	id = id & 0xffff
+	evMtx.Lock()
+	_, key := eh.Events[id]
+	if !key {
+		delete(eh.Events, id)
+	}
+	evMtx.Unlock()
+}
+
 func (eh *EventHandler) GetEvent(id uint32) *Event {
+	id = id & 0xffff
 	evMtx.Lock()
 
-	_, key := eh.Events[id&0xffff]
+	_, key := eh.Events[id]
 	if !key {
-		eh.Events[id] = Event{Id: id & 0xffff, Emit: make(chan Command, 16)}
+		eh.Events[id] = Event{Id: id, Emit: make(chan Command, 16)}
 	}
-	val := eh.Events[id&0xffff]
+	val := eh.Events[id]
 	evMtx.Unlock()
 	return &val
 }
@@ -53,9 +64,11 @@ func (eh *EventHandler) wait(id uint32, timeout time.Duration) Command {
 	ticker := time.NewTicker(timeout)
 	select {
 	case cmd := <-event.Emit:
+		eh.RemoveEvent(id)
 		return cmd
 	case <-ticker.C:
 		log.Printf("Wait command 0x%08x timeout", id&0xffff)
+		eh.RemoveEvent(id)
 		return *NewCommand(0)
 	}
 }
