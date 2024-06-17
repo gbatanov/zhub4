@@ -78,11 +78,11 @@ var KNOWN_DEVICES map[uint64]DeviceInfo = map[uint64]DeviceInfo{
 	WATER_LEAK_3: {5, "Aqara", "SJCGQ11LM", "Протечка3", "Датчик протечки 3 (ванна)", zcl.PowerSource_BATTERY, 1, 0},
 	WATER_LEAK_4: {5, "Aqara", "SJCGQ11LM", "Протечка4", "Датчик протечки 4 (кухня)", zcl.PowerSource_BATTERY, 1, 0},
 	// реле
-	RELAY_1:               {9, "Aqara", "SSM-U01", "Реле1", "Реле1", zcl.PowerSource_SINGLE_PHASE, 0, 0},
+	RELAY_1:               {9, "Aqara", "SSM-U01", "Реле1", "Реле1", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	RELAY_2_WASH:          {9, "Aqara", "SSM-U01", "Стиралка", "Реле2(Стиральная машина)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	RELAY_3_CAB_LIGHT:     {9, "Aqara", "SSM-U01", "ШкафСвет", "Реле3(Шкаф, подсветка)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	RELAY_4_CORIDOR_LIGHT: {9, "Aqara", "SSM-U01", "КоридорСвет", "Реле4(Свет в коридоре)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
-	RELAY_5:               {9, "Aqara", "SSM-U01", "Реле5", "Реле5", zcl.PowerSource_SINGLE_PHASE, 0, 0},
+	RELAY_5:               {9, "Aqara", "SSM-U01", "Реле5", "Реле5", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	RELAY_6_ROOM_LIGHT:    {9, "Aqara", "SSM-U01", "КомнатаСвет", "Реле6 (Свет комната)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	RELAY_7_KITCHEN:       {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
 	RELAY_8_SANUZEL:       {11, "Aqara", "Double", "ВаннаСвет/ТуалетСвет", "Реле 8(Свет Ванна/Туалет)", zcl.PowerSource_SINGLE_PHASE, 1, 0},
