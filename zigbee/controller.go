@@ -1,6 +1,6 @@
 /*
 zhub4 - Система домашней автоматизации на Go
-Copyright (c) 2022-2023 GSB, Georgii Batanov gbatanov@yandex.ru
+Copyright (c) 2022-2024 GSB, Georgii Batanov gbatanov@yandex.ru
 MIT License
 */
 package zigbee
@@ -751,7 +751,7 @@ func (c *Controller) getCheckRelay() {
 		if ed == nil || ed.ShortAddress == 0 {
 			continue
 		}
-		if 1 == ed.GetMotionState() {
+		if ed.GetMotionState() == 1 {
 			c.setLastMotionSensorActivity(time.Now())
 			c.switchOffTS = false
 			return

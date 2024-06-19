@@ -1,6 +1,7 @@
 /*
 zhub4 - Система домашней автоматизации на Go
-Copyright (c) 2023 GSB, Georgii Batanov gbatanov @ yandex.ru
+Copyright (c) 2022-2024 GSB, Georgii Batanov gbatanov@yandex.ru
+MIT License
 */
 
 package zcl
