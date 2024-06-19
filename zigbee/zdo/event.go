@@ -13,55 +13,74 @@ import (
 )
 
 type Event struct {
-	Id   uint32 // address << 16 + CommandId
+	Id   CommandId // CommandId
 	Emit chan Command
 }
 
 type EventHandler struct {
-	Events map[uint32]Event
+	Events map[CommandId]Event
 }
 
 var evMtx sync.Mutex
 
-func (eh *EventHandler) AddEvent(id uint32) {
+func (eh *EventHandler) AddEvent(id CommandId) {
 	evMtx.Lock()
-	eh.Events[id] = Event{Id: id & 0xffff, Emit: make(chan Command, 16)}
+	eh.Events[id] = Event{Id: id, Emit: make(chan Command, 1)} // unbuffered?
 	evMtx.Unlock()
 }
 
-func (eh *EventHandler) GetEvent(id uint32) *Event {
+func (eh *EventHandler) EventExists(id CommandId) bool {
+	var key bool
 	evMtx.Lock()
+	_, key = eh.Events[id]
+	evMtx.Unlock()
+	return key
+}
 
-	_, key := eh.Events[id&0xffff]
+func (eh *EventHandler) RemoveEvent(id CommandId) {
+
+	evMtx.Lock()
+	_, key := eh.Events[id]
 	if !key {
-		eh.Events[id] = Event{Id: id & 0xffff, Emit: make(chan Command, 16)}
+		delete(eh.Events, id)
 	}
-	val := eh.Events[id&0xffff]
+	evMtx.Unlock()
+}
+
+func (eh *EventHandler) GetEvent(id CommandId) *Event {
+	evMtx.Lock()
+	val := eh.Events[id]
 	evMtx.Unlock()
 	return &val
 }
 
-func (eh *EventHandler) emit(id uint32, cmd Command) {
-	event := eh.GetEvent(id & 0xffff)
-
-	event.Emit <- cmd
+func (eh *EventHandler) emit(id CommandId, cmd Command) {
+	if eh.EventExists(id) {
+		event := eh.GetEvent(id)
+		event.Emit <- cmd
+	}
 }
 
 // Waiting for a response
-func (eh *EventHandler) wait(id uint32, timeout time.Duration) Command {
+func (eh *EventHandler) wait(id CommandId, timeout time.Duration) Command {
+	if !eh.EventExists(id) {
+		eh.AddEvent(id)
+	}
 	event := eh.GetEvent(id)
 	ticker := time.NewTicker(timeout)
+	var cmd Command
 	select {
-	case cmd := <-event.Emit:
-		return cmd
+	case cmd = <-event.Emit:
 	case <-ticker.C:
-		log.Printf("Wait command 0x%08x timeout", id&0xffff)
-		return *NewCommand(0)
+		log.Printf("Wait command 0x%08x timeout", id)
+		cmd = *NewCommand(0)
 	}
+	eh.RemoveEvent(id)
+	return cmd
 }
 
 func Create_event_handler() *EventHandler {
 	var eh EventHandler
-	eh.Events = make(map[uint32]Event)
+	eh.Events = make(map[CommandId]Event)
 	return &eh
 }
