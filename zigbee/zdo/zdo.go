@@ -92,31 +92,29 @@ func (zdo *Zdo) Stop() {
 	zdo.Cmdinput <- []byte{0}
 }
 
-// call sync request
+// Синхронный запрос, нужно обязательно ждать ответа
 func (zdo *Zdo) sync_request(request Command, address uint16, timeout time.Duration) Command {
 
 	var id CommandId = CommandId((uint16(request.Id) | 0b0100000000000000)) // идентификатор синхронного ответа
-	zdo.eh.AddEvent(uint32(uint32(address)<<16 + uint32(id)))
+	zdo.eh.AddEvent(id)
 	buff := zdo.prepare_command(request)
 	err := zdo.Uart.Send_command_to_device(buff)
 	if err != nil {
 		log.Println("sync request", err.Error())
-		zdo.eh.RemoveEvent(uint32(uint32(address)<<16 + uint32(id)))
+		zdo.eh.RemoveEvent(id)
 		return *NewCommand(0)
 	}
-	cmd := zdo.eh.wait(uint32(uint32(address)<<16+uint32(id)), timeout)
+	cmd := zdo.eh.wait(id, timeout)
 
 	return cmd
 }
 
-// async request. Answer will get in command handler
+// Асинхронный звапрос. Ответ не ждем вообще
 func (zdo *Zdo) async_request(request Command, address uint16, timeout time.Duration) error {
-	response := zdo.sync_request(request, address, timeout)
-	if uint16(response.Id) != 0 && response.Payload[0] == byte(zcl.SUCCESS) {
-		return nil
-	} else {
-		return errors.New("async request is not success")
-	}
+	buff := zdo.prepare_command(request)
+	err := zdo.Uart.Send_command_to_device(buff)
+	return err
+
 }
 
 func (zdo *Zdo) prepare_command(command Command) []byte {
@@ -147,12 +145,18 @@ func (zdo *Zdo) InputCommand() {
 				zdo.tmpBuff = []byte{}
 			}
 			for _, command := range commands {
-				// Для каждой команды запускаем свой поток
-				go func(cmd Command) {
-					cmd.Ts = time.Now().Unix()
-					cmd.Dir = false
-					zdo.handle_command(cmd)
-				}(command)
+				// Если ответ на синхронный запрос, то просто эмиттируем событие
+				if command.Id&0x6000 == 0x6000 || command.Id == SYS_RESET_IND {
+					zdo.eh.emit(command.Id, command)
+
+				} else {
+					// Для каждой внешней асинхронной команды запускаем свой поток
+					go func(cmd Command) {
+						cmd.Ts = time.Now().Unix()
+						cmd.Dir = false
+						zdo.handle_command(cmd)
+					}(command)
+				}
 			}
 
 		}
@@ -246,7 +250,7 @@ func (zdo *Zdo) Reset() error {
 	var cmd Command = *NewCommand(0)
 
 	// wait initial hard reset
-	cmd = zdo.eh.wait(uint32(SYS_RESET_IND), 60*time.Second)
+	cmd = zdo.eh.wait(SYS_RESET_IND, 60*time.Second)
 
 	// write_nvram call sync request
 	startup_options := make([]byte, 1)
@@ -272,7 +276,7 @@ func (zdo *Zdo) Reset() error {
 	if err != nil {
 		return err
 	}
-	cmd = zdo.eh.wait(uint32(SYS_RESET_IND), 10*time.Second)
+	cmd = zdo.eh.wait(SYS_RESET_IND, 10*time.Second)
 	if cmd.Id == 0 {
 		return errors.New("bad reset")
 	}
@@ -704,20 +708,14 @@ func (zdo *Zdo) handle_command(command Command) {
 	case ZDO_TC_DEV_IND, // 0x45ca
 		ZDO_SRC_RTG_IND, // 0x45c4
 		ZDO_BIND_RSP,    // 0x45a1
-		ZDO_LEAVE_IND:
+		ZDO_LEAVE_IND,
+		AF_DATA_CONFIRM,                        // 0x4480
+		APP_CNF_BDB_COMMISSIONING_NOTIFICATION: // 0x4F80
 		{
 		}
-		// commands with mandatory event emitter
-	case SYS_RESET_IND: // 0x4180
-		zdo.eh.emit(uint32(command.Id), command)
-	case 0x6108:
-		zdo.eh.emit(uint32(0x6108), command)
-	case AF_DATA_REQUEST_SRSP: //     0x6401
-		zdo.eh.emit(uint32(0x6401), command)
-	case 0x6700:
-		zdo.eh.emit(uint32(0x6700), command)
+
 	default: // all sync commands and unknown commands
-		zdo.eh.emit(uint32(command.Id), command)
+		log.Printf("Неизвестная команда 0x%08X \n", command.Id)
 	}
 
 }
