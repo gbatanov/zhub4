@@ -1,6 +1,7 @@
 /*
 zhub4 - Система домашней автоматизации на Go
-Copyright (c) 2023 GSB, Georgii Batanov gbatanov @ yandex.ru
+Copyright (c) 2022-2024 GSB, Georgii Batanov gbatanov@yandex.ru
+MIT License
 */
 
 package zdo
@@ -11,11 +12,48 @@ import (
 	"github.com/gbatanov/zhub4/zigbee/zdo/zcl"
 )
 
+type COMMAND_TYPE int
+
+const (
+	POLL COMMAND_TYPE = iota
+	SREQ
+	AREQ
+	SRSP
+)
+
+type COMMAND_SUBSYSTEM int
+
+const (
+	RPC_ERROR COMMAND_SUBSYSTEM = iota
+	SYS
+	MAC
+	NWK
+	AF
+	ZDO
+	SAPI
+	UTIL
+	APP
+)
+const (
+	APP_CNF    COMMAND_SUBSYSTEM = 15
+	GREENPOWER COMMAND_SUBSYSTEM = 21
+)
+
 type Command struct {
+	// идентификатор команды состоит из старшего и младшего байтов команды (CMD1 CMD0)
+	// 3 старших бита в cmd1 - это тип команды, 5 младших - подсистема команд
+
 	Id      CommandId // command ID
 	Ts      int64     // timestamp
 	Dir     bool      // направление команды 0-in, 1-out
 	Payload []byte    // payload field
+}
+
+func (c Command) Subsystem() byte {
+	return zcl.HIGHBYTE(uint16(c.Id)) & 0b00011111
+}
+func (c Command) Type() byte {
+	return zcl.HIGHBYTE(uint16(c.Id)) >> 5
 }
 
 // control summ
@@ -35,6 +73,10 @@ func (c Command) Payload_size() byte {
 func (c *Command) Set_data(data []byte) {
 	c.Payload = make([]byte, len(data))
 	copy(c.Payload, data)
+}
+
+func (c *Command) String() string {
+	return Command_to_string(c.Id)
 }
 
 // empty command

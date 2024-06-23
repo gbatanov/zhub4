@@ -93,8 +93,9 @@ func (zdo *Zdo) Stop() {
 }
 
 // Синхронный запрос, нужно обязательно ждать ответа
-func (zdo *Zdo) sync_request(request Command, address uint16, timeout time.Duration) Command {
+func (zdo *Zdo) sync_request(request Command, timeout time.Duration) Command {
 
+	log.Printf("Command sync 0x%04x (%s)\n", uint16(request.Id), request.String())
 	var id CommandId = CommandId((uint16(request.Id) | 0b0100000000000000)) // идентификатор синхронного ответа
 	zdo.eh.AddEvent(id)
 	buff := zdo.prepare_command(request)
@@ -105,12 +106,17 @@ func (zdo *Zdo) sync_request(request Command, address uint16, timeout time.Durat
 		return *NewCommand(0)
 	}
 	cmd := zdo.eh.wait(id, timeout)
+	log.Printf("Command sync answer 0x%04x (%s)\n", uint16(cmd.Id), cmd.String())
 
 	return cmd
 }
 
 // Асинхронный звапрос. Ответ не ждем вообще
-func (zdo *Zdo) async_request(request Command, address uint16, timeout time.Duration) error {
+// Можно ждать AF_DATA_CONFIRM, он приходит с кодом команды и номером транзакции
+// asyncResponceId  это не commandId! Для AF_DATA_REQUEST(0x2401) это AF_DATA_CONFIRM(0x4480)
+func (zdo *Zdo) async_request(request Command, asyncResponceId uint16) error {
+	log.Printf("Command async 0x%04x(%s)  wait answer 0x%04x (%s) \n", uint16(request.Id), request.String(), asyncResponceId, Command_to_string(CommandId(request.Id)))
+
 	buff := zdo.prepare_command(request)
 	err := zdo.Uart.Send_command_to_device(buff)
 	return err
@@ -145,11 +151,14 @@ func (zdo *Zdo) InputCommand() {
 				zdo.tmpBuff = []byte{}
 			}
 			for _, command := range commands {
+				fmt.Printf("Input command 0x%04x ", command.Id)
 				// Если ответ на синхронный запрос, то просто эмиттируем событие
 				if command.Id&0x6000 == 0x6000 || command.Id == SYS_RESET_IND {
+					fmt.Println("sync ")
 					zdo.eh.emit(command.Id, command)
-
 				} else {
+					fmt.Println("async ")
+
 					// Для каждой внешней асинхронной команды запускаем свой поток
 					go func(cmd Command) {
 						cmd.Ts = time.Now().Unix()
@@ -259,7 +268,7 @@ func (zdo *Zdo) Reset() error {
 	if err != nil {
 		return err
 	}
-	//	log.Println("WriteNv success")
+	log.Println("WriteNv success")
 
 	reset_request := New2(SYS_RESET_REQ, 1)
 	reset_request.Payload[0] = byte(zcl.RESET_TYPE_SOFT)
@@ -301,7 +310,7 @@ func (zdo *Zdo) write_nvram(item zcl.NvItems, item_data []byte) error {
 		data[i+4] = e
 	}
 	write_nv_request.Set_data(data)
-	response := zdo.sync_request(*write_nv_request, 0, 30*time.Second)
+	response := zdo.sync_request(*write_nv_request, 30*time.Second)
 	//	 log.Printf("response- %q \n", response)
 	if response.Id != 0x0000 && response.Payload[0] == byte(zcl.SUCCESS) {
 		return nil
@@ -318,7 +327,7 @@ func (zdo *Zdo) read_nvram(item zcl.NvItems) []byte {
 	read_nv_request.Payload[1] = zcl.HIGHBYTE(uint16(item))
 	read_nv_request.Payload[2] = 0 // Number of bytes offset from the beginning or the NV value.
 
-	read_nv_response := zdo.sync_request(*read_nv_request, 0, 10*time.Second)
+	read_nv_response := zdo.sync_request(*read_nv_request, 10*time.Second)
 	if read_nv_response.Id != 0x0000 && read_nv_response.Payload[0] == byte(zcl.SUCCESS) {
 		return read_nv_response.Payload[2:]
 	} else {
@@ -391,7 +400,7 @@ func (zdo *Zdo) init_nvram(item zcl.NvItems, length uint16, item_data []byte) er
 	for i := 0; i < len(item_data); i++ {
 		init_nv_request.Payload[5+i] = item_data[i]
 	}
-	init_nv_response := zdo.sync_request(*init_nv_request, 0, 3*time.Second)
+	init_nv_response := zdo.sync_request(*init_nv_request, 3*time.Second)
 	// 0x00 = Item already exists, no action taken
 	// 0x09 = Success, item created and initialized
 	// 0x0A = Initialization failed, item not created
@@ -408,13 +417,13 @@ func (zdo *Zdo) Startup(delay time.Duration) error {
 	startup_request.Payload[0] = zcl.LOWBYTE(uint16(delay))
 	startup_request.Payload[1] = zcl.HIGHBYTE(uint16(delay))
 
-	startup_response := zdo.sync_request(*startup_request, 0, 3*time.Second)
+	startup_response := zdo.sync_request(*startup_request, 3*time.Second)
 
 	if startup_response.Id == 0 || startup_response.Payload[0] == byte(zcl.NOT_STARTED) {
 		log.Println("startup error 1")
 		return errors.New("startup error 1")
 	}
-	device_info_response := zdo.sync_request(*NewCommand(UTIL_GET_DEVICE_INFO), 0, 10*time.Second)
+	device_info_response := zdo.sync_request(*NewCommand(UTIL_GET_DEVICE_INFO), 10*time.Second)
 	if device_info_response.Id != 0 && device_info_response.Payload[0] == byte(zcl.SUCCESS) {
 
 		zdo.macAddress = binary.LittleEndian.Uint64(device_info_response.Payload[1:10])
@@ -449,7 +458,7 @@ func (zdo *Zdo) RegisterEndpointDescriptor(endpoint_descriptor Simple_descriptor
 	register_ep_request.Payload[7] = 0 // input cluster size
 	register_ep_request.Payload[8] = 0 // output cluster size
 
-	response := zdo.sync_request(*register_ep_request, 0, 3*time.Second)
+	response := zdo.sync_request(*register_ep_request, 3*time.Second)
 	if response.Id != 0 && response.Payload[0] == byte(zcl.SUCCESS) {
 		return nil
 	} else {
@@ -458,6 +467,7 @@ func (zdo *Zdo) RegisterEndpointDescriptor(endpoint_descriptor Simple_descriptor
 }
 
 // Enable pairing mode for duration seconds
+// Это синхронная команда
 func (zdo *Zdo) PermitJoin(duration time.Duration) error {
 
 	permitJoinRequest := New2(ZDO_MGMT_PERMIT_JOIN_REQ, 5)
@@ -467,7 +477,8 @@ func (zdo *Zdo) PermitJoin(duration time.Duration) error {
 	permitJoinRequest.Payload[3] = byte(120) //  duration.
 	permitJoinRequest.Payload[4] = 0x00      // Trust Center Significance (0).
 
-	return zdo.async_request(*permitJoinRequest, 0, 3*time.Second)
+	zdo.sync_request(*permitJoinRequest, 3*time.Second)
+	return nil
 }
 
 func (zdo *Zdo) ParseZclData(data []byte) zcl.Frame {
@@ -496,6 +507,8 @@ func (zdo *Zdo) ParseZclData(data []byte) zcl.Frame {
 }
 
 // send a message to a specific device
+// На этот запрос придет сначала ответ с AF_DATA_CONFIRM со статусом приема команды и номером транзакции
+// Можно попробовать использовать в эмиттере для асинхронных команд
 func (zdo *Zdo) SendMessage(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame) error {
 	var message Message = Message{}
 	message.Cluster = cl
@@ -513,7 +526,7 @@ func (zdo *Zdo) SendMessage(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame) er
 	afDataRequest.Payload[4] = zcl.LOWBYTE(uint16(message.Cluster))
 	afDataRequest.Payload[5] = zcl.HIGHBYTE(uint16(message.Cluster))
 	afDataRequest.Payload[6] = transactionNumber
-	afDataRequest.Payload[7] = 0
+	afDataRequest.Payload[7] = 0 // Options
 	afDataRequest.Payload[8] = 7 // DEFAULT_RADIUS
 	afDataRequest.Payload[10] = byte(message.ZclFrame.FrameControl.Ftype&0b00000011) +
 		byte(message.ZclFrame.FrameControl.ManufacturerSpecific)<<2 +
@@ -539,7 +552,7 @@ func (zdo *Zdo) SendMessage(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame) er
 	afDataRequest.Payload[9] = i                      // data length
 	afDataRequest.Payload = afDataRequest.Payload[:i] // cut superfluous
 
-	return zdo.async_request(*afDataRequest, message.Destination.Address, 10*time.Second)
+	return zdo.async_request(*afDataRequest, uint16(AF_DATA_CONFIRM))
 }
 
 // get endpoint list from device
@@ -549,7 +562,8 @@ func (zdo *Zdo) ActiveEndpoints(address uint16) error {
 	activeEndpointsRequest.Payload[1] = zcl.HIGHBYTE(address)
 	activeEndpointsRequest.Payload[2] = zcl.LOWBYTE(address)
 	activeEndpointsRequest.Payload[3] = zcl.HIGHBYTE(address)
-	return zdo.async_request(*activeEndpointsRequest, address, 3*time.Second)
+	zdo.sync_request(*activeEndpointsRequest, 3*time.Second) // TODO handle answer
+	return nil
 }
 
 // get endpoint descriptor from device
@@ -560,11 +574,13 @@ func (zdo *Zdo) Simple_descriptor(address uint16, endpointNumber uint8) error {
 	activeEndpointsRequest.Payload[2] = zcl.LOWBYTE(address)
 	activeEndpointsRequest.Payload[3] = zcl.HIGHBYTE(address)
 	activeEndpointsRequest.Payload[4] = endpointNumber
-	return zdo.async_request(*activeEndpointsRequest, address, 3*time.Second)
+	zdo.sync_request(*activeEndpointsRequest, 3*time.Second) // TODO handle answer
+	return nil
 
 }
 
 // bind device with zhub
+// синхронный запрос
 func (zdo *Zdo) Bind(shortAddress uint16, macAddress uint64, endpoint uint8, cluster zcl.Cluster) error {
 	bindRequest := NewCommand(ZDO_BIND_REQ)
 	bindRequest.Payload = []byte{}
@@ -587,12 +603,13 @@ func (zdo *Zdo) Bind(shortAddress uint16, macAddress uint64, endpoint uint8, clu
 	}
 	bindRequest.Payload = append(bindRequest.Payload, 1)
 
-	return zdo.async_request(*bindRequest, shortAddress, 5*time.Second)
+	zdo.sync_request(*bindRequest, 3*time.Second) // TODO handle answer
+	return nil
 }
 
 // handler the specific command
 func (zdo *Zdo) handle_command(command Command) {
-	// log.Printf("zdo.handle_command:: input_command cmd.id: 0x%04x %s \n", uint16(command.Id), Command_to_string(command.Id))
+	log.Printf("zdo.handle_command:: input_command cmd.id: 0x%04x %s \n", uint16(command.Id), Command_to_string(command.Id))
 	switch command.Id {
 	case AF_INCOMING_MSG: // 0x4481 Incomming message from device
 		if !zdo.isReady {
@@ -600,16 +617,16 @@ func (zdo *Zdo) handle_command(command Command) {
 		}
 		zdo.msgChan <- command // send incoming message to controller
 
-	case ZDO_STATE_CHANGE_IND: // the status of the coordinator has changed
+	case ZDO_STATE_CHANGE_IND: // 0x45c0 the status of the coordinator has changed
 		log.Printf("New zhub status = %d \n", command.Payload[0])
 		if command.Payload[0] == 9 {
 			zdo.isReady = true
 		}
 
-	case ZDO_MGMT_PERMIT_JOIN_RSP: // coordinator in "permit join" state
+	case ZDO_MGMT_PERMIT_JOIN_RSP: // 0x45b6 coordinator in "permit join" state
 		log.Printf("Zhub permit join status = %d\n", command.Payload[2])
 
-	case ZDO_PERMIT_JOIN_IND: // duration permit join in seconds
+	case ZDO_PERMIT_JOIN_IND: // 0x45cb duration permit join in seconds
 		log.Printf("Zhub permit for %d seconds \n", command.Payload[0])
 
 	case ZDO_END_DEVICE_ANNCE_IND: //  0x45c1 anounce new device
@@ -709,13 +726,24 @@ func (zdo *Zdo) handle_command(command Command) {
 		ZDO_SRC_RTG_IND, // 0x45c4
 		ZDO_BIND_RSP,    // 0x45a1
 		ZDO_LEAVE_IND,
-		AF_DATA_CONFIRM,                        // 0x4480
 		APP_CNF_BDB_COMMISSIONING_NOTIFICATION: // 0x4F80
 		{
+			log.Printf("unattended команда 0x%08X %s \n", command.Id, command.String())
+		}
+	case AF_DATA_CONFIRM: // 0x4480
+		// 0x4480 Отвечает на запрос AF_DATA_REQUEST
+		// Cmd0 = 0x44 Cmd1 = 0x80 Status Endpoint TransID
+		// Length = 0x03 Attributes:
+		// 1 Status is either Success (0) or Failure (1).
+		// 1 Endpoint of the device
+		// 1 Specifies the transaction sequence number of the message
+		fmt.Printf("AF_DATA_CONFIRM: payload len = %d, payload:  ", command.Payload_size())
+		for i := 0; i < int(command.Payload_size()); i++ {
+			fmt.Printf("0x%02x ", command.Payload[i])
 		}
 
 	default: // all sync commands and unknown commands
-		log.Printf("Неизвестная команда 0x%08X \n", command.Id)
+		log.Printf("Неизвестная команда 0x%04X \n", command.Id)
 	}
 
 }
