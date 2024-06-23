@@ -214,7 +214,7 @@ func Command_to_string(c CommandId) string {
 type CommandId uint16
 
 const (
-	//System
+	//System  (команды синхронные)
 	SYS_RESET_REQ              CommandId = 0x4100
 	SYS_RESET_IND              CommandId = 0x4180
 	SYS_PING                   CommandId = 0x2101
@@ -234,9 +234,9 @@ const (
 	SYS_VERSION                CommandId = 0x2102
 	SYS_VERSION_SRSP           CommandId = 0x6102
 
-	// ZDO
+	// ZDO (команды исходящие синхронные)
+	ZDO_STARTUP_FROM_APP      CommandId = 0x2540
 	ZDO_STARTUP_FROM_APP_SRSP CommandId = 0x6540
-	ZDO_STATE_CHANGE_IND      CommandId = 0x45c0
 	ZDO_BIND_REQ              CommandId = 0x2521
 	ZDO_BIND_RSP              CommandId = 0x45a1
 	ZDO_BIND_SRSP             CommandId = 0x6521
@@ -265,7 +265,7 @@ const (
 	ZDO_IEEE_ADDR_REQ         CommandId = 0x2501
 	ZDO_IEEE_ADDR_REQ_SRSP    CommandId = 0x6501
 	ZDO_IEEE_ADDR_RSP         CommandId = 0x4581
-	ZDO_STARTUP_FROM_APP      CommandId = 0x2540
+	ZDO_STATE_CHANGE_IND      CommandId = 0x45c0
 
 	// AF
 	AF_REGISTER          CommandId = 0x2400

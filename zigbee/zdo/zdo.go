@@ -73,7 +73,7 @@ func ZdoCreate(port string, os string, chn chan Command, jchn chan []byte) (*Zdo
 		Uart:                      uart,
 		Cmdinput:                  cmdinput,
 		transactionNumber:         0,
-		transactionSecuenseNumber: 0,
+		transactionSecuenseNumber: 50,
 		tnMutex:                   sync.Mutex{},
 		tsnMutex:                  sync.Mutex{},
 		macAddress:                0x0000000000000000,
@@ -95,7 +95,7 @@ func (zdo *Zdo) Stop() {
 // Синхронный запрос, нужно обязательно ждать ответа
 func (zdo *Zdo) sync_request(request Command, timeout time.Duration) Command {
 
-	log.Printf("Command sync 0x%04x (%s)\n", uint16(request.Id), request.String())
+	//	log.Printf("Command sync 0x%04x (%s)\n", uint16(request.Id), request.String())
 	var id CommandId = CommandId((uint16(request.Id) | 0b0100000000000000)) // идентификатор синхронного ответа
 	zdo.eh.AddEvent(id)
 	buff := zdo.prepare_command(request)
@@ -106,12 +106,12 @@ func (zdo *Zdo) sync_request(request Command, timeout time.Duration) Command {
 		return *NewCommand(0)
 	}
 	cmd := zdo.eh.wait(id, timeout)
-	log.Printf("Command sync answer 0x%04x (%s)\n", uint16(cmd.Id), cmd.String())
+	//	log.Printf("Command sync answer 0x%04x (%s)\n", uint16(cmd.Id), cmd.String())
 
 	return cmd
 }
 
-// Асинхронный звапрос. Ответ не ждем вообще
+// Асинхронный запрос. Ответ не ждем вообще
 // Можно ждать AF_DATA_CONFIRM, он приходит с кодом команды и номером транзакции
 // asyncResponceId  это не commandId! Для AF_DATA_REQUEST(0x2401) это AF_DATA_CONFIRM(0x4480)
 func (zdo *Zdo) async_request(request Command, asyncResponceId uint16) error {
@@ -151,13 +151,13 @@ func (zdo *Zdo) InputCommand() {
 				zdo.tmpBuff = []byte{}
 			}
 			for _, command := range commands {
-				fmt.Printf("Input command 0x%04x ", command.Id)
+				//				fmt.Printf("Input command 0x%04x ", command.Id)
 				// Если ответ на синхронный запрос, то просто эмиттируем событие
 				if command.Id&0x6000 == 0x6000 || command.Id == SYS_RESET_IND {
-					fmt.Println("sync ")
+					//					fmt.Println("sync ")
 					zdo.eh.emit(command.Id, command)
 				} else {
-					fmt.Println("async ")
+					//					fmt.Println("async ")
 
 					// Для каждой внешней асинхронной команды запускаем свой поток
 					go func(cmd Command) {
@@ -517,6 +517,7 @@ func (zdo *Zdo) SendMessage(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame) er
 	message.ZclFrame = frame
 	message.LinkQuality = 0
 	transactionNumber := zdo.Generate_transaction_number()
+	log.Printf("SendMessage Transaction number %d TransactionSequenceNumber %d\n", transactionNumber, message.ZclFrame.TransactionSequenceNumber)
 
 	afDataRequest := New2(AF_DATA_REQUEST, 255)
 	afDataRequest.Payload[0] = zcl.LOWBYTE(message.Destination.Address)
@@ -609,7 +610,7 @@ func (zdo *Zdo) Bind(shortAddress uint16, macAddress uint64, endpoint uint8, clu
 
 // handler the specific command
 func (zdo *Zdo) handle_command(command Command) {
-	log.Printf("zdo.handle_command:: input_command cmd.id: 0x%04x %s \n", uint16(command.Id), Command_to_string(command.Id))
+	//	log.Printf("zdo.handle_command:: input_command cmd.id: 0x%04x %s \n", uint16(command.Id), Command_to_string(command.Id))
 	switch command.Id {
 	case AF_INCOMING_MSG: // 0x4481 Incomming message from device
 		if !zdo.isReady {
@@ -728,7 +729,7 @@ func (zdo *Zdo) handle_command(command Command) {
 		ZDO_LEAVE_IND,
 		APP_CNF_BDB_COMMISSIONING_NOTIFICATION: // 0x4F80
 		{
-			log.Printf("unattended команда 0x%08X %s \n", command.Id, command.String())
+			// log.Printf("unattended команда 0x%08X %s \n", command.Id, command.String())
 		}
 	case AF_DATA_CONFIRM: // 0x4480
 		// 0x4480 Отвечает на запрос AF_DATA_REQUEST
@@ -737,10 +738,7 @@ func (zdo *Zdo) handle_command(command Command) {
 		// 1 Status is either Success (0) or Failure (1).
 		// 1 Endpoint of the device
 		// 1 Specifies the transaction sequence number of the message
-		fmt.Printf("AF_DATA_CONFIRM: payload len = %d, payload:  ", command.Payload_size())
-		for i := 0; i < int(command.Payload_size()); i++ {
-			fmt.Printf("0x%02x ", command.Payload[i])
-		}
+		fmt.Printf("AF_DATA_CONFIRM:  status %d: endpoint %d, TransId %d\n", command.Payload[0], command.Payload[1], command.Payload[2])
 
 	default: // all sync commands and unknown commands
 		log.Printf("Неизвестная команда 0x%04X \n", command.Id)
