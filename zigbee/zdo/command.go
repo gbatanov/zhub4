@@ -75,6 +75,10 @@ func (c *Command) Set_data(data []byte) {
 	copy(c.Payload, data)
 }
 
+func (c *Command) String() string {
+	return Command_to_string(c.Id)
+}
+
 // empty command
 func NewCommand(cmnd CommandId) *Command {
 	data := make([]byte, 0)
