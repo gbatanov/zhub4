@@ -52,8 +52,8 @@ type Command struct {
 func (c Command) Subsystem() byte {
 	return zcl.HIGHBYTE(uint16(c.Id)) & 0b00011111
 }
-func (c Command) Type() byte {
-	return zcl.HIGHBYTE(uint16(c.Id)) >> 5
+func (c Command) Type() COMMAND_TYPE {
+	return COMMAND_TYPE(zcl.HIGHBYTE(uint16(c.Id)) >> 5)
 }
 
 // control summ

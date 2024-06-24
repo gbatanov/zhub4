@@ -113,14 +113,15 @@ func (zdo *Zdo) sync_request(request Command, timeout time.Duration) Command {
 
 // Асинхронный запрос. Ответ не ждем вообще
 // Можно ждать AF_DATA_CONFIRM, он приходит с кодом команды и номером транзакции
-// asyncResponceId  это не commandId! Для AF_DATA_REQUEST(0x2401) это AF_DATA_CONFIRM(0x4480)
-func (zdo *Zdo) async_request(request Command, asyncResponceId uint16) error {
-	log.Printf("Command async 0x%04x(%s)  wait answer 0x%04x (%s) \n", uint16(request.Id), request.String(), asyncResponceId, Command_to_string(CommandId(request.Id)))
+func (zdo *Zdo) async_request(request Command, transactionNumber byte) byte {
+	///	log.Printf("Command async 0x%04x(%s)  wait answer 0x%04x (%s) \n", uint16(request.Id), request.String(), asyncResponceId, Command_to_string(CommandId(request.Id)))
 
 	buff := zdo.prepare_command(request)
 	err := zdo.Uart.Send_command_to_device(buff)
-	return err
-
+	if err != nil {
+		return 1
+	}
+	return zdo.eh.waitAsync(transactionNumber, 3*time.Second)
 }
 
 func (zdo *Zdo) prepare_command(command Command) []byte {
@@ -151,20 +152,21 @@ func (zdo *Zdo) InputCommand() {
 				zdo.tmpBuff = []byte{}
 			}
 			for _, command := range commands {
-				//				fmt.Printf("Input command 0x%04x ", command.Id)
+				// fmt.Printf("Input command 0x%04x ", command.Id)
 				// Если ответ на синхронный запрос, то просто эмиттируем событие
-				if command.Id&0x6000 == 0x6000 || command.Id == SYS_RESET_IND {
-					//					fmt.Println("sync ")
+				//				if command.Id&0x6000 == 0x6000 || command.Id == SYS_RESET_IND {
+				if command.Type() == SRSP || command.Id == SYS_RESET_IND {
+					// fmt.Println("sync ")
 					zdo.eh.emit(command.Id, command)
 				} else {
-					//					fmt.Println("async ")
+					// fmt.Println("async ")
 
-					// Для каждой внешней асинхронной команды запускаем свой поток
-					go func(cmd Command) {
-						cmd.Ts = time.Now().Unix()
-						cmd.Dir = false
-						zdo.handle_command(cmd)
-					}(command)
+					/// // Для каждой внешней асинхронной команды запускаем свой поток
+					/// go func(command Command) {
+					command.Ts = time.Now().Unix()
+					command.Dir = false
+					zdo.handle_command(command)
+					/// }(command)
 				}
 			}
 
@@ -516,8 +518,8 @@ func (zdo *Zdo) SendMessage(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame) er
 	message.Destination = ep
 	message.ZclFrame = frame
 	message.LinkQuality = 0
-	transactionNumber := zdo.Generate_transaction_number()
-	log.Printf("SendMessage Transaction number %d TransactionSequenceNumber %d\n", transactionNumber, message.ZclFrame.TransactionSequenceNumber)
+	transactionNumber := zdo.Generate_transaction_number() // это придет в ответе в AF_DATA_CONFIRM
+	///	log.Printf("SendMessage Transaction number %d TransactionSequenceNumber %d\n", transactionNumber, message.ZclFrame.TransactionSequenceNumber)
 
 	afDataRequest := New2(AF_DATA_REQUEST, 255)
 	afDataRequest.Payload[0] = zcl.LOWBYTE(message.Destination.Address)
@@ -526,9 +528,9 @@ func (zdo *Zdo) SendMessage(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame) er
 	afDataRequest.Payload[3] = message.Source.Number
 	afDataRequest.Payload[4] = zcl.LOWBYTE(uint16(message.Cluster))
 	afDataRequest.Payload[5] = zcl.HIGHBYTE(uint16(message.Cluster))
-	afDataRequest.Payload[6] = transactionNumber
-	afDataRequest.Payload[7] = 0 // Options
-	afDataRequest.Payload[8] = 7 // DEFAULT_RADIUS
+	afDataRequest.Payload[6] = transactionNumber // это придет в ответе в AF_DATA_CONFIRM
+	afDataRequest.Payload[7] = 0                 // Options
+	afDataRequest.Payload[8] = 7                 // DEFAULT_RADIUS
 	afDataRequest.Payload[10] = byte(message.ZclFrame.FrameControl.Ftype&0b00000011) +
 		byte(message.ZclFrame.FrameControl.ManufacturerSpecific)<<2 +
 		byte(message.ZclFrame.FrameControl.Direction)<<3 +
@@ -541,7 +543,7 @@ func (zdo *Zdo) SendMessage(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame) er
 		afDataRequest.Payload[i] = zcl.HIGHBYTE(message.ZclFrame.ManufacturerCode)
 		i++
 	}
-	afDataRequest.Payload[i] = message.ZclFrame.TransactionSequenceNumber
+	afDataRequest.Payload[i] = message.ZclFrame.TransactionSequenceNumber // это придет в ответе в INPUT_MESSAGE в аналогичном поле
 	i++
 	afDataRequest.Payload[i] = message.ZclFrame.Command
 	i++
@@ -553,7 +555,11 @@ func (zdo *Zdo) SendMessage(ep zcl.Endpoint, cl zcl.Cluster, frame zcl.Frame) er
 	afDataRequest.Payload[9] = i                      // data length
 	afDataRequest.Payload = afDataRequest.Payload[:i] // cut superfluous
 
-	return zdo.async_request(*afDataRequest, uint16(AF_DATA_CONFIRM))
+	status := zdo.async_request(*afDataRequest, transactionNumber)
+	if status != 0 {
+		return fmt.Errorf(`status %d `, status)
+	}
+	return nil
 }
 
 // get endpoint list from device
@@ -738,8 +744,8 @@ func (zdo *Zdo) handle_command(command Command) {
 		// 1 Status is either Success (0) or Failure (1).
 		// 1 Endpoint of the device
 		// 1 Specifies the transaction sequence number of the message
-		fmt.Printf("AF_DATA_CONFIRM:  status %d: endpoint %d, TransId %d\n", command.Payload[0], command.Payload[1], command.Payload[2])
-
+		///		fmt.Printf("AF_DATA_CONFIRM:  status %d: endpoint %d, TransId %d\n", command.Payload[0], command.Payload[1], command.Payload[2])
+		zdo.eh.emitAsync(command.Payload[0], command.Payload[2])
 	default: // all sync commands and unknown commands
 		log.Printf("Неизвестная команда 0x%04X \n", command.Id)
 	}
