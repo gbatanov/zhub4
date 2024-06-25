@@ -266,12 +266,13 @@ func (c *Controller) Stop() {
 	c.joinChan <- []byte{}
 }
 
-// command with incomming message handler
+// /////////////////////////////////////
+// Обработчик входящих команд
+// Каждая команда обрабатывается в своем потоке
 func (c *Controller) onMessage() {
 	for c.flag {
 		command := <-c.msgChan
 		if c.flag && command.Id > 0 {
-			//log.Printf("Command  0x%04x\n", command.Id)
 			go func(cmd zdo.Command) { c.messageHandler(cmd) }(command)
 		}
 	}
@@ -529,7 +530,7 @@ func (c *Controller) messageHandler(command zdo.Command) {
 	}
 
 	//	var ts uint32 = uint32(command.Payload[11]) + uint32(command.Payload[12])<<8 + uint32(command.Payload[13])<<16 + uint32(command.Payload[14])<<24
-	//	log.Printf("Cluster %s (0x%04X) device: %s \n", zcl.ClusterToString(message.Cluster), message.Cluster, ed.GetHumanName())
+	///	log.Printf("Cluster %s (0x%04X) device: %s transactionNumber: %d \n", zcl.ClusterToString(message.Cluster), message.Cluster, ed.GetHumanName(), message.ZclFrame.TransactionSequenceNumber)
 	/*
 		if message.Cluster != zcl.TIME { // too often
 			fmt.Printf("source endpoint shortAddr: 0x%04x ", message.Source.Address)
