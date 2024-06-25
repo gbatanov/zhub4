@@ -94,8 +94,6 @@ func (zdo *Zdo) Stop() {
 
 // Синхронный запрос, нужно обязательно ждать ответа
 func (zdo *Zdo) sync_request(request Command, timeout time.Duration) Command {
-
-	//	log.Printf("Command sync 0x%04x (%s)\n", uint16(request.Id), request.String())
 	var id CommandId = CommandId((uint16(request.Id) | 0b0100000000000000)) // идентификатор синхронного ответа
 	zdo.eh.AddEvent(id)
 	buff := zdo.prepare_command(request)
@@ -106,8 +104,6 @@ func (zdo *Zdo) sync_request(request Command, timeout time.Duration) Command {
 		return *NewCommand(0)
 	}
 	cmd := zdo.eh.wait(id, timeout)
-	//	log.Printf("Command sync answer 0x%04x (%s)\n", uint16(cmd.Id), cmd.String())
-
 	return cmd
 }
 
@@ -121,7 +117,8 @@ func (zdo *Zdo) async_request(request Command, transactionNumber byte) byte {
 	if err != nil {
 		return 1
 	}
-	return zdo.eh.waitAsync(transactionNumber, 3*time.Second)
+	// /	return zdo.eh.waitAsync(transactionNumber, 3*time.Second)
+	return 0
 }
 
 func (zdo *Zdo) prepare_command(command Command) []byte {
@@ -152,21 +149,13 @@ func (zdo *Zdo) InputCommand() {
 				zdo.tmpBuff = []byte{}
 			}
 			for _, command := range commands {
-				// fmt.Printf("Input command 0x%04x ", command.Id)
 				// Если ответ на синхронный запрос, то просто эмиттируем событие
-				//				if command.Id&0x6000 == 0x6000 || command.Id == SYS_RESET_IND {
 				if command.Type() == SRSP || command.Id == SYS_RESET_IND {
-					// fmt.Println("sync ")
 					zdo.eh.emit(command.Id, command)
 				} else {
-					// fmt.Println("async ")
-
-					/// // Для каждой внешней асинхронной команды запускаем свой поток
-					/// go func(command Command) {
 					command.Ts = time.Now().Unix()
 					command.Dir = false
-					zdo.handle_command(command)
-					/// }(command)
+					zdo.handle_command(command) // отправляем команду в обработчик
 				}
 			}
 
@@ -615,6 +604,7 @@ func (zdo *Zdo) Bind(shortAddress uint16, macAddress uint64, endpoint uint8, clu
 }
 
 // handler the specific command
+// Обработчик отправляет сообщение в нужный канал и завершает работу
 func (zdo *Zdo) handle_command(command Command) {
 	//	log.Printf("zdo.handle_command:: input_command cmd.id: 0x%04x %s \n", uint16(command.Id), Command_to_string(command.Id))
 	switch command.Id {
@@ -745,7 +735,7 @@ func (zdo *Zdo) handle_command(command Command) {
 		// 1 Endpoint of the device
 		// 1 Specifies the transaction sequence number of the message
 		///		fmt.Printf("AF_DATA_CONFIRM:  status %d: endpoint %d, TransId %d\n", command.Payload[0], command.Payload[1], command.Payload[2])
-		zdo.eh.emitAsync(command.Payload[0], command.Payload[2])
+		///		zdo.eh.emitAsync(command.Payload[0], command.Payload[2])
 	default: // all sync commands and unknown commands
 		log.Printf("Неизвестная команда 0x%04X \n", command.Id)
 	}

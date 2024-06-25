@@ -141,6 +141,6 @@ func (eh *EventHandler) waitAsync(id byte, timeout time.Duration) byte {
 func Create_event_handler() *EventHandler {
 	var eh EventHandler
 	eh.Events = make(map[CommandId]Event)
-	eh.EventsAsync = make(map[byte]EventAsync)
+	///	eh.EventsAsync = make(map[byte]EventAsync)
 	return &eh
 }

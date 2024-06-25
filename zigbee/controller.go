@@ -268,11 +268,11 @@ func (c *Controller) Stop() {
 
 // /////////////////////////////////////
 // Обработчик входящих команд
+// Каждая команда обрабатывается в своем потоке
 func (c *Controller) onMessage() {
 	for c.flag {
 		command := <-c.msgChan
 		if c.flag && command.Id > 0 {
-			//log.Printf("Command  0x%04x\n", command.Id)
 			go func(cmd zdo.Command) { c.messageHandler(cmd) }(command)
 		}
 	}
