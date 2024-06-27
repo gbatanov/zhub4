@@ -628,10 +628,10 @@ func (zdo *Zdo) handle_command(command Command) {
 
 	case ZDO_END_DEVICE_ANNCE_IND: //  0x45c1 anounce new device
 		fmt.Printf("ZDO_END_DEVICE_ANNCE_IND: payload len = %d, payload:  ", command.Payload_size())
-		for i := 0; i < int(command.Payload_size()); i++ {
-			fmt.Printf("0x%02x ", command.Payload[i])
-		}
-		fmt.Println()
+		//		for i := 0; i < int(command.Payload_size()); i++ {
+		//			fmt.Printf("0x%02x ", command.Payload[i])
+		//		}
+		//		fmt.Println()
 		zdo.joinChan <- command.Payload[2:]
 
 	case ZDO_ACTIVE_EP_RSP: // 0x4585 Endpoints from new device

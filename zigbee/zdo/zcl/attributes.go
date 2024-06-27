@@ -6,7 +6,10 @@ MIT License
 
 package zcl
 
-import "log"
+import (
+	"fmt"
+	"log"
+)
 
 // Table 2-11 ZCL Specification
 type DataType byte
@@ -174,9 +177,17 @@ type Attribute struct {
 }
 
 // return an array of bytes with array size and attribute type
-func ParseAttributesPayload(payload []byte, wStatus bool) []Attribute {
-	var attributes []Attribute = make([]Attribute, 0)
+func ParseAttributesPayload(payload []byte, wStatus bool) (attributes []Attribute) {
 
+	attributes = make([]Attribute, 0)
+	defer func() {
+		if vla := recover(); vla != nil {
+			for a := range payload {
+				fmt.Printf("0x%02x ", a)
+			}
+			log.Println(vla.(error))
+		}
+	}()
 	i := uint16(0)
 	valid := true
 	maxI := uint16(len(payload))

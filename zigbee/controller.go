@@ -388,7 +388,7 @@ func (c *Controller) joinDevice() {
 					c.writeMapToFile()
 					ed := c.getDeviceByMac(macAddress)
 					ed.ShortAddress = shortAddress
-					c.onJoin(shortAddress, macAddress)
+					go c.onJoin(shortAddress, macAddress)
 				}
 
 			} else {
@@ -397,7 +397,7 @@ func (c *Controller) joinDevice() {
 				c.devices[macAddress] = ed
 				c.devicessAddressMap[shortAddress] = macAddress
 				c.writeMapToFile()
-				c.onJoin(shortAddress, macAddress)
+				go c.onJoin(shortAddress, macAddress)
 			}
 		}
 	}
