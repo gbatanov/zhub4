@@ -8,6 +8,7 @@ package main
 import (
 	"bufio"
 	"errors"
+	"flag"
 	"log"
 	"os"
 	"os/signal"
@@ -22,18 +23,35 @@ import (
 	"github.com/gbatanov/zhub4/zigbee"
 )
 
-const Version string = "v0.11.104"
+const Version string = "v0.12.108"
 
 func main() {
 	var err error
 	var Flag bool = true
+
 	config := zigbee.GlobalConfig{}
 	config.Os = runtime.GOOS
 	rootDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err == nil {
 		config.ProgramDir = rootDir
+		log.Println(rootDir)
 	}
 
+	// Специальные команды выполняем только из директории разработки
+	cmdPtr := flag.String("cmd", "h", "Command")
+	flag.Parse()
+	switch *cmdPtr {
+	case "h":
+		//		if rootDir == `/home/gbatanov/work/zhub4` {
+		//			os.Exit(1)
+		//		}
+	case "f": // Импорт из файла в базу
+		BdImportFromFile()
+		os.Exit(0)
+	case "b": // Выгрузка из БД в файл
+		BdExportToFile()
+		os.Exit(0)
+	}
 	var controller *zigbee.Controller
 
 	log.Println("Start zhub4, version " + Version)
@@ -62,6 +80,7 @@ func main() {
 		return
 	}
 
+	controller.InitDb() //  Инициализируем БД до старта координатора, чтобы знать с какой БД работаем - PostgreSQL или файл
 	err = controller.StartNetwork()
 
 	if err != nil {
@@ -73,7 +92,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	wg.Add(1)
-	//
+	// получение команд из консоли
 	go func() {
 		for Flag {
 			reader := bufio.NewReader(os.Stdin)

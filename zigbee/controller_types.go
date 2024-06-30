@@ -10,10 +10,13 @@ import (
 	"time"
 
 	"github.com/gbatanov/sim800l/modem"
+	"github.com/gbatanov/zhub4/db"
 	"github.com/gbatanov/zhub4/telega32"
 	"github.com/gbatanov/zhub4/zigbee/clusters"
 	"github.com/gbatanov/zhub4/zigbee/zdo"
 )
+
+var MapFileMutex sync.Mutex
 
 type GlobalConfig struct {
 	// telegram bot
@@ -67,7 +70,6 @@ type Controller struct {
 	lastMotion          time.Time               // last motion any motion sensor
 	smartPlugTS         time.Time               // timestamp for smart plug timer
 	switchOffTS         bool                    // flag for switch off timer
-	mapFileMutex        sync.Mutex
 	tlg                 TlgBlock
 	http                HttpBlock
 	startTime           time.Time
@@ -78,6 +80,7 @@ type Controller struct {
 	coridorMotionState  uint8 // состояние датчиков движения в коридоре,
 	// бит 0 - кастом, бит 1 -датчик 1, бит 2 - датчик 3
 	coridorMotionMutex sync.RWMutex
+	Db                 *db.PostgresDB
 }
 type WebDeviceInfo struct {
 	ShortAddr string

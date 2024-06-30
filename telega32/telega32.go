@@ -14,10 +14,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-func init() {
-
-}
-
 // Сообщения снаружи боту
 type Message struct {
 	ChatId int64

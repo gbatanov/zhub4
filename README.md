@@ -36,5 +36,8 @@ sudo zhub4
 - q Quit
 - j Permit join
 
+#### History
+Since version 12, PostgreSQL is used instead of a configuration file.
+
 <p>Copyright(c) GSB, Georgii Batanov, 2022-2024<br>
 gbatanov@yandex.ru</p>

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/gbatanov/sim800l/modem"
+	"github.com/gbatanov/zhub4/db"
 	"github.com/gbatanov/zhub4/telega32"
 	"github.com/gbatanov/zhub4/zigbee/clusters"
 	"github.com/gbatanov/zhub4/zigbee/zdo"
@@ -23,7 +24,7 @@ import (
 
 func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 	chn1 := make(chan zdo.Command, 16)
-	chn2 := make(chan []byte, 12) // chan for join command shortAddr + macAddrj
+	chn2 := make(chan []byte, 64) // chan for join command shortAddr + macAddr, допустим сразу на 64 устройства одновременно
 	chn3 := make(chan clusters.MotionMsg, 16)
 	chn4 := make(chan clusters.MotionMsg, 1)
 	ts := time.Now()
@@ -65,7 +66,6 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 		lastMotion:          time.Now(),
 		smartPlugTS:         ts,
 		switchOffTS:         false,
-		mapFileMutex:        sync.Mutex{},
 		tlg:                 tlgBlock,
 		http:                httpBlock,
 		startTime:           time.Now(),
@@ -81,13 +81,18 @@ func ControllerCreate(config *GlobalConfig) (*Controller, error) {
 func (c *Controller) GetZdo() *zdo.Zdo {
 	return c.zdobj
 }
-func (c *Controller) StartNetwork() error {
+func (c *Controller) StartNetwork() (err error) {
 
+	defer func() {
+		if vla := recover(); vla != nil {
+			err = fmt.Errorf("panic error %s", vla.(error).Error())
+		}
+	}()
 	log.Println("Controller start network")
 	var defconf zdo.RF_Channels
 	defconf.Channels = c.config.Channels
 
-	err := c.tlg.tlg32.Run()
+	err = c.tlg.tlg32.Run()
 	if err == nil {
 		c.config.WithTlg = true
 		log.Println("Telegram bot started")
@@ -195,7 +200,7 @@ func (c *Controller) StartNetwork() error {
 		}
 	}
 
-	c.createDevicesByMap()
+	c.createDevicesByMap() // загружаем список устройств из БД или файла
 	// Старт таймера датчика движения Ikea
 	c.IkeaMotionTimer()
 	// Старт таймера датчика присутствия на кухне
@@ -210,12 +215,18 @@ func (c *Controller) StartNetwork() error {
 	go func() {
 		for c.flag {
 			time.Sleep(30 * time.Second)
-			c.getSmartPlugParams()
-			c.getCheckValves()
+			c.EveryHalfMinute()
+			time.Sleep(30 * time.Second) //1 minute
+			c.EveryMinute()
 			time.Sleep(30 * time.Second)
-			c.getSmartPlugParams()
-			c.getCheckValves()
-			c.getCheckRelay()
+			c.EveryHalfMinute()
+			time.Sleep(30 * time.Second) // 2 minute
+			c.EveryMinute()
+			time.Sleep(30 * time.Second)
+			c.EveryHalfMinute()
+			time.Sleep(30 * time.Second) // 3 minute
+			c.EveryMinute()
+			c.GetZdo().PermitJoin(60 * time.Second) // Разрешение спаривания каждые 3 минуты на 1 минуту
 
 		}
 	}()
@@ -245,6 +256,17 @@ func (c *Controller) StartNetwork() error {
 	return nil
 }
 
+func (c *Controller) EveryHalfMinute() {
+	c.getSmartPlugParams()
+	c.getCheckValves()
+
+}
+
+func (c *Controller) EveryMinute() {
+	c.EveryHalfMinute()
+	c.getCheckRelay()
+}
+
 func (c *Controller) Stop() {
 	log.Println("Controller stop")
 	c.flag = false
@@ -256,6 +278,9 @@ func (c *Controller) Stop() {
 	if c.config.WithModem {
 		defer c.mdm.Stop()
 	}
+
+	c.CloseDb()
+
 	// release channels
 	close(c.ikeaMotionChan)
 	close(c.kitchenPresenceChan)
@@ -264,6 +289,7 @@ func (c *Controller) Stop() {
 	c.chargerChan <- clusters.MotionMsg{Ed: &zdo.EndDevice{}, Cmd: 2}
 	c.motionMsgChan <- clusters.MotionMsg{Ed: &zdo.EndDevice{}, Cmd: 2}
 	c.joinChan <- []byte{}
+
 }
 
 // /////////////////////////////////////
@@ -300,18 +326,30 @@ func (c *Controller) writeMapToFile() error {
 	return nil
 }
 
+// read map from Db on start the program
+func (c *Controller) readMapFromDb() error {
+	MapFileMutex.Lock()
+	defer MapFileMutex.Unlock()
+	c.devicessAddressMap = make(map[uint16]uint64, 64) // Резервируем на 64 устройства
+
+	err := c.Db.ReadMap(&c.devicessAddressMap)
+
+	return err
+}
+
 // read map from file on start the program
 func (c *Controller) readMapFromFile() error {
-	m := sync.Mutex{}
-	m.Lock()
-	defer m.Unlock()
-	c.devicessAddressMap = map[uint16]uint64{}
+
+	MapFileMutex.Lock()
+	defer MapFileMutex.Unlock()
+	c.devicessAddressMap = make(map[uint16]uint64, 64) // Резервируем на 64 устройства
 
 	filename := c.config.MapPath
 
 	fd, err := os.OpenFile(filename, os.O_RDONLY, 0755)
 	if err != nil {
 		log.Println("ReadMap:: OpenFile error: ", err)
+		return err
 	} else {
 
 		var shortAddr uint16
@@ -339,16 +377,23 @@ func (c *Controller) readMapFromFile() error {
 // Called immediately after the start of the configurator
 // create devices by c.devicesAddressMap
 func (c *Controller) createDevicesByMap() {
-
-	err := c.readMapFromFile()
+	var err error
+	if c.Db == nil {
+		err = c.readMapFromFile()
+	} else {
+		err = c.readMapFromDb()
+	}
 	if err == nil {
 		for shortAddress, macAddress := range c.devicessAddressMap {
 			ed := zdo.EndDeviceCreate(macAddress, shortAddress)
 			c.devices[macAddress] = ed
 		}
+	} else {
+		panic(err)
 	}
 }
 
+// Обработка подключения нового устройства
 func (c *Controller) joinDevice() {
 	for c.flag {
 		FullAddr := <-c.joinChan
@@ -385,18 +430,32 @@ func (c *Controller) joinDevice() {
 						delete(c.devicessAddressMap, removingAddress)
 					}
 					c.devicessAddressMap[shortAddress] = macAddress
-					c.writeMapToFile()
+					if c.Db != nil {
+						err := c.updateMapInDb(shortAddress, macAddress)
+						if err != nil {
+							log.Printf("Controller::joinDevice: updateMapInDb error: %s\n", err.Error())
+						}
+					} else {
+						c.writeMapToFile()
+					}
 					ed := c.getDeviceByMac(macAddress)
 					ed.ShortAddress = shortAddress
 					go c.onJoin(shortAddress, macAddress)
 				}
 
-			} else {
+			} else { // Добавляем совсем новое устройство
 				log.Printf("Controller::joinDevice: create device\n")
 				ed := zdo.EndDeviceCreate(macAddress, shortAddress)
 				c.devices[macAddress] = ed
 				c.devicessAddressMap[shortAddress] = macAddress
-				c.writeMapToFile()
+				if c.Db != nil {
+					err := c.insertDevToMapInDb(shortAddress, macAddress)
+					if err != nil {
+						log.Printf("Controller::joinDevice: insertDevToMapInDb error: %s\n", err.Error())
+					}
+				} else {
+					c.writeMapToFile()
+				}
 				go c.onJoin(shortAddress, macAddress)
 			}
 		}
@@ -761,6 +820,7 @@ func (c *Controller) getCheckRelay() {
 }
 
 // call every 30 sec - Valves check
+// Асинхронная команда, без задержек
 func (c *Controller) getCheckValves() {
 
 	valves := zdo.GetDevicesByType(uint8(6))
@@ -804,6 +864,7 @@ func (c *Controller) afterMessageAction() {
 //
 
 // make a request to read an attribute (attributes)
+// Асинхронная команда, без задержек
 func (c *Controller) readAttribute(address uint16, cl zcl.Cluster, ids []uint16) error {
 
 	endpoint := zcl.Endpoint{Address: address, Number: 1}
@@ -1006,6 +1067,32 @@ func (c *Controller) checkWaterLeak() string {
 	return result
 }
 
+// Подключение к PostgreSQL
+func (c *Controller) InitDb() {
+	db, err := db.OpenDb()
+	if err != nil {
+		c.Db = nil
+		log.Println(err)
+	}
+	c.Db = db
+}
+func (c *Controller) CloseDb() {
+	if c.Db != nil {
+		c.Db.CloseDb()
+	}
+}
+
+// Апдэйтим запись в БД, по заданному macAddress меняем для него shortAddress
+func (c *Controller) updateMapInDb(shortAddress uint16, macAddress uint64) error {
+	return c.Db.UpdateMap(shortAddress, macAddress)
+}
+
+// Вставляем новую запись в мап адресов в БД
+func (c *Controller) insertDevToMapInDb(shortAddress uint16, macAddress uint64) error {
+	return c.Db.InsertIntoMap(shortAddress, macAddress)
+}
+
+// Функция ищет ключ в мапе адресов по значению
 func Mapkey(m map[uint16]uint64, value uint64) (key uint16, ok bool) {
 	for k, v := range m {
 		if v == value {

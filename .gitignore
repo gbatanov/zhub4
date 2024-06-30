@@ -4,3 +4,5 @@ config.txt
 .tokens
 *.exe
 zhub4
+*.pub
+map_addr_copy.cfg
